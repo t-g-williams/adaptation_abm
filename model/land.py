@@ -55,6 +55,12 @@ class Land():
         inorganic += mineralization
         organic -= mineralization
 
+        ### constrain to be within bounds
+        organic[organic < 0] = 0
+        organic[organic > 1] = 1
+        inorganic[inorganic < 0] = 0
+        inorganic[inorganic > 1] = 1
+
         ### save final values
         self.inorganic[self.t[0]] = inorganic
         self.SOM[self.t[0]+1] = organic
