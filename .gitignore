@@ -1,0 +1,10 @@
+__pycache__/**
+scratch/**
+.git/**
+*.log
+.DS_Store
+*.ini
+.ipynb_checkpoints/
+
+# exceptions
+!.gitkeep
