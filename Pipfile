@@ -8,6 +8,8 @@ verify_ssl = true
 [packages]
 numpy = "*"
 jupyter = "*"
+matplotlib = "*"
+brewer2mpl = "*"
 
 [requires]
 python_version = "3.6"
