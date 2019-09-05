@@ -60,8 +60,9 @@ def inputs(mod, savedir):
     rndms = np.random.normal(mu, sd, 10000)
     ax3 = fig.add_subplot(133)
     ax3.hist(rndms, alpha=alpha)
-    ax3.set_xlabel('Initial wealth')
+    ax3.set_xlabel('Initial wealth (birr)')
     ax3.set_ylabel('Frequency')
+    fig.tight_layout()
 
     if isinstance(savedir, bool):
         return fig
@@ -72,8 +73,10 @@ def soil(mod, qs, savedir):
     fig = plt.figure(figsize=(8,4))
     ax1 = fig.add_subplot(121)
     ax2 = fig.add_subplot(122)
-    band_plot(mod.land.SOM, qs, ax1, 'Soil organic matter', [0,1])
-    band_plot(mod.land.inorganic, qs, ax2, 'Inorganic', [0,1])
+    band_plot(mod.land.organic, qs, ax1, 'Organic N (kg/ha)')
+    band_plot(mod.land.inorganic, qs, ax2, 'Inorganic N (kg/ha)')
+    ax1.set_ylim([0, ax1.get_ylim()[1]])
+    ax2.set_ylim([0, ax2.get_ylim()[1]])
 
     if isinstance(savedir, bool):
         return fig
@@ -89,8 +92,8 @@ def yields(mod, qs, savedir):
 
     band_plot(mod.land.rf_factors, qs, ax1, 'Rainfall effect', [0,1])
     band_plot(mod.land.nutrient_factors, qs, ax2, 'Nutrient effect', [0,1])
-    band_plot(mod.land.yields, qs, ax3, 'Crop yield')
-    band_plot(mod.agents.crop_production, qs, ax4, 'Crop production')
+    band_plot(mod.land.yields, qs, ax3, 'Crop yield (kg/ha)')
+    band_plot(mod.agents.crop_production, qs, ax4, 'Crop production (kg)')
 
     if isinstance(savedir, bool):
         return fig
@@ -114,7 +117,7 @@ def coping(mod, qs, savedir):
     ax2.set_xlabel('t')
     ax2.set_title("Frac that can't cope")
     ax2.set_ylim([0,1])
-    band_plot(mod.agents.wealth, qs, ax3, 'Wealth')
+    band_plot(mod.agents.wealth, qs, ax3, 'Wealth (birr)')
 
     if isinstance(savedir, bool):
         return fig
@@ -137,7 +140,7 @@ def n_plots(mod, savedir):
     y2s = np.full(xs.shape, np.nan)
     y3s = np.full(xs.shape, np.nan)
     y4s = np.full(xs.shape, np.nan)
-    ag_soil_quality = mod.land.land_to_agent(mod.land.SOM[-1], mod.agents.n_plots, mode='average')
+    ag_soil_quality = mod.land.land_to_agent(mod.land.organic[-1], mod.agents.n_plots, mode='average')
     for i, x in enumerate(xs):
         ags = mod.agents.n_plots == x
         if np.sum(ags) > 0:
@@ -152,15 +155,15 @@ def n_plots(mod, savedir):
 
     ax2.plot(xs, y2s, marker='o')
     ax2.set_xlabel('Number of plots')
-    ax2.set_title('Crop production')
+    ax2.set_title('Crop production (kg)')
 
     ax3.plot(xs, y3s, marker='o')
     ax3.set_xlabel('Number of plots')
-    ax3.set_title('Final SOM')
+    ax3.set_title('Final SOM (kg/ha)')
 
     ax4.plot(xs, y4s, marker='o')
     ax4.set_xlabel('Number of plots')
-    ax4.set_title('Wealth')
+    ax4.set_title('Wealth (birr)')
 
     if isinstance(savedir, bool):
         return fig
