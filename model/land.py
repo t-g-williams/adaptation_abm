@@ -46,6 +46,7 @@ class Land():
 
         ### agent inputs
         organic += self.livestock_SOM_input(agents) # kgN/ha
+        # inorganic += self.apply_fixed_fertilizer(agents) # kgN/ha ## NOT IN MODEL YET
 
         ### inorganic losses: loss of inorganic is a linear function of SOM
         losses = inorganic * (self.loss_min + (self.max_organic_N-organic) * (self.loss_max - self.loss_min))
@@ -99,12 +100,15 @@ class Land():
         agents.crop_production[t] = self.land_to_agent(self.yields[t] * self.area, agents.n_plots, mode='sum') # kg
         # code.interact(local=dict(globals(), **locals()))
 
-    def calculate_rainfall_factor(self, rain):
+    def calculate_rainfall_factor(self, rain, virtual=False):
         '''
         convert the rainfall value (in 0,1) to a yield reduction factor
         '''
         if rain > self.rain_crit:
-            return np.full(self.n_plots, 1) # no effect
+            if virtual:
+                return 1
+            else:
+                return np.full(self.n_plots, 1) # no effect
         else:
             # organic matter reduces rainfall sensitivity
             # first, calculate value with maximum organic N
@@ -112,6 +116,9 @@ class Land():
             b = self.rain_cropfail_low_SOM
             c = self.rain_crit
             eff_max = (a-rain) / (a-c)
+            # if this is a "virtual" calculation we don't account for the SOM
+            if virtual:
+                return max(eff_max, 0)
             # now, if SOM=0, how much is it reduced?
             # this is a function of the difference in the slopes of the two lines
             red_max = (c - rain) * (1/(c-b) - 1/(c-a))
@@ -120,6 +127,23 @@ class Land():
             mean_organic = np.mean(self.organic[[self.t[0], self.t[0]+1]], axis=0)
             rf_effects = eff_max - (1 - mean_organic/self.max_organic_N) * red_max
             return np.maximum(rf_effects, 0)
+
+    def apply_fixed_fertilizer(self, agents):
+        '''
+        simulate application of a fixed amount of fertilizer to fields
+        only for agents that are using this option
+        '''
+        fert_applied = np.full(self.n_plots, 0.)
+        ag = agents.adapt['fertilizer_fixed'][agents.t[0]]
+        if np.sum(ag) > 0:
+            # add to the fields
+            fields = np.in1d(self.owner, agents.id[ag]) # identify the fields
+            amt = self.all_inputs['adaptation']['fertilizer_fixed']['application_rate']
+            fert_applied[fields] = amt
+            # add costs to agents
+            agents.fert_costs[agents.t[0], ag] += amt * agents.fertilizer_cost * self.area * agents.n_plots[ag]
+        
+        return fert_applied
 
     def land_to_agent(self, vals, num_fields, mode='sum'):
         '''

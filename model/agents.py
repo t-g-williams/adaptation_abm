@@ -22,11 +22,14 @@ class Agents():
         self.wealth = np.full([self.T+1, self.N], np.nan)
         self.wealth[0] = np.random.normal(self.wealth_init_mean, self.wealth_init_sd, self.N)
         self.wealth[0][self.wealth[0]<0] = 0 # fix any -ve values
-        # cash requirements
+        # money
+        self.income = np.full([self.T+1, self.N], np.nan)
         self.cash_req = np.random.normal(self.cash_req_mean, self.cash_req_sd, self.N)
         # coping measures
         self.coping_rqd = np.full([self.T, self.N], False)
         self.cant_cope = np.full([self.T, self.N], False)
+        # adaptation option decisions
+        self.adapt = np.full([self.T+1, self.N], False)
 
     def init_farm_size(self):
         '''
@@ -37,7 +40,25 @@ class Agents():
             return np.random.poisson(self.land_mean, self.N)
         else:
             # all the same size
-            return np.full(self.N, self.land_mean)
+            return np.full(self.N, self.land_mean).astype(int)
+
+    def calculate_income(self, land, climate, adap_properties):
+        '''
+        calculate end-of-year income
+        '''
+        t = self.t[0]
+        # costs and payouts for adaptation option
+        adap_costs = np.full(self.N, 0.)
+        payouts = np.full(self.N, 0.)
+        if adap_properties['type'] == 'insurance':
+            # costs
+            adap_costs[self.adapt[t]] = adap_properties['cost'] * land.area * self.n_plots[self.adapt[t]]
+            # payouts
+            if climate.rain[t] < adap_properties['magnitude']:
+                payouts[self.adapt[t]] = adap_properties['payout'] * self.n_plots[self.adapt[t]] * land.area
+
+        # income = crop_sales + payouts - cash_req - adap_costs
+        self.income[t] = self.crop_sell_price*self.crop_production[t] + payouts - self.cash_req - adap_costs
 
     def coping_measures(self):
         '''
@@ -45,14 +66,28 @@ class Agents():
         and simulate coping measures
         '''
         t = self.t[0]
-        # income = crop_sales - cash_req
-        income = self.crop_sell_price*self.crop_production[t] - self.cash_req
-
-        ## coping measures
-        # assume those with -ve income were required to engage in coping measure
-        self.coping_rqd[t, income < 0] = True
+        # assume those with -ve income are required to engage in coping measure
+        self.coping_rqd[t, self.income[t] < 0] = True
         # add (or subtract) agent income to their wealth
         # this proxies the effect of buying (+ve income) or selling (-ve income) livestock
-        self.wealth[t+1] = self.wealth[t] + income
+        self.wealth[t+1] = self.wealth[t] + self.income[t]
         # record agents with -ve wealth (not able to cope)
         self.cant_cope[t, self.wealth[t+1] < 0] = True
+
+    def adaptation(self, adap_properties):
+        '''
+        simulate adaption decision-making
+        '''
+        t = self.t[0]
+        if self.adap_type == 'coping':
+            # agents engage in the adaptation option next period
+            # if they had to cope this period
+            self.adapt[t+1, self.coping_rqd[t]] = True
+        elif self.adap_type == 'switching':
+            # agents SWITCH adaptation types if they had to cope in this period
+            self.adapt[t+1, ~self.coping_rqd[t]] = self.adapt[t, ~self.coping_rqd[t]]
+            self.adapt[t+1, self.coping_rqd[t]] = ~self.adapt[t, self.coping_rqd[t]]
+        elif self.adap_type == 'affording':
+            # agents adapt if they can afford it
+            afford = self.wealth[t+1] >= adap_properties['cost']
+            self.adapt[t+1, afford] = True

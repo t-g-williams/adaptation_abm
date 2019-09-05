@@ -7,6 +7,7 @@ def compile():
     d['agents'] = agents()
     d['land'] = land()
     d['climate'] = climate()
+    d['adaptation'] = adaptation()
     return d
 
 def model():
@@ -17,11 +18,27 @@ def model():
         'seed' : 0,
         'sim_id' : 0,
         'rep_id' : 0,
+        'adaptation_option' : 'insurance' # set to a random string for baseline
+    }
+    return d
+
+def adaptation():
+    d = {
+        # 'fertilizer_fixed' : {
+        #     'application_rate' : 147.2, # kg/ha. median from LSMS (ALL fertilizer. i assume this equals Nitrogen)
+        #     },
+        'insurance' : {
+            'climate_percentile' : 0.1,
+            'payout_magnitude' : 1, # relative to the expected yield (assuming perfect soil quality). if =1.5, then payout = 1.5*expected_yield
+            },
     }
     return d
 
 def agents():
     d = {
+        # adaptation / decision-making
+        'adap_type' : 'coping', # coping, switching, or affording
+
         # plot ownership
         'land_heterogeneity' : True, # heterogeneity in number of plots?
         'land_mean' : 11.5, # mean number of land parcels. if heterogeneous, use poisson distribution
@@ -35,9 +52,7 @@ def agents():
         'cash_req_sd' : 0,
         # market prices
         'crop_sell_price' : 2.17, # birr/kg. mean 2015 maize price (FAO)
-
-        # decisions
-        # nothing for now
+        'fertilizer_cost' : 13.2, # birr/kg. median from 2015 LSMS
     }
     return d
 
@@ -60,7 +75,7 @@ def land():
         'rain_crit' : 0.8, # value at which rainfall starts to be limiting. 0.8 in CENTURY
         'rain_cropfail_high_SOM' : 0, # rainfall value at which crop yields are 0 with highest SOM. arbitrary
         'rain_cropfail_low_SOM' : 0.1, # rainfall value at which crop yields are 0 with lowest SOM. arbitrary
-        'random_effect_sd' : 0.2, # std dev of yield multiplier effect (normal distribution, mu=1)
+        'random_effect_sd' : 0, # std dev of yield multiplier effect (normal distribution, mu=1)
         'crop_CN_conversion' : 50, # from Century model curves (middle of the y axis) -- pretty arbitrary. represents C:N ratio kind of
     }
     return d
