@@ -37,7 +37,7 @@ class Agents():
             return np.random.poisson(self.land_mean, self.N)
         else:
             # all the same size
-            return np.full(self.land_mean, self.N)
+            return np.full(self.N, self.land_mean)
 
     def coping_measures(self):
         '''
@@ -45,7 +45,6 @@ class Agents():
         and simulate coping measures
         '''
         t = self.t[0]
-        
         # income = crop_sales - cash_req
         income = self.crop_sell_price*self.crop_production[t] - self.cash_req
 

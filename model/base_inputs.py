@@ -54,7 +54,8 @@ def land():
         'wealth_SOM_conversion' : 1/1000, # conversion factor from wealth to SOM input (a proxy for livestock manure)
 
         ##### yield #####
-        'max_yield' : 1, # maximum, unconstrained yield
+        'area' : 0.25, # ha (reasonable for Ethiopian context)
+        'max_yield' : 65.9, # maximum, unconstrained yield. 95%ile for Ethiopia-wide LSMS (all 3 years) maize yields
         'rain_crit' : 0.8, # value at which rainfall starts to be limiting
         'rain_cropfail_high_SOM' : 0.1, # rainfall value at which crop yields are 0 with highest SOM
         'rain_cropfail_low_SOM' : 0.3, # rainfall value at which crop yields are 0 with lowest SOM

@@ -23,7 +23,7 @@ class Model():
 
         # set the time
         # save as list so it is mutable (stays same over all objects)
-        self.t = self.agents.t = self.land.t = [0] 
+        self.t = self.agents.t = self.land.t = self.climate.t = [0] 
 
     def step(self):
         '''

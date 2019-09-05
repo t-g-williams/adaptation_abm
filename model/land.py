@@ -13,7 +13,7 @@ class Land():
 
         # how many total plots?
         self.n_plots = sum(agents.n_plots)
-        self.owner = np.repeat(agents.id, self.n_plots)
+        self.owner = np.repeat(agents.id, agents.n_plots)
 
         ##### soil properties #####
         # represents the START of the year
@@ -62,8 +62,8 @@ class Land():
         inorganic[inorganic > 1] = 1
 
         ### save final values
-        self.inorganic[self.t[0]] = inorganic
-        self.SOM[self.t[0]+1] = organic
+        self.inorganic[self.t[0]] = inorganic # end of this year (for yields)
+        self.SOM[self.t[0]+1] = organic # start of next year
 
     def livestock_SOM_input(self, agents):
         '''
@@ -79,7 +79,7 @@ class Land():
     def crop_yields(self, agents, climate):
         '''
         calculate crop yields
-        assume yield = (MAX * climate_reduction +/- error) * nutrient reduction
+        assume yield = (MAX_VAL * climate_reduction +/- error) * nutrient_reduction
         '''
         t = self.t[0]
         # rainfall effect
@@ -113,18 +113,21 @@ class Land():
             # this is a function of the difference in the slopes of the two lines
             red_max = (c - rain) * (1/(c-b) - 1/(c-a))
             # now factor in the fields' actual SOM values
-            rf_effects = eff_max - (1-self.SOM[self.t[0]]) * red_max
+            # assume the average of the start and end of the year
+            mean_SOM = np.mean(self.SOM[[self.t[0], self.t[0]+1]], axis=0)
+            rf_effects = eff_max - (1-mean_SOM) * red_max
             return rf_effects
 
     def land_to_agent(self, vals, num_fields, mode='sum'):
         '''
         convert a land-level property to an agent-level property.
+        assumes the owners of the land parcels are ordered (0, ..., N_frmrs)
         vectorized
         '''
         cumsums = np.concatenate(([0], np.cumsum(vals)))
         ends = np.cumsum(num_fields) # this is the index that corresponds to the final element of each agent's sum
-        starts = ends - num_fields # this is the index of the point BEFORE each agent's values starts
-        ag_sums = (cumsums[ends] - cumsums[starts])
+        starts = ends - num_fields
+        ag_sums = cumsums[ends] - cumsums[starts]
 
         if mode == 'sum':
             return ag_sums
