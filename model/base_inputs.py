@@ -18,7 +18,7 @@ def model():
         'seed' : 0,
         'sim_id' : 0,
         'rep_id' : 0,
-        'adaptation_option' : 'cover_crop' # set to a random string for baseline
+        'adaptation_option' : 'insurance' # set to a random string for baseline
     }
     return d
 

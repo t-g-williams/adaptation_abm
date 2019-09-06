@@ -10,6 +10,7 @@ numpy = "*"
 jupyter = "*"
 matplotlib = "*"
 brewer2mpl = "*"
+pickle = "*"
 
 [requires]
 python_version = "3.6"

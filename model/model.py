@@ -71,6 +71,7 @@ class Model():
         else:
             self.adap_properties = {
                 'adap' : False,
+                'type' : 'none'
             }
 
     def calc_insurance_cost(self):
