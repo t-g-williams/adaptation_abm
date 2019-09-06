@@ -26,6 +26,7 @@ def main(mod, save=True):
     yields(mod, qs, savedir)
     coping(mod, qs, savedir)
     n_plots(mod, savedir)
+    adaptation(mod, savedir)
 
 def inputs(mod, savedir):
     '''
@@ -101,10 +102,11 @@ def yields(mod, qs, savedir):
         fig.savefig(savedir + 'yields.png')
 
 def coping(mod, qs, savedir):
-    fig = plt.figure(figsize=(12,4))
-    ax1 = fig.add_subplot(131)
-    ax2 = fig.add_subplot(132)
-    ax3 = fig.add_subplot(133)
+    fig = plt.figure(figsize=(18,4))
+    ax1 = fig.add_subplot(141)
+    ax2 = fig.add_subplot(142)
+    ax3 = fig.add_subplot(143)
+    ax4 = fig.add_subplot(144)
 
     frac = np.mean(mod.agents.coping_rqd, axis=1)
     frac_cant = np.mean(mod.agents.cant_cope, axis=1)
@@ -118,6 +120,12 @@ def coping(mod, qs, savedir):
     ax2.set_title("Frac that can't cope")
     ax2.set_ylim([0,1])
     band_plot(mod.agents.wealth, qs, ax3, 'Wealth (birr)')
+
+    # trajectories
+    agent_trajectories(mod.agents.coping_rqd, ax4)
+    ax4.set_xlabel("No coping rqd (cumsum)")
+    ax4.set_ylabel('Coping rqd (cumsum)')
+    ax4.set_title('Agent coping trajectories')
 
     if isinstance(savedir, bool):
         return fig
@@ -150,6 +158,7 @@ def n_plots(mod, savedir):
             y4s[i] = np.mean(mod.agents.wealth[-1, ags])
 
     ax1.plot(xs, ys, marker='o')
+    ax1.set_ylim([0,1])
     ax1.set_xlabel('Number of plots')
     ax1.set_title('Coping frequency')
 
@@ -170,6 +179,56 @@ def n_plots(mod, savedir):
     else:
         fig.savefig(savedir + 'n_plots.png')
 
+def adaptation(mod, savedir):
+    '''
+    plot regional and agent-level adaptation trajectories
+    '''
+    adap = mod.agents.adapt
+    fig = plt.figure(figsize=(18,4))
+    ax1 = fig.add_subplot(131)
+    ax2 = fig.add_subplot(132)
+    ax3 = fig.add_subplot(133)
+
+    # 1. regional-level adoption
+    x1s = np.arange(adap.shape[0])
+    fracs = np.mean(adap, axis=1)
+    ax1.plot(x1s, fracs, marker='o')
+    ax1.set_ylim([0,1])
+    ax1.set_title('Fraction of population adapting')
+    ax1.set_xlabel('time (years)')
+    ax1.grid(False)
+
+    # 2. agent-level trajectories
+    agent_trajectories(adap, ax2)
+    ax2.set_xlabel('NOT adapt (cumsum)')
+    ax2.set_ylabel('Adapt (cumsum)')
+    ax2.set_title('Agent-level adaptation trajectories')
+
+    # 3. population-level transitions
+    scale = 80
+    scale2 = 5
+    # lines
+    for t in x1s[:-1]:
+        ax3.plot([t,t+1], [0,0], lw=scale2*np.mean((adap[t]==False) & (adap[t+1]==False)), color='b')
+        ax3.plot([t,t+1], [1,1], lw=scale2*np.mean((adap[t]==True) & (adap[t+1]==True)), color='b')
+        ax3.plot([t,t+1], [0,1], lw=scale2*np.mean((adap[t]==False) & (adap[t+1]==True)), color='b')
+        ax3.plot([t,t+1], [1,0], lw=scale2*np.mean((adap[t]==True) & (adap[t+1]==False)), color='b')
+    # points
+    ax3.scatter(x1s, np.full(x1s.shape, 0), s=(1-fracs)*scale, color='b')
+    ax3.scatter(x1s, np.full(x1s.shape, 1), s=(fracs)*scale, color='b')
+    ax3.set_xlabel('time (years)')
+    ax3.set_yticks([0,1])
+    ax3.set_yticklabels(['NOT adapt','Adapt'])
+    ax3.grid(False)
+    ax3.set_title('Population-level switches')
+
+    fig.tight_layout()
+    if isinstance(savedir, bool):
+        return fig
+    else:
+        fig.savefig(savedir + 'adaptation.png')
+
+
 def band_plot(d, qs, ax, title, ylim=False):
     '''
     create a plot with median and std deviations
@@ -185,3 +244,30 @@ def band_plot(d, qs, ax, title, ylim=False):
     if not isinstance(ylim, bool):
         ax.set_ylim(ylim)
     # code.interact(local=dict(globals(), **locals()))
+
+def agent_trajectories(d, ax):
+    '''
+    plot of agent trajectories w.r.t. a binary object (d)
+    '''
+    xs = np.cumsum(~d, axis=0)
+    ys = np.cumsum(d, axis=0)
+    # add sums of agents in each final state
+    finals = np.array([xs[-1], ys[-1]])
+    ends = []
+    counts = []
+    # loop over agents
+    for a in range(finals.shape[1]):
+        val = list(finals[:,a])
+        if val not in ends:
+            ends.append(val)
+            counts.append(1)
+        else:
+            counts[ends.index(val)] += 1
+    # add to plot
+    for i, en in enumerate(ends):
+        ax.text(en[0], en[1]+0.3, str(counts[i]), horizontalalignment='center')
+    # code.interact(local=dict(globals(), **locals()))
+    ax.plot(xs, ys, color='b')
+    mx = max(xs.max(), ys.max()) + 1.5
+    ax.set_ylim([0, mx])
+    ax.set_xlim([0, mx])
