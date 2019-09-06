@@ -36,7 +36,7 @@ class Land():
         # sample from uniform distribution
         self.organic[0] = np.random.uniform(self.organic_N_min_init, self.organic_N_max_init, self.n_plots)
 
-    def update_soil(self, agents):
+    def update_soil(self, agents, adap_properties):
         '''
         simulate the evolution of the land throughout the year
         '''
@@ -47,15 +47,16 @@ class Land():
         ### agent inputs
         organic += self.livestock_SOM_input(agents) # kgN/ha
         # inorganic += self.apply_fixed_fertilizer(agents) # kgN/ha ## NOT IN MODEL YET
+        organic += self.cover_crop_input(agents, adap_properties) # kgN/ha
+
+        ### constrain to be within bounds
+        organic[organic < 0] = 0
+        organic[organic > self.max_organic_N] = self.max_organic_N
 
         ### mineralization: assume a linear decay model
         mineralization = self.mineralization_rate * organic
         inorganic += mineralization
         organic -= mineralization
-
-        ### constrain to be within bounds
-        organic[organic < 0] = 0
-        organic[organic > self.max_organic_N] = self.max_organic_N
 
         ### inorganic losses: loss of inorganic is a linear function of SOM
         losses = inorganic * (self.loss_min + (self.max_organic_N-organic)/self.max_organic_N * (self.loss_max - self.loss_min))
@@ -78,6 +79,18 @@ class Land():
         wealth_per_field = np.maximum(wealth_per_field, 0) # assume ppl in debt have no livestock
         N_per_field = wealth_per_field / self.area * self.wealth_N_conversion # birr/field * field/ha * kgN/birr = kgN/ha
         return N_per_field
+
+    def cover_crop_input(self, agents, adap_properties):
+        '''
+        calculate the input from legume cover crops
+        '''
+        inputs = np.full(self.n_plots, 0.)
+        if adap_properties['type'] == 'cover_crop':
+            adap = agents.adapt[agents.t[0]]
+            fields = np.in1d(self.owner, agents.id[adap]) # identify the fields
+            inputs[fields] += adap_properties['N_fixation'] # kg/ha
+
+        return inputs
 
     def crop_yields(self, agents, climate):
         '''

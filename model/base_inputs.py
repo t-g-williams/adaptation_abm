@@ -18,7 +18,7 @@ def model():
         'seed' : 0,
         'sim_id' : 0,
         'rep_id' : 0,
-        'adaptation_option' : 'insurance' # set to a random string for baseline
+        'adaptation_option' : 'cover_crop' # set to a random string for baseline
     }
     return d
 
@@ -31,6 +31,10 @@ def adaptation():
             'climate_percentile' : 0.1,
             'payout_magnitude' : 1, # relative to the expected yield (assuming perfect soil quality). if =1.5, then payout = 1.5*expected_yield
             },
+        'cover_crop' : {
+            'N_fixation' : 80, # 80kg/ha representative of values reported in the literature. wittwer2017, buechi, couedel2018
+            'cost_factor' : 1, # assume the cost is the same as the annual cost of insurance multiplied by this factor
+        }
     }
     return d
 

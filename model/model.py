@@ -27,39 +27,28 @@ class Model():
         self.t = self.agents.t = self.land.t = self.climate.t = [0] 
         
         # initialize adaptation options
-        self.init_adaptation_options()
+        self.init_adaptation_option()
 
     def step(self):
         '''
         advance the simulation by one year
         '''
-        self.land.update_soil(self.agents)
+        self.land.update_soil(self.agents, self.adap_properties)
         self.land.crop_yields(self.agents, self.climate)
         self.agents.calculate_income(self.land, self.climate, self.adap_properties)
         self.agents.coping_measures()
-        self.agents.adaptation(self.adap_properties)
+        self.agents.adaptation(self.land, self.adap_properties)
         # increment the year
         self.t[0] += 1
 
-    def init_adaptation_options(self):
+    def init_adaptation_option(self):
         '''
-        calculate any required parameters for the selected adaptation option(s)
+        calculate any required parameters for the selected adaptation option
         '''
         if self.adaptation_option == 'insurance':
-            props = self.all_inputs['adaptation']['insurance']
             ## calculate the insurance cost and payout
             ## make it fair in expectation
-            ## NOTE : this doesn't incorporate soil quality reductions! so it's not fair if you don't have good soil quality
-            # calculate expected crop yield
-            rains = np.random.normal(self.climate.rain_mu, self.climate.rain_sd, 1000)
-            rain_facs = np.full(rains.shape, np.nan)
-            for r, rain in enumerate(rains):
-                rain_facs[r] = self.land.calculate_rainfall_factor(rain, virtual=True)
-            exp_yield = np.mean(rain_facs) * self.land.max_yield
-            exp_crop_income = exp_yield * self.agents.crop_sell_price # birr/ha
-            payout = exp_crop_income * props['payout_magnitude'] # birr/ha
-            cost = payout * props['climate_percentile'] # birr/ha
-            magnitude = np.percentile(rains, props['climate_percentile']*100)
+            [cost, payout, magnitude] = self.calc_insurance_cost()
             # save these
             self.adap_properties = {
                 'type' : 'insurance',
@@ -68,7 +57,38 @@ class Model():
                 'magnitude' : magnitude,
                 'adap' : True,
             }
+        elif self.adaptation_option == 'cover_crop':
+            # assume the cost is the same as insurance
+            cost = self.calc_insurance_cost()[0]
+            props = self.all_inputs['adaptation']['cover_crop']
+            self.adap_properties = {
+                'type' : 'cover_crop',
+                'cost' : cost * props['cost_factor'],
+                'N_fixation' : props['N_fixation'],
+                'adap' : True,
+            }
+
         else:
             self.adap_properties = {
                 'adap' : False,
             }
+
+    def calc_insurance_cost(self):
+        '''
+        calculate the annual cost for insurance, assuming fair payouts
+        and the given coverage (related to crop yields / income)
+        NOTE : this doesn't incorporate soil quality reductions! so it's not fair if you don't have good soil quality
+        calculate expected crop yield
+        '''
+        props = self.all_inputs['adaptation']['insurance']
+        rains = np.random.normal(self.climate.rain_mu, self.climate.rain_sd, 1000)
+        rain_facs = np.full(rains.shape, np.nan)
+        for r, rain in enumerate(rains):
+            rain_facs[r] = self.land.calculate_rainfall_factor(rain, virtual=True)
+        exp_yield = np.mean(rain_facs) * self.land.max_yield
+        exp_crop_income = exp_yield * self.agents.crop_sell_price # birr/ha
+        payout = exp_crop_income * props['payout_magnitude'] # birr/ha
+        cost = payout * props['climate_percentile'] # birr/ha
+        magnitude = np.percentile(rains, props['climate_percentile']*100)
+
+        return cost, payout, magnitude

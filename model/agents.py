@@ -56,6 +56,8 @@ class Agents():
             # payouts
             if climate.rain[t] < adap_properties['magnitude']:
                 payouts[self.adapt[t]] = adap_properties['payout'] * self.n_plots[self.adapt[t]] * land.area
+        elif adap_properties['type'] == 'cover_crop':
+            adap_costs[self.adapt[t]] = adap_properties['cost'] * land.area * self.n_plots[self.adapt[t]]
 
         # income = crop_sales + payouts - cash_req - adap_costs
         self.income[t] = self.crop_sell_price*self.crop_production[t] + payouts - self.cash_req - adap_costs
@@ -74,7 +76,7 @@ class Agents():
         # record agents with -ve wealth (not able to cope)
         self.cant_cope[t, self.wealth[t+1] < 0] = True
 
-    def adaptation(self, adap_properties):
+    def adaptation(self, land, adap_properties):
         '''
         simulate adaption decision-making
         '''
@@ -90,5 +92,5 @@ class Agents():
                 self.adapt[t+1, self.coping_rqd[t]] = ~self.adapt[t, self.coping_rqd[t]]
             elif self.adap_type == 'affording':
                 # agents adapt if they can afford it
-                afford = self.wealth[t+1] >= adap_properties['cost']
+                afford = self.wealth[t+1] >= (adap_properties['cost'] * land.area * self.n_plots)
                 self.adapt[t+1, afford] = True
