@@ -51,6 +51,7 @@ def agents():
         # initial (normal distribution)
         'wealth_init_mean' : 15000,
         'wealth_init_sd' : 0,
+        'max_wealth' : 3000*40, # 3000birr/head livestock and no ppl with more than 40 livestock. kind of from LSMS. a bit artibrary
         # requirements
         'cash_req_mean' : 17261, # 17261 birr/yr. median value from 2015 LSMS
         'cash_req_sd' : 0,

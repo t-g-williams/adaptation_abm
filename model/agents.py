@@ -75,6 +75,9 @@ class Agents():
         self.wealth[t+1] = self.wealth[t] + self.income[t]
         # record agents with -ve wealth (not able to cope)
         self.cant_cope[t, self.wealth[t+1] < 0] = True
+        # wealth constraints
+        self.wealth[t+1, self.wealth[t+1]>self.max_wealth] = self.max_wealth
+        self.wealth[t+1, self.wealth[t+1]<-self.max_wealth] = -self.max_wealth
 
     def adaptation(self, land, adap_properties):
         '''
