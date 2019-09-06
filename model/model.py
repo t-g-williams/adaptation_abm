@@ -65,9 +65,10 @@ class Model():
                 'type' : 'insurance',
                 'cost' : cost,
                 'payout' : payout,
-                'magnitude' : magnitude
+                'magnitude' : magnitude,
+                'adap' : True,
             }
         else:
             self.adap_properties = {
-                'type' : 'None'
+                'adap' : False,
             }

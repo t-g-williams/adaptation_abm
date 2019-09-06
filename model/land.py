@@ -48,10 +48,6 @@ class Land():
         organic += self.livestock_SOM_input(agents) # kgN/ha
         # inorganic += self.apply_fixed_fertilizer(agents) # kgN/ha ## NOT IN MODEL YET
 
-        ### inorganic losses: loss of inorganic is a linear function of SOM
-        losses = inorganic * (self.loss_min + (self.max_organic_N-organic) * (self.loss_max - self.loss_min))
-        inorganic -= losses
-
         ### mineralization: assume a linear decay model
         mineralization = self.mineralization_rate * organic
         inorganic += mineralization
@@ -60,7 +56,11 @@ class Land():
         ### constrain to be within bounds
         organic[organic < 0] = 0
         organic[organic > self.max_organic_N] = self.max_organic_N
-        inorganic[inorganic < 0] = 0
+
+        ### inorganic losses: loss of inorganic is a linear function of SOM
+        losses = inorganic * (self.loss_min + (self.max_organic_N-organic)/self.max_organic_N * (self.loss_max - self.loss_min))
+        inorganic -= losses
+        inorganic[inorganic < 0] = 0 # constrain
 
         ### save final values
         self.inorganic[self.t[0]] = inorganic # end of this year (for yields)

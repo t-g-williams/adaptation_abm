@@ -78,16 +78,17 @@ class Agents():
         '''
         simulate adaption decision-making
         '''
-        t = self.t[0]
-        if self.adap_type == 'coping':
-            # agents engage in the adaptation option next period
-            # if they had to cope this period
-            self.adapt[t+1, self.coping_rqd[t]] = True
-        elif self.adap_type == 'switching':
-            # agents SWITCH adaptation types if they had to cope in this period
-            self.adapt[t+1, ~self.coping_rqd[t]] = self.adapt[t, ~self.coping_rqd[t]]
-            self.adapt[t+1, self.coping_rqd[t]] = ~self.adapt[t, self.coping_rqd[t]]
-        elif self.adap_type == 'affording':
-            # agents adapt if they can afford it
-            afford = self.wealth[t+1] >= adap_properties['cost']
-            self.adapt[t+1, afford] = True
+        if adap_properties['adap']:
+            t = self.t[0]
+            if self.adap_type == 'coping':
+                # agents engage in the adaptation option next period
+                # if they had to cope this period
+                self.adapt[t+1, self.coping_rqd[t]] = True
+            elif self.adap_type == 'switching':
+                # agents SWITCH adaptation types if they had to cope in this period
+                self.adapt[t+1, ~self.coping_rqd[t]] = self.adapt[t, ~self.coping_rqd[t]]
+                self.adapt[t+1, self.coping_rqd[t]] = ~self.adapt[t, self.coping_rqd[t]]
+            elif self.adap_type == 'affording':
+                # agents adapt if they can afford it
+                afford = self.wealth[t+1] >= adap_properties['cost']
+                self.adapt[t+1, afford] = True
