@@ -15,11 +15,11 @@ for t in range(m.T):
     m.step()
 
 st2 = time.time()
-print(st2-st1)
+# print(st2-st1)
 
 # code.interact(local=dict(globals(), **locals()))
 # plot
 plt.main(m)
 
 st3 = time.time()
-print(st3-st2)
+# print(st3-st2)
