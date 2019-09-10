@@ -44,9 +44,12 @@ def agents():
         'adap_type' : 'affording', # coping, switching, or affording
 
         # plot ownership
-        'land_heterogeneity' : True, # heterogeneity in number of plots?
-        'land_mean' : 11.5, # 11.5 mean number of land parcels. if heterogeneous, use poisson distribution
-        
+        # 'land_heterogeneity' : True, # heterogeneity in number of plots?
+        'land_s' : 0.686, # fitted to LSMS 2015 data (lognormal distribution)
+        'land_loc' : -0.251, # ""
+        'land_scale' : 1.231, # ""
+        'land_max' : 4.38, # ha (95%ile of LSMS)
+
         ##### cash + wealth #####
         # initial (normal distribution)
         'wealth_init_mean' : 15000,

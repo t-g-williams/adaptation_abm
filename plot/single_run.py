@@ -1,5 +1,6 @@
 import matplotlib as mpl
 # mpl.use('Agg')
+import scipy.stats as stat
 import numpy as np
 import matplotlib.pyplot as plt
 import code
@@ -48,11 +49,15 @@ def inputs(mod, savedir):
     ax1.set_ylabel('Frequency')
 
     # 2. land plots
-    mu = mod.agents.land_mean
-    rndms = np.random.poisson(mu, 1000)
-    breaks = np.arange(0, rndms.max()+1)
+    # mu = mod.agents.land_mean
+    # rndms = np.random.poisson(mu, 1000)
+    rndm_area = stat.lognorm.rvs(mod.agents.land_s, loc=mod.agents.land_loc, scale=mod.agents.land_scale, size=1000)
+    rndm_area[rndm_area>mod.agents.land_max] = mod.agents.land_max
+    rndm_plots = np.round(rndm_area / mod.land.area).astype(int)
+    rndm_plots[rndm_plots <= 0] = 1
+    # breaks = np.arange(0, rndms.max()+1)
     ax2 = fig.add_subplot(132)
-    ax2.hist(rndms, breaks, alpha=alpha)
+    ax2.hist(rndm_plots, alpha=alpha)
     ax2.set_xlabel('Number of plots')
     ax2.set_ylabel('Frequency')
 

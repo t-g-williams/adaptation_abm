@@ -1,4 +1,5 @@
 import numpy as np
+import scipy.stats as stat
 import code
 
 class Agents():
@@ -34,13 +35,14 @@ class Agents():
     def init_farm_size(self):
         '''
         initialize agent-level farm size (number of pixels)
+        use values derived from LSMS
+        constrain them to be >0 and <MAX_VALUE
         '''
-        if self.land_heterogeneity:
-            # use poisson distribution
-            return np.random.poisson(self.land_mean, self.N)
-        else:
-            # all the same size
-            return np.full(self.N, self.land_mean).astype(int)
+        areas = stat.lognorm.rvs(self.land_s, loc=self.land_loc, scale=self.land_scale, size=self.N) # uses same seed as numpy
+        areas[areas > self.land_max] = self.land_max
+        n_plots = np.round(areas / self.all_inputs['land']['area']).astype(int)
+        n_plots[n_plots <= 0] = 1 # note due to -ve loc parameter we might get negative values
+        return n_plots
 
     def calculate_income(self, land, climate, adap_properties):
         '''

@@ -5,11 +5,38 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import code
+import scipy.stats as stat
 import copy
 
 def main():
     # expenditures()
-    fertilizer()
+    # fertilizer()
+    area()
+
+def area():
+    '''
+    fit distribution to area cultivated in 2015
+    '''
+    d = pd.read_csv('../data/LSMS/ethiopia_2015_formatted.csv', index_col=0)
+    a = np.array(d['area'])
+    fig, ax = plt.subplots()
+    perc = 95
+    qt = np.percentile(a, q=perc)
+    a2 = a[a<qt]
+
+    # plot simulated values
+    xs = np.linspace(0, a2.max(), 1000)
+    s, loc, scale = stat.lognorm.fit(a2)
+    ys = stat.lognorm.pdf(xs, s, loc, scale) 
+
+    ax.hist(a2, bins=20, label='LSMS', density=True)
+    ax.plot(xs, ys, label='fit')
+    ax.legend()
+    ax.set_xlabel('Area (ha)')
+    ax.text(ax.get_xlim()[1]*0.5, ax.get_ylim()[1]*0.5, 
+        's={}\nloc={}\nscale={}\n{}%={}ha'.format(np.round(s,3), np.round(loc,3), np.round(scale,3), perc, np.round(qt, 2)))
+    fig.savefig('../data/LSMS/areas.png')
+    # code.interact(local=dict(globals(), **locals()))
 
 def fertilizer():
     '''
