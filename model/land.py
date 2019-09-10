@@ -45,9 +45,11 @@ class Land():
         organic = copy.copy(self.organic[self.t[0]])
 
         ### agent inputs
-        organic += self.livestock_SOM_input(agents) # kgN/ha
         # inorganic += self.apply_fixed_fertilizer(agents) # kgN/ha ## NOT IN MODEL YET
-        organic += self.cover_crop_input(agents, adap_properties) # kgN/ha
+        residue = self.crop_residue_input()
+        livestock = self.livestock_SOM_input(agents) # kgN/ha
+        cover_crop = self.cover_crop_input(agents, adap_properties) # kgN/ha
+        organic += residue + livestock + cover_crop
 
         ### constrain to be within bounds
         organic[organic < 0] = 0
@@ -67,17 +69,29 @@ class Land():
         self.inorganic[self.t[0]] = inorganic # end of this year (for yields)
         self.organic[self.t[0]+1] = organic # start of next year
 
+    def crop_residue_input(self):
+        '''
+        apply crop residues from the previous year to fields
+        assume there's a conversion factor from the crop yields
+        and convert back to "nitrogen"
+        '''
+        if self.t[0] > 0:
+            return self.yields[self.t[0]-1] * self.residue_factor / self.crop_CN_conversion # kgN/ha = kg crop/ha * __ * kgN/kgC 
+        else:
+            return np.full(self.n_plots, 0.)
+
     def livestock_SOM_input(self, agents):
         '''
         use agents' wealth as a _proxy_ for livestock ownership
-        assuming that livestock manure applied to field = f(wealth)
+        assuming that the amount of additional SOM available 
+        (above the crop residues they have consumed)
+        is given by the fraction of their consumption that is from crop residue
         '''
-        # assume a linear conversion function
         # agents' wealth is split equally between their fields. birr / field
         wealth_per_field = agents.wealth[self.t[0]] / agents.n_plots
         wealth_per_field = np.repeat(wealth_per_field, agents.n_plots) # change shape
         wealth_per_field = np.maximum(wealth_per_field, 0) # assume ppl in debt have no livestock
-        N_per_field = wealth_per_field / self.area * self.wealth_N_conversion # birr/field * field/ha * kgN/birr = kgN/ha
+        N_per_field = wealth_per_field / self.area * self.wealth_N_conversion * (1-self.livestock_frac_crops) # birr/field * field/ha * kgN/birr * __ = kgN/ha
         return N_per_field
 
     def cover_crop_input(self, agents, adap_properties):

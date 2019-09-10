@@ -62,7 +62,7 @@ class Agents():
         # income = crop_sales + payouts - cash_req - adap_costs
         self.income[t] = self.crop_sell_price*self.crop_production[t] + payouts - self.cash_req - adap_costs
 
-    def coping_measures(self):
+    def coping_measures(self, land):
         '''
         calculate end-of-year income balance
         and simulate coping measures
@@ -75,9 +75,13 @@ class Agents():
         self.wealth[t+1] = self.wealth[t] + self.income[t]
         # record agents with -ve wealth (not able to cope)
         self.cant_cope[t, self.wealth[t+1] < 0] = True
-        # wealth constraints
-        self.wealth[t+1, self.wealth[t+1]>self.max_wealth] = self.max_wealth
-        self.wealth[t+1, self.wealth[t+1]<-self.max_wealth] = -self.max_wealth
+        # wealth (/livestock) constraints: can't carry more than your crop residues allows
+        max_ls = self.crop_production[t] * land.residue_factor / \
+                (land.livestock_residue_factor * land.livestock_frac_crops) # TLU = kgCrop * kgDM/kgCrop / kgDM/TLU / __
+        max_wealth = max_ls * self.livestock_cost
+        too_much = self.wealth[t+1] > max_wealth        
+        self.wealth[t+1, too_much] = max_wealth[too_much]
+        self.wealth[t+1, self.wealth[t+1] < self.max_neg_wealth] = self.max_neg_wealth
 
     def adaptation(self, land, adap_properties):
         '''

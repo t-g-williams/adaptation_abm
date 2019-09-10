@@ -18,7 +18,7 @@ def model():
         'seed' : 0,
         'sim_id' : 0,
         'rep_id' : 0,
-        'adaptation_option' : 'insurance' # set to a random string for baseline
+        'adaptation_option' : 'none' # set to a random string for baseline
     }
     return d
 
@@ -41,7 +41,7 @@ def adaptation():
 def agents():
     d = {
         # adaptation / decision-making
-        'adap_type' : 'coping', # coping, switching, or affording
+        'adap_type' : 'affording', # coping, switching, or affording
 
         # plot ownership
         'land_heterogeneity' : True, # heterogeneity in number of plots?
@@ -51,13 +51,14 @@ def agents():
         # initial (normal distribution)
         'wealth_init_mean' : 15000,
         'wealth_init_sd' : 0,
-        'max_wealth' : 3000*40, # 3000birr/head livestock and no ppl with more than 40 livestock. kind of from LSMS. a bit artibrary
+        'max_neg_wealth' : -100000, # birr. just for plotting. these ppl cant recover anyway
         # requirements
         'cash_req_mean' : 17261, # 17261 birr/yr. median value from 2015 LSMS
         'cash_req_sd' : 0,
         # market prices
         'crop_sell_price' : 2.17, # 2.17 birr/kg. mean 2015 maize price (FAO)
         'fertilizer_cost' : 13.2, # 13.2 birr/kg. median from 2015 LSMS
+        'livestock_cost' : 3000, # birr/head. Ethiopia CSA data 2015
     }
     return d
 
@@ -72,8 +73,7 @@ def land():
         'mineralization_rate' : 0.25, # 0.25 rate of mineralization from organic->inorganic (assume linear decay). taken loosely from berg2008: k=0.3-->exp(-0.3)~=0.75, so 0.25 mineralized
         'loss_max' : 0.5, # 0.5 inorganic loss fraction with no SOM. Di2002 data had ~50% maximum leaching rates of N. giller1997 says up to 50% in high-rainfall environments
         'loss_min' : 0.05, # 0.05 inorganic loss fraction with maximum SOM. Di2002 had ~5% minimum leaching.
-        'wealth_N_conversion' : 0.026, # 0.026 kgN/yr per birr. a proxy for livestock manure. derived as 3000birr/head and using values from Newcombe1987. nitrogen %age in manure also similar in Lupwayi2000
-
+        
         ##### yield #####
         'area' : 0.13, # 0.13 ha. mean in LSMS 2015
         'max_yield' : 6590, # 6590 kg/ha. maximum, unconstrained yield. 95%ile for Ethiopia-wide LSMS (all 3 years) maize yields
@@ -82,6 +82,12 @@ def land():
         'rain_cropfail_low_SOM' : 0.1, # rainfall value at which crop yields are 0 with lowest SOM. arbitrary
         'random_effect_sd' : 0, # std dev of yield multiplier effect (normal distribution, mu=1)
         'crop_CN_conversion' : 50, # 50 from Century model curves (middle of the y axis) -- pretty arbitrary. represents C:N ratio kind of
+
+        ##### livestock #####
+        'residue_factor' : 2 * 0.9, #  90% conversion efficiency, 2x crop yield->maize residue conversion factor (FAO1987), 
+        'wealth_N_conversion' : 0.026, # 0.026 kgN/yr per birr. a proxy for livestock manure. derived as 3000birr/head and using values from Newcombe1987. nitrogen %age in manure also similar in Lupwayi2000
+        'livestock_frac_crops' : 0.5, # fraction of livestock feed that comes from crops (in an ~average year). this influences the nitrogen input to farmland and the maximum herdsize attainable
+        'livestock_residue_factor' : 2280, # kg dry matter / TLU / year.(Amsalu2014)
     }
     return d
 

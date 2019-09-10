@@ -27,6 +27,7 @@ def main(mod, save=True):
     coping(mod, qs, savedir)
     n_plots(mod, savedir)
     adaptation(mod, savedir)
+    single_wealth(mod, savedir)
 
 def inputs(mod, savedir):
     '''
@@ -228,6 +229,18 @@ def adaptation(mod, savedir):
     else:
         fig.savefig(savedir + 'adaptation.png')
 
+
+def single_wealth(mod, savedir):
+    fig = plt.figure(figsize=(12,6))
+    ax = fig.add_subplot(111)
+    ax.plot(mod.agents.wealth)# / mod.agents.n_plots)
+    ax.set_xlabel('Time (yrs)')
+    ax.set_ylabel('Birr')
+    ax.set_title('Agent wealth trajectories')
+    if isinstance(savedir, bool):
+        return fig
+    else:
+        fig.savefig(savedir + 'single_wealth.png')
 
 def band_plot(d, qs, ax, title, ylim=False):
     '''
