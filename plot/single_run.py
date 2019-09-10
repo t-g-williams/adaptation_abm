@@ -23,12 +23,20 @@ def main(mod, save=True):
 
     qs = [1,5,50,95,99]
     inputs(mod, savedir)
-    soil(mod, qs, savedir)
-    yields(mod, qs, savedir)
-    coping(mod, qs, savedir)
-    n_plots(mod, savedir)
+
+    # plotting by agent type
+    type_wealth(mod, savedir)
+    type_coping(mod, savedir)
+    type_nutrients(mod, savedir)
+    type_yields(mod, savedir)
+
+    # band and original plots
+    # soil(mod, qs, savedir)
+    # yields(mod, qs, savedir)
+    # coping(mod, qs, savedir)
+    # n_plots(mod, savedir)
     adaptation(mod, savedir)
-    single_wealth(mod, savedir)
+    
 
 def inputs(mod, savedir):
     '''
@@ -49,15 +57,14 @@ def inputs(mod, savedir):
     ax1.set_ylabel('Frequency')
 
     # 2. land plots
-    # mu = mod.agents.land_mean
-    # rndms = np.random.poisson(mu, 1000)
-    rndm_area = stat.lognorm.rvs(mod.agents.land_s, loc=mod.agents.land_loc, scale=mod.agents.land_scale, size=1000)
-    rndm_area[rndm_area>mod.agents.land_max] = mod.agents.land_max
-    rndm_plots = np.round(rndm_area / mod.land.area).astype(int)
-    rndm_plots[rndm_plots <= 0] = 1
+    # rndm_area = stat.lognorm.rvs(mod.agents.land_s, loc=mod.agents.land_loc, scale=mod.agents.land_scale, size=1000)
+    # rndm_area[rndm_area>mod.agents.land_max] = mod.agents.land_max
+    # rndm_plots = np.round(rndm_area / mod.land.area).astype(int)
+    # rndm_plots[rndm_plots <= 0] = 1
+    rndms = np.random.choice(mod.agents.n_plots_init, size=1000)
     # breaks = np.arange(0, rndms.max()+1)
     ax2 = fig.add_subplot(132)
-    ax2.hist(rndm_plots, alpha=alpha)
+    ax2.hist(rndms, alpha=alpha)
     ax2.set_xlabel('Number of plots')
     ax2.set_ylabel('Frequency')
 
@@ -234,18 +241,95 @@ def adaptation(mod, savedir):
     else:
         fig.savefig(savedir + 'adaptation.png')
 
-
-def single_wealth(mod, savedir):
+def type_wealth(mod, savedir):
     fig = plt.figure(figsize=(12,6))
     ax = fig.add_subplot(111)
-    ax.plot(mod.agents.wealth)# / mod.agents.n_plots)
-    ax.set_xlabel('Time (yrs)')
-    ax.set_ylabel('Birr')
-    ax.set_title('Agent wealth trajectories')
+    type_timeseries(mod.agents.wealth, mod.agents.n_plots, ax, 'birr', 'Wealth')
+    fig.tight_layout()
+    ax.axhline(y=0, color='k')
     if isinstance(savedir, bool):
         return fig
     else:
         fig.savefig(savedir + 'single_wealth.png')
+
+def type_coping(mod, savedir):
+    fig = plt.figure(figsize=(20,6))
+    ax = fig.add_subplot(131)
+    ax2 = fig.add_subplot(132)
+    ax3 = fig.add_subplot(133)
+    type_timeseries(mod.agents.coping_rqd, mod.agents.n_plots, ax, 'P(coping rqd)', 'Coping', mean=True)
+    type_timeseries(mod.agents.cant_cope, mod.agents.n_plots, ax2, 'P(cant cope)', 'Not able to cope', mean=True)
+    agent_trajectories(mod.agents.coping_rqd, ax3)
+    ax3.set_xlabel("No coping rqd (cumsum)")
+    ax3.set_ylabel('Coping rqd (cumsum)')
+    ax3.set_title('Agent coping trajectories')
+
+    fig.tight_layout()
+    ax.axhline(y=0, color='k')
+    if isinstance(savedir, bool):
+        return fig
+    else:
+        fig.savefig(savedir + 'single_coping.png')
+
+def type_nutrients(mod, savedir):
+    fig = plt.figure(figsize=(16,6))
+    ax = fig.add_subplot(121)
+    ax2 = fig.add_subplot(122)
+    type_timeseries(mod.land.organic, mod.agents.n_plots[mod.land.owner], ax, 'kg/ha', 'Organic N', mean=True)
+    type_timeseries(mod.land.inorganic, mod.agents.n_plots[mod.land.owner], ax2, 'kg/ha', 'Inorganic N', mean=True)
+    ax.set_ylim([0, ax.get_ylim()[1]])
+    ax2.set_ylim([0, ax2.get_ylim()[1]])
+    fig.tight_layout()
+    if isinstance(savedir, bool):
+        return fig
+    else:
+        fig.savefig(savedir + 'single_soil.png')
+
+def type_yields(mod, savedir):
+    fig = plt.figure(figsize=(20,6))
+    ax = fig.add_subplot(131)
+    ax2 = fig.add_subplot(132)
+    ax3 = fig.add_subplot(133)
+    type_timeseries(mod.land.rf_factors, mod.agents.n_plots[mod.land.owner], ax, '', 'Rainfall effect', mean=True)
+    type_timeseries(mod.land.nutrient_factors, mod.agents.n_plots[mod.land.owner], ax2, '', 'Nutrient effect', mean=True)
+    type_timeseries(mod.land.yields, mod.agents.n_plots[mod.land.owner], ax3, 'kg/ha', 'Crop yield', mean=True)
+    fig.tight_layout()
+    ax.set_ylim([0,1])
+    ax2.set_ylim([0,1])
+    if isinstance(savedir, bool):
+        return fig
+    else:
+        fig.savefig(savedir + 'single_yields.png')
+
+def type_timeseries(d, n_plots, ax, ylab, title, mean=False):
+    '''
+    create a plot separating agents by their "type"
+    which is given by their number of plots
+    it assumes each agent has a value for "d" at each time step
+    '''
+    colors = ['k','b','r']
+    uniqs = np.unique(n_plots)
+    if len(uniqs) > 3:
+        print('too many unique types!')
+        return
+    
+    for ui, u in enumerate(uniqs):
+        ixs = n_plots==u
+        ix_nums = np.arange(n_plots.shape[0])[ixs]
+        if mean:
+            plt_d = np.nanmean(d[:,ixs], axis=1)
+            ax.plot(plt_d, label='{} plots'.format(u), color=colors[ui])
+        else:
+            plt_d = d[:,ixs]
+            for i, ix in enumerate(ix_nums):
+                lgd = '{} plots'.format(u) if i == 0 else '_nolegend_'
+                ax.plot(d[:,ix], label=lgd, color=colors[ui])
+
+    ax.grid(False)
+    ax.legend(loc='upper right')
+    ax.set_xlabel('Time (yrs)')
+    ax.set_ylabel(ylab)
+    ax.set_title(title)
 
 def band_plot(d, qs, ax, title, ylim=False):
     '''

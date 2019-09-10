@@ -44,11 +44,7 @@ def agents():
         'adap_type' : 'affording', # coping, switching, or affording
 
         # plot ownership
-        # 'land_heterogeneity' : True, # heterogeneity in number of plots?
-        'land_s' : 0.686, # fitted to LSMS 2015 data (lognormal distribution)
-        'land_loc' : -0.251, # ""
-        'land_scale' : 1.231, # ""
-        'land_max' : 4.38, # ha (95%ile of LSMS)
+        'n_plots_init' : [8, 11, 14], # uniformly sample from each
 
         ##### cash + wealth #####
         # initial (normal distribution)

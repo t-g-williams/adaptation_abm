@@ -186,4 +186,10 @@ class Land():
         if mode == 'sum':
             return ag_sums
         elif mode == 'average':
-            return ag_sums / num_fields        
+            return ag_sums / num_fields
+
+    def agent_to_land(self, vals):
+        '''
+        convert an agent-level property to land
+        '''
+        return vals[self.owner]        
