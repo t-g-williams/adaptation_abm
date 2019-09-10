@@ -76,7 +76,7 @@ class Land():
         and convert back to "nitrogen"
         '''
         if self.t[0] > 0:
-            return self.yields[self.t[0]-1] * self.residue_factor / self.crop_CN_conversion # kgN/ha = kg crop/ha * __ * kgN/kgC 
+            return self.yields[self.t[0]-1] * self.residue_factor / self.residue_CN_conversion # kgN/ha = kg crop/ha * __ * kgN/kgC 
         else:
             return np.full(self.n_plots, 0.)
 

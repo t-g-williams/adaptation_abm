@@ -81,6 +81,7 @@ def land():
         'rain_cropfail_low_SOM' : 0.1, # rainfall value at which crop yields are 0 with lowest SOM. arbitrary
         'random_effect_sd' : 0, # std dev of yield multiplier effect (normal distribution, mu=1)
         'crop_CN_conversion' : 50, # 50 from Century model curves (middle of the y axis) -- pretty arbitrary. represents C:N ratio kind of
+        'residue_CN_conversion' : 50, # same as crop
 
         ##### livestock #####
         'residue_factor' : 2 * 0.9, #  90% conversion efficiency, 2x crop yield->maize residue conversion factor (FAO1987), 
