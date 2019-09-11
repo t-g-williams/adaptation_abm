@@ -94,7 +94,7 @@ def land():
 def climate():
     d = {
         # annual climate measure -- assume normal distribution (truncated to [0,1])
-        'rain_mu' : 0.5, # 0.5 approximately fits country-wide CYF distribution for maize (BUT this variable is rain not CYF)
+        'rain_mu' : 0.6, # 0.5 approximately fits country-wide CYF distribution for maize (BUT this variable is rain not CYF)
         'rain_sd' : 0.2,
     }
     return d

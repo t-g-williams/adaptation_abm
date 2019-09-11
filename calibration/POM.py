@@ -26,7 +26,7 @@ import plot.single_run as plt_single
 
 def main():
     # specify experimental settings
-    N_samples = 1000
+    N_samples = 10000
     ncores = 2
     inputs = {
         'model' : {'n_agents' : 100, 'T' : 100, 'exp_name' : 'POM',
@@ -67,46 +67,33 @@ def fitting_metrics(mod):
     ## and agent type 3 (highest land) to not have -ve wealth
     ## and agent type 2 to be somewhere in the middle
     p1 = True if np.mean(mod.agents.cant_cope[-1, ag1]) == 1 else False
-    p2 = True if np.mean(mod.agents.cant_cope[-1, ag2]) not in [0,1] else False
+    v2 = np.mean(mod.agents.cant_cope[-1, ag2])
+    p2 = True if (v2 > 0.2) and (v2 < 0.8) else False
     p3 = True if np.mean(mod.agents.cant_cope[-1, ag3]) == 0 else False
-    fit1 = p1 * p2 * p3
-    # p_3_neg = np.mean(np.max(mod.agents.wealth[-n_yrs:, ag3], axis=0) < 0)
-    # p_1_neg = np.mean(np.max(mod.agents.wealth[-n_yrs:, ag1], axis=0) < 0)
-    # fit1 = True if (p_3_neg>0.9 and p_1_neg<0.1) else False
+    fit1 = bool(p1 * p2 * p3)
 
-    ## 2. yield nutrient effects
-    ## we want the median of each agent type to have a nutrient effect \in (0,1) (not inclusive)
-    ## at no point in the last n_yrs
-    ## take the median agent in each year, then the minimum/maximum over years
-    mins = 1
-    maxs = 0
+    ## 2a. yield nutrient effects -- no "dead" soil
+    vals = mod.land.nutrient_factors[-n_yrs:]
+    if np.sum(~np.isnan(vals)) == 0:
+        fit2a = False
+    else:
+        fit2a = np.nanmin(vals) > 0.01
+
+    ## 2b. every year there is some nutrient limitation
+    fit2b = True
     for y in range(n_yrs):
-        # get agent-level SOM
-        ag_nutr = mod.land.land_to_agent(mod.land.nutrient_factors[-y], mod.agents.n_plots, mode='average')
-        # calculate median value for each agent type
-        min_y = min(np.median(ag_nutr[ag1]), np.median(ag_nutr[ag2]), np.median(ag_nutr[ag3]))
-        max_y = max(np.median(ag_nutr[ag1]), np.median(ag_nutr[ag2]), np.median(ag_nutr[ag3]))
-        # update
-        mins = min(mins, min_y)
-        maxs = max(maxs, max_y)
-    fit2 = True if (mins > 0.01 and maxs < 0.99) else False
+        if fit2b:
+            vals = mod.land.nutrient_factors[-y]
+            if np.sum(~np.isnan(vals)) != 0:
+                min_y = np.nanmin(vals)
+                fit2b = True if min_y<1 else False
 
     ## 3. soil organic matter
-    ## same requirement as #2
-    mins = 1
-    maxs = 0
-    for y in range(n_yrs):
-        # get agent-level SOM
-        ag_SOM = mod.land.land_to_agent(mod.land.organic[-y], mod.agents.n_plots, mode='average')
-        # calculate median value for each agent type
-        min_y = min(np.median(ag_SOM[ag1]), np.median(ag_SOM[ag2]), np.median(ag_SOM[ag3]))
-        max_y = max(np.median(ag_SOM[ag1]), np.median(ag_SOM[ag2]), np.median(ag_SOM[ag3]))
-        # update
-        mins = min(mins, min_y)
-        maxs = max(maxs, max_y)
-    fit3 = True if (mins > 0 and maxs < mod.land.max_organic_N) else False
+    ## not consistently someone at maximum value
+    maxs = np.max(mod.land.organic[-n_yrs:], axis=1)
+    fit3 = False if all(maxs == maxs[-1]) else True
 
-    return [fit1, fit2, fit3]
+    return [fit1, fit2a, fit2b, fit3]
 
 def hypercube_sample(N, calib_vars):
     '''
@@ -185,6 +172,9 @@ def process_fits(fits, rvs, calib_vars, inputs):
     ax.hist(fit_pd['sum'])
     ax.set_xlabel('Number of patterns matched')
     ax.set_ylabel('Count')
+    ax.set_xticks(np.arange(len(fits[0])+1))
+    ax.set_xticklabels(np.arange(len(fits[0])+1).astype(int))
+    ax.grid(False)
     for i in vals.index:
         ax.text(i, vals.loc[i]+1, str(vals.loc[i]), horizontalalignment='center')
     fig.savefig('../outputs/POM/histogram_{}.png'.format(N))
