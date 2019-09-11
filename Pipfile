@@ -12,6 +12,11 @@ matplotlib = "*"
 brewer2mpl = "*"
 pickle = "*"
 scipy = "*"
+lhsmdu = "*"
+pydoe = "*"
+joblib = "*"
+multiprocessing = "*"
+tqdm = "*"
 
 [requires]
 python_version = "3.6"
