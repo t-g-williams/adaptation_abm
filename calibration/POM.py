@@ -29,6 +29,7 @@ def main():
     # specify experimental settings
     N_samples = 10000
     ncores = 2
+    nreps = 10
     inputs = {
         'model' : {'n_agents' : 100, 'T' : 100, 'exp_name' : 'POM',
                     'adaptation_option' : 'none'}
@@ -49,10 +50,10 @@ def main():
     rvs = hypercube_sample(N_samples, calib_vars)
 
     # run the model and calculate fitting metrics
-    fits = run_model(rvs, inputs, calib_vars, ncores)
+    fits = run_model(rvs, inputs, calib_vars, ncores, nreps)
     
     # process the fit data
-    process_fits(fits, rvs, calib_vars, inputs)
+    process_fits(fits, rvs, calib_vars, inputs, nreps)
 
 def fitting_metrics(mod):
     '''
@@ -110,7 +111,7 @@ def hypercube_sample(N, calib_vars):
 
     return rvs
 
-def run_model(rvs, inputs, calib_vars, ncores=1):
+def run_model(rvs, inputs, calib_vars, ncores, nreps):
     '''
     run the model for each of the RV combinations
     '''
@@ -123,17 +124,28 @@ def run_model(rvs, inputs, calib_vars, ncores=1):
 
     # run the model
     N = rvs.shape[0]
+    fits_all = []
+    fits_all_np = []
     sim_chunks = chunkIt(np.arange(N), ncores)
-    if ncores > 1:
-        fits_par = Parallel(n_jobs=ncores)(delayed(run_chunk_sims)(sim_chunks[i], rvs, inp_all, calib_vars) for i in range(len(sim_chunks)))
-        fits = {}
-        for fit in fits_par:
-            for k, v in fit.items():
-                fits[k] = v
-    else:
-        fits = run_chunk_sims(sim_chunks[0], rvs, inp_all, calib_vars)
-
-    return fits
+    for r in range(nreps): # loop over ABM replications
+        inp_all['model']['seed'] = r
+        if nreps > 1:
+            print('rep {} / {} ...........'.format(r+1, nreps))
+        if ncores > 1:
+            fits_par = Parallel(n_jobs=ncores)(delayed(run_chunk_sims)(sim_chunks[i], rvs, inp_all, calib_vars) for i in range(len(sim_chunks)))
+            fits = {}
+            for fit in fits_par:
+                for k, v in fit.items():
+                    fits[k] = v
+        else:
+            fits = run_chunk_sims(sim_chunks[0], rvs, inp_all, calib_vars)
+        fits_all.append(fits)
+        fits_all_np.append(np.array(pd.DataFrame.from_dict(fits, orient='index')))
+    
+    # average over all reps
+    fits_all_np = np.array(fits_all_np)
+    fits_avg = np.mean(fits_all_np, axis=0)
+    return fits_avg
 
 def run_chunk_sims(ixs, rvs, inp_all, calib_vars):
     '''
@@ -158,32 +170,37 @@ def run_chunk_sims(ixs, rvs, inp_all, calib_vars):
 
     return fits
 
-def process_fits(fits, rvs, calib_vars, inputs):
+def process_fits(fits, rvs, calib_vars, inputs, nreps):
     '''
     process the POM results
     '''
-    outdir = '../outputs/POM/'
-    fit_pd = pd.DataFrame.from_dict(fits, orient='index')
+    N = rvs.shape[0]
+    outdir = '../outputs/POM/{}_{}reps/'.format(N, nreps)
+    if not os.path.isdir(outdir):
+        os.makedirs(outdir)
+    # code.interact(local=dict(globals(), **locals()))
+    fit_pd = pd.DataFrame(fits)
+    # fit_pd = pd.DataFrame.from_dict(fits, orient='index')
     fit_pd['sum'] = fit_pd.sum(axis=1)
 
     vals = fit_pd['sum'].value_counts()
 
     # histogram of sums
-    N = rvs.shape[0]
     fig, ax = plt.subplots(figsize=(6,4))
     ax.hist(fit_pd['sum'])
-    ax.set_xlabel('Number of patterns matched')
+    ax.set_xlabel('Mean number of patterns matched')
     ax.set_ylabel('Count')
     ax.set_xticks(np.arange(len(fits[0])+1))
     ax.set_xticklabels(np.arange(len(fits[0])+1).astype(int))
     ax.grid(False)
-    for i in vals.index:
-        ax.text(i, vals.loc[i]+1, str(vals.loc[i]), horizontalalignment='center')
-    fig.savefig(outdir + 'histogram_{}.png'.format(N))
+    i = max(vals.index)
+    ax.text(i, vals.loc[i]+1, '{} patterns\n{} model(s)'.format(np.round(i, 1), vals.loc[i]), horizontalalignment='center')
+    ax.set_xlim([0, fits.shape[1]])
+    fig.savefig(outdir + 'histogram.png')
 
     # write outputs
-    fit_pd.to_csv(outdir + 'fits_{}.csv'.format(N))
-    np.savetxt(outdir + 'rvs_{}.csv'.format(N), rvs)
+    fit_pd.to_csv(outdir + 'fits.csv')
+    np.savetxt(outdir + 'rvs.csv', rvs)
 
     # identify the best fitting models
     max_fit = vals.index[-1]
@@ -205,19 +222,20 @@ def process_fits(fits, rvs, calib_vars, inputs):
     inp_all = base_inputs.compile()
     inp_all = overwrite_inputs(inp_all, inputs)
     inp_all = overwrite_rv_inputs(inp_all, rvs[max_fit_locs[0]], calib_vars.key1, calib_vars.key2)
+    inp_all['model']['exp_name'] = 'POM/{}_{}reps'.format(N, nreps)
     m = model.Model(inp_all)
     for t in range(m.T):
         m.step()
     plt_single.main(m)
-    fits = fitting_metrics(m)
+    fits_mod = fitting_metrics(m)
 
     # save the inputs -- as csv and pickle
     df = pd.DataFrame.from_dict({(i,j): inp_all[i][j] 
                                for i in inp_all.keys() 
                                for j in inp_all[i].keys()},
                            orient='index')
-    df.to_csv(outdir + 'input_params_{}.csv'.format(N))
-    with open(outdir + 'input_params_{}.pkl'.format(N), 'wb') as f:
+    df.to_csv(outdir + 'input_params.csv')
+    with open(outdir + 'input_params.pkl', 'wb') as f:
         pickle.dump(inp_all, f)
     code.interact(local=dict(globals(), **locals()))
 
