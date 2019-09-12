@@ -20,9 +20,59 @@ def main(mods, save=True):
     else:
         savedir = False
 
-    soil_wealth(mods, savedir)
-    n_plots(mods, savedir)
-    coping(mods, savedir)
+    agent_type_plots(mods, savedir)
+
+    # soil_wealth(mods, savedir)
+    # n_plots(mods, savedir)
+    # coping(mods, savedir)
+
+def agent_type_plots(mods, savedir):
+    '''
+    plot each agent type (number of plots) separately
+    this assumes there's 3 agent types
+    '''
+    fig = plt.figure(figsize=(12,4))
+    axs = [fig.add_subplot(131),fig.add_subplot(132),fig.add_subplot(133)]
+    fig2 = plt.figure(figsize=(12,4))
+    ax2s = [fig2.add_subplot(131),fig2.add_subplot(132),fig2.add_subplot(133)]
+    fig3 = plt.figure(figsize=(12,4))
+    ax3s = [fig3.add_subplot(131),fig3.add_subplot(132),fig3.add_subplot(133)]
+    for m, mod in mods.items():
+        # find agent types
+        ags = [mod.agents.n_plots == mod.agents.n_plots_init[0],
+            mod.agents.n_plots == mod.agents.n_plots_init[1],
+            mod.agents.n_plots == mod.agents.n_plots_init[2]]
+
+        for a, ag in enumerate(ags):
+            axs[a].plot(np.median(mod.agents.wealth[:,ag], axis=1), label=m)
+            ax2s[a].plot(np.mean(mod.agents.coping_rqd[:,ag], axis=1), label=m)
+
+            # find the land-level agent types
+            lan = np.in1d(mod.land.owner, mod.agents.id[ag])
+            ax3s[a].plot(np.median(mod.land.organic[:,lan], axis=1), label=m)
+
+    # some formatting
+    for a in range(3):
+        axs[a].set_title('Wealth : agent type {}'.format(a+1))
+        ax2s[a].set_title('Coping : agent type {}'.format(a+1))
+        ax3s[a].set_title('SOM : agent type {}'.format(a+1))
+        axs[a].set_xlabel('Time (yrs)')
+        ax2s[a].set_xlabel('Time (yrs)')
+        ax3s[a].set_xlabel('Time (yrs)')
+        axs[a].set_ylabel('Birr')
+        ax2s[a].set_ylabel('P(coping rqd)')
+        ax3s[a].set_ylabel('kg/ha')
+        axs[a].legend()
+        ax2s[a].legend()
+        ax3s[a].legend()
+
+    if isinstance(savedir, bool):
+        return fig, fig2, fig3
+    else:
+        fig.savefig(savedir + 'type_wealth.png')
+        fig2.savefig(savedir + 'type_coping.png')
+        fig2.savefig(savedir + 'type_SOM.png')
+
 
 def soil_wealth(mods, savedir):
     fig = plt.figure(figsize=(12,4))
