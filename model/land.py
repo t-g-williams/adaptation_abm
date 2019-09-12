@@ -122,7 +122,8 @@ class Land():
         # factor in nutrient contraints
         max_with_nutrients = self.inorganic[t] * self.crop_CN_conversion # kgN/ha * kgC/kgN = kgC/ha ~= yield (per ha)
         self.yields[t] = np.minimum(self.yields_unconstrained[t], max_with_nutrients) # kg/ha
-        self.nutrient_factors[t] = self.yields[t] / self.yields_unconstrained[t]
+        with np.errstate(invalid='ignore'):
+            self.nutrient_factors[t] = self.yields[t] / self.yields_unconstrained[t]
         # attribute to agents.
         agents.crop_production[t] = self.land_to_agent(self.yields[t] * self.area, agents.n_plots, mode='sum') # kg
         # code.interact(local=dict(globals(), **locals()))
