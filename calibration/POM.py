@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import code
 import pyDOE
+import pickle
 import os
 import copy
 import sys
@@ -161,6 +162,7 @@ def process_fits(fits, rvs, calib_vars, inputs):
     '''
     process the POM results
     '''
+    outdir = '../outputs/POM/'
     fit_pd = pd.DataFrame.from_dict(fits, orient='index')
     fit_pd['sum'] = fit_pd.sum(axis=1)
 
@@ -177,11 +179,11 @@ def process_fits(fits, rvs, calib_vars, inputs):
     ax.grid(False)
     for i in vals.index:
         ax.text(i, vals.loc[i]+1, str(vals.loc[i]), horizontalalignment='center')
-    fig.savefig('../outputs/POM/histogram_{}.png'.format(N))
+    fig.savefig(outdir + 'histogram_{}.png'.format(N))
 
     # write outputs
-    fit_pd.to_csv('../outputs/POM/fits_{}.csv'.format(N))
-    np.savetxt('../outputs/POM/rvs_{}.csv'.format(N), rvs)
+    fit_pd.to_csv(outdir + 'fits_{}.csv'.format(N))
+    np.savetxt(outdir + 'rvs_{}.csv'.format(N), rvs)
 
     # identify the best fitting models
     max_fit = vals.index[-1]
@@ -197,9 +199,9 @@ def process_fits(fits, rvs, calib_vars, inputs):
     ax.set_ylabel('Value (scaled)')
     ax.xaxis.grid(True)
     ax.yaxis.grid(False)
-    fig.savefig('../outputs/POM/param_vals.png')
+    fig.savefig(outdir + 'param_vals.png')
 
-    # run one of them
+    # run and plot one of them
     inp_all = base_inputs.compile()
     inp_all = overwrite_inputs(inp_all, inputs)
     inp_all = overwrite_rv_inputs(inp_all, rvs[max_fit_locs[0]], calib_vars.key1, calib_vars.key2)
@@ -208,8 +210,16 @@ def process_fits(fits, rvs, calib_vars, inputs):
         m.step()
     plt_single.main(m)
     fits = fitting_metrics(m)
-    code.interact(local=dict(globals(), **locals()))
 
+    # save the inputs -- as csv and pickle
+    df = pd.DataFrame.from_dict({(i,j): inp_all[i][j] 
+                               for i in inp_all.keys() 
+                               for j in inp_all[i].keys()},
+                           orient='index')
+    df.to_csv(outdir + 'input_params_{}.csv'.format(N))
+    with open(outdir + 'input_params_{}.pkl'.format(N), 'wb') as f:
+        pickle.dump(inp_all, f)
+    code.interact(local=dict(globals(), **locals()))
 
 def overwrite_inputs(all_inputs, changes):
     '''
