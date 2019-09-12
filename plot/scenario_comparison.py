@@ -65,6 +65,10 @@ def agent_type_plots(mods, savedir):
         axs[a].legend()
         ax2s[a].legend()
         ax3s[a].legend()
+        axs[a].axhline(y=0, color='k', ls=':')
+        axs[a].grid(False)
+        ax2s[a].grid(False)
+        ax3s[a].grid(False)
 
     if isinstance(savedir, bool):
         return fig, fig2, fig3
