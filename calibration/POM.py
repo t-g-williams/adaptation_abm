@@ -27,8 +27,8 @@ import plot.single_run as plt_single
 
 def main():
     # specify experimental settings
-    N_samples = 10000
-    ncores = 2
+    N_samples = 100000
+    ncores = 40
     nreps = 10
     inputs = {
         'model' : {'n_agents' : 100, 'T' : 100, 'exp_name' : 'POM',
