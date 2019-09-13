@@ -31,12 +31,16 @@ def agent_type_plots(mods, savedir):
     plot each agent type (number of plots) separately
     this assumes there's 3 agent types
     '''
+    colors = ['b','r','k','g','y']
     fig = plt.figure(figsize=(12,4))
     axs = [fig.add_subplot(131),fig.add_subplot(132),fig.add_subplot(133)]
     fig2 = plt.figure(figsize=(12,4))
     ax2s = [fig2.add_subplot(131),fig2.add_subplot(132),fig2.add_subplot(133)]
     fig3 = plt.figure(figsize=(12,4))
     ax3s = [fig3.add_subplot(131),fig3.add_subplot(132),fig3.add_subplot(133)]
+    fig4 = plt.figure(figsize=(12,4))
+    ax4s = [fig4.add_subplot(131),fig4.add_subplot(132),fig4.add_subplot(133)]
+    ii = 0
     for m, mod in mods.items():
         # find agent types
         ags = [mod.agents.n_plots == mod.agents.n_plots_init[0],
@@ -44,38 +48,46 @@ def agent_type_plots(mods, savedir):
             mod.agents.n_plots == mod.agents.n_plots_init[2]]
 
         for a, ag in enumerate(ags):
-            axs[a].plot(np.median(mod.agents.wealth[:,ag], axis=1), label=m)
-            ax2s[a].plot(np.mean(mod.agents.coping_rqd[:,ag], axis=1), label=m)
+            axs[a].plot(np.median(mod.agents.wealth[:,ag], axis=1), label=m, color=colors[ii])
+            ax4s[a].plot(mod.agents.wealth[:,ag], color=colors[ii], lw=0.5)
+            ax2s[a].plot(np.mean(mod.agents.coping_rqd[:,ag], axis=1), label=m, color=colors[ii])
 
             # find the land-level agent types
             lan = np.in1d(mod.land.owner, mod.agents.id[ag])
-            ax3s[a].plot(np.median(mod.land.organic[:,lan], axis=1), label=m)
+            ax3s[a].plot(np.median(mod.land.organic[:,lan], axis=1), label=m, color=colors[ii])
 
+        ii += 1
     # some formatting
     for a in range(3):
         axs[a].set_title('Wealth : agent type {}'.format(a+1))
+        ax4s[a].set_title('Wealth : agent type {}'.format(a+1))
         ax2s[a].set_title('Coping : agent type {}'.format(a+1))
         ax3s[a].set_title('SOM : agent type {}'.format(a+1))
         axs[a].set_xlabel('Time (yrs)')
         ax2s[a].set_xlabel('Time (yrs)')
         ax3s[a].set_xlabel('Time (yrs)')
+        ax4s[a].set_xlabel('Time (yrs)')
         axs[a].set_ylabel('Birr')
+        ax4s[a].set_ylabel('Birr')
         ax2s[a].set_ylabel('P(coping rqd)')
         ax3s[a].set_ylabel('kg/ha')
         axs[a].legend()
         ax2s[a].legend()
         ax3s[a].legend()
         axs[a].axhline(y=0, color='k', ls=':')
+        ax4s[a].axhline(y=0, color='k', ls=':')
         axs[a].grid(False)
         ax2s[a].grid(False)
         ax3s[a].grid(False)
+        ax4s[a].grid(False)
 
     if isinstance(savedir, bool):
-        return fig, fig2, fig3
+        return fig, fig2, fig3, fig4
     else:
         fig.savefig(savedir + 'type_wealth.png')
+        fig4.savefig(savedir + 'type_wealth_all.png')
         fig2.savefig(savedir + 'type_coping.png')
-        fig2.savefig(savedir + 'type_SOM.png')
+        fig3.savefig(savedir + 'type_SOM.png')
 
 
 def soil_wealth(mods, savedir):
