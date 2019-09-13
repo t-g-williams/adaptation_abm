@@ -32,23 +32,24 @@ def main(mods, nreps, inp_base, scenarios, exp_name, T):
 
     ii = 0
     for m, mods in mods.items():
+
         ## generate the plot data
         ## we want to take time-averages for each agent type
         out_dict = {'wealth' : np.full(T+1, np.nan), 'SOM' : np.full(T+1, np.nan), 'coping' : np.full(T, np.nan)}
         ag_data = [copy.copy(out_dict), copy.copy(out_dict), copy.copy(out_dict)]
-        for r, mod in enumerate(mods):
+        for r in range(nreps):
             # find agent types
-            ags = [mod.agents.n_plots == mod.agents.n_plots_init[0],
-                mod.agents.n_plots == mod.agents.n_plots_init[1],
-                mod.agents.n_plots == mod.agents.n_plots_init[2]]
+            ags = [mods['n_plots'][r] == inp_base['agents']['n_plots_init'][0],
+                mods['n_plots'][r] == inp_base['agents']['n_plots_init'][1],
+                mods['n_plots'][r] == inp_base['agents']['n_plots_init'][2]]
 
             # add their data to the dictionaries
             for a, ag in enumerate(ags):
-                ag_data[a]['wealth'] = np.nanmean(np.array([ag_data[a]['wealth'], np.mean(mod.agents.wealth[:,ag], axis=1)]), axis=0)
-                ag_data[a]['coping'] = np.nanmean(np.array([ag_data[a]['coping'], np.mean(mod.agents.coping_rqd[:,ag], axis=1)]), axis=0)
+                ag_data[a]['wealth'] = np.nanmean(np.array([ag_data[a]['wealth'], np.mean(mods['wealth'][r,:,ag], axis=0)]), axis=0)
+                ag_data[a]['coping'] = np.nanmean(np.array([ag_data[a]['coping'], np.mean(mods['coping'][r,:,ag], axis=0)]), axis=0)
                 # find the land-level agent types
-                lan = np.in1d(mod.land.owner, mod.agents.id[ag])
-                ag_data[a]['SOM'] = np.nanmean(np.array([ag_data[a]['SOM'], np.mean(mod.land.organic[:,lan], axis=1)]), axis=0)
+                lan = np.in1d(mods['owners'][r], np.arange(ag.shape[0])[ag])
+                ag_data[a]['SOM'] = np.nanmean(np.array([ag_data[a]['SOM'], np.mean(mods['organic'][r][:,lan], axis=1)]), axis=0)
 
 
         ## PLOT ##
