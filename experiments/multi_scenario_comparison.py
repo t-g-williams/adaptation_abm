@@ -18,15 +18,15 @@ from tqdm import tqdm
 import multiprocessing
 
 def main():
-    nreps = 10
+    nreps = 10000
     exp_name = 'multi_scenario_compare'
-    ncores = 2
+    ncores = 25
 
     # load default params
     inp_base = inp.compile()
     #### OR ####
     # load from POM experiment
-    f = '../outputs/POM/10000_10reps/input_params.pkl'
+    f = '../outputs/POM/100000_10reps/input_params.pkl'
     inp_base = pickle.load(open(f, 'rb'))
     # manually specify some variables (common to all scenarios)
     T = 100
