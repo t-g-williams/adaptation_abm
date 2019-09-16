@@ -41,10 +41,10 @@ def main():
         [[1, 'land', 'rain_cropfail_low_SOM', 0, 0.5],
         # [2, 'land', 'slow_mineralization_rate', 0.01, 0.5],
         [2, 'land', 'fast_mineralization_rate', 0.05, 0.95],
-        # [3, 'land', 'wealth_N_conversion', 0.01, 0.5],
-        [3, 'land', 'livestock_frac_crops', 0, 1],
-        [4, 'land', 'residue_CN_conversion', 25, 200],
-        [5, 'agents', 'cash_req_mean', 10000, 30000]],
+        [3, 'land', 'wealth_N_conversion', 0.01, 0.5],
+        [4, 'land', 'livestock_frac_crops', 0, 1],
+        [5, 'land', 'residue_CN_conversion', 25, 200],
+        [6, 'agents', 'cash_req_mean', 10000, 30000]],
         columns = ['id','key1','key2','min_val','max_val'])
 
     # generate set of RVs
