@@ -94,10 +94,10 @@ def fitting_metrics(mod):
 
     ## 3. soil organic matter
     ## not consistently someone at maximum value
-    maxs = np.max(mod.land.organic[-n_yrs:], axis=1)
-    fit3 = False if all(maxs == maxs[-1]) else True
+    # maxs = np.max(mod.land.organic[-n_yrs:], axis=1)
+    # fit3 = False if all(maxs == maxs[-1]) else True
 
-    return [fit1, fit2a, fit2b, fit3]
+    return [fit1, fit2a, fit2b]
 
 def hypercube_sample(N, calib_vars):
     '''
