@@ -44,7 +44,8 @@ def main():
         [3, 'land', 'wealth_N_conversion', 0.01, 0.5],
         [4, 'land', 'livestock_frac_crops', 0, 1],
         [5, 'land', 'residue_CN_conversion', 25, 200],
-        [6, 'agents', 'cash_req_mean', 10000, 30000]],
+        [6, 'agents', 'cash_req_mean', 5000, 30000],
+        [7, 'land', 'loss_max', 0.05, 0.95]],
         columns = ['id','key1','key2','min_val','max_val'])
 
     # generate set of RVs
@@ -75,14 +76,14 @@ def fitting_metrics(mod):
     p3 = True if np.mean(mod.agents.cant_cope[-1, ag3]) == 0 else False
     fit1 = bool(p1 * p2 * p3)
 
-    ## 2a. yield nutrient effects -- no "dead" soil
+    ## 2a. yield nutrient effects -- no "dead" soil for any agent at any time
     vals = mod.land.nutrient_factors[-n_yrs:]
     if np.sum(~np.isnan(vals)) == 0:
         fit2a = False
     else:
         fit2a = np.nanmin(vals) > 0.01
 
-    ## 2b. every year there is some nutrient limitation
+    ## 2b. every year there is some nutrient limitation for some agent
     fit2b = True
     for y in range(n_yrs):
         if fit2b:
