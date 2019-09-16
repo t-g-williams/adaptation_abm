@@ -69,7 +69,8 @@ def land():
         'organic_N_max_init' : 300,
         # soil model
         'max_organic_N' : 1000, # kgN/ha. arbitrary (set in relation to the initial value)
-        'mineralization_rate' : 0.25, # 0.25 rate of mineralization from organic->inorganic (assume linear decay). taken loosely from berg2008: k=0.3-->exp(-0.3)~=0.75, so 0.25 mineralized
+        'fast_mineralization_rate' : 0.6, # what fraction of applied organic matter mineralizes straight away
+        'slow_mineralization_rate' : 0.25, # 0.25 rate of mineralization from organic->inorganic (assume linear decay). taken loosely from berg2008: k=0.3-->exp(-0.3)~=0.75, so 0.25 mineralized
         'loss_max' : 0.5, # 0.5 inorganic loss fraction with no SOM. Di2002 data had ~50% maximum leaching rates of N. giller1997 says up to 50% in high-rainfall environments
         'loss_min' : 0.05, # 0.05 inorganic loss fraction with maximum SOM. Di2002 had ~5% minimum leaching.
         
@@ -84,7 +85,8 @@ def land():
         'residue_CN_conversion' : 50, # same as crop
 
         ##### livestock #####
-        'residue_factor' : 2 * 0.9, #  90% conversion efficiency, 2x crop yield->maize residue conversion factor (FAO1987), 
+        'residue_loss_factor' : 0.9, #  90% conversion efficiency  
+        'residue_multiplier' : 2, # 2x crop yield->maize residue conversion factor (FAO1987), 
         'wealth_N_conversion' : 0.026, # 0.026 kgN/yr per birr. a proxy for livestock manure. derived as 3000birr/head and using values from Newcombe1987. nitrogen %age in manure also similar in Lupwayi2000
         'livestock_frac_crops' : 0.5, # fraction of livestock feed that comes from crops (in an ~average year). this influences the nitrogen input to farmland and the maximum herdsize attainable
         'livestock_residue_factor' : 2280, # kg dry matter / TLU / year.(Amsalu2014)

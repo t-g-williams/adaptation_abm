@@ -44,21 +44,24 @@ class Land():
         inorganic = np.full(self.n_plots, 0.)
         organic = copy.copy(self.organic[self.t[0]])
 
+        ### mineralization: assume a linear decay model
+        # assume the stocks from last year mineralize straight away
+        mineralization = self.slow_mineralization_rate * organic
+        inorganic += mineralization
+        organic -= mineralization
+
         ### agent inputs
         # inorganic += self.apply_fixed_fertilizer(agents) # kgN/ha ## NOT IN MODEL YET
         residue = self.crop_residue_input()
         livestock = self.livestock_SOM_input(agents) # kgN/ha
         cover_crop = self.cover_crop_input(agents, adap_properties) # kgN/ha
-        organic += residue + livestock + cover_crop
+        # these additions are split between organic and inorganic matter
+        inorganic += self.fast_mineralization_rate * (residue + livestock + cover_crop)
+        organic += (1-self.fast_mineralization_rate) * (residue + livestock + cover_crop)
 
         ### constrain to be within bounds
         organic[organic < 0] = 0
         organic[organic > self.max_organic_N] = self.max_organic_N
-
-        ### mineralization: assume a linear decay model
-        mineralization = self.mineralization_rate * organic
-        inorganic += mineralization
-        organic -= mineralization
 
         ### inorganic losses: loss of inorganic is a linear function of SOM
         losses = inorganic * (self.loss_min + (self.max_organic_N-organic)/self.max_organic_N * (self.loss_max - self.loss_min))
@@ -66,6 +69,10 @@ class Land():
         inorganic[inorganic < 0] = 0 # constrain
 
         ### save final values
+        # if np.sum(inorganic == 0) > 0:
+        #     code.interact(local=dict(globals(), **locals()))
+        # if self.t[0] == 150:
+        #     code.interact(local=dict(globals(), **locals()))
         self.inorganic[self.t[0]] = inorganic # end of this year (for yields)
         self.organic[self.t[0]+1] = organic # start of next year
 
@@ -76,7 +83,7 @@ class Land():
         and convert back to "nitrogen"
         '''
         if self.t[0] > 0:
-            return self.yields[self.t[0]-1] * self.residue_factor / self.residue_CN_conversion # kgN/ha = kg crop/ha * __ * kgN/kgC 
+            return self.yields[self.t[0]-1] * self.residue_loss_factor * self.residue_multiplier / self.residue_CN_conversion # kgN/ha = kg crop/ha * __ * kgN/kgC 
         else:
             return np.full(self.n_plots, 0.)
 
@@ -120,13 +127,12 @@ class Land():
         # nutrient unconstrained yield
         self.yields_unconstrained[t] = self.max_yield * self.rf_factors[t] * errors # kg/ha
         # factor in nutrient contraints
-        max_with_nutrients = self.inorganic[t] * self.crop_CN_conversion # kgN/ha * kgC/kgN = kgC/ha ~= yield (per ha)
+        max_with_nutrients = self.inorganic[t] / (1/self.crop_CN_conversion+self.residue_multiplier/self.residue_CN_conversion) # kgN/ha / (kgN/kgC_yield) = kgC/ha ~= yield(perha
         self.yields[t] = np.minimum(self.yields_unconstrained[t], max_with_nutrients) # kg/ha
         with np.errstate(invalid='ignore'):
             self.nutrient_factors[t] = self.yields[t] / self.yields_unconstrained[t]
         # attribute to agents.
         agents.crop_production[t] = self.land_to_agent(self.yields[t] * self.area, agents.n_plots, mode='sum') # kg
-        # code.interact(local=dict(globals(), **locals()))
 
     def calculate_rainfall_factor(self, rain, virtual=False):
         '''
