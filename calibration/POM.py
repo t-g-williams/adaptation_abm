@@ -27,7 +27,7 @@ import plot.single_run as plt_single
 
 def main():
     # specify experimental settings
-    N_samples = 100000
+    N_samples = 50000
     ncores = 40
     nreps = 10
     inputs = {
@@ -39,10 +39,11 @@ def main():
     calib_vars = pd.DataFrame(
         # id, key1, key2, min, max
         [[1, 'land', 'rain_cropfail_low_SOM', 0, 0.5],
-        [2, 'land', 'mineralization_rate', 0.05, 0.5],
-        [3, 'land', 'wealth_N_conversion', 0.01, 0.5],
+        [2, 'land', 'slow_mineralization_rate', 0.01, 0.5],
+        [3, 'land', 'fast_mineralization_rate', 0.05, 0.95],
+        # [3, 'land', 'wealth_N_conversion', 0.01, 0.5],
         [4, 'land', 'livestock_frac_crops', 0, 1],
-        [5, 'land', 'residue_CN_conversion', 25, 100],
+        [5, 'land', 'residue_CN_conversion', 25, 200],
         [6, 'agents', 'cash_req_mean', 10000, 30000]],
         columns = ['id','key1','key2','min_val','max_val'])
 
