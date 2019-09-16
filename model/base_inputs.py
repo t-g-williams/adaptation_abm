@@ -65,10 +65,10 @@ def land():
     d = {
         ##### SOM #####
         # initial vals
-        'organic_N_min_init' : 300, # kgN/ha. similar to initial value in Li2004
-        'organic_N_max_init' : 300,
+        'organic_N_min_init' : 2500, # kgN/ha. similar to initial value in Li2004
+        'organic_N_max_init' : 2500,
         # soil model
-        'max_organic_N' : 1000, # kgN/ha. arbitrary (set in relation to the initial value)
+        'max_organic_N' : 10000, # kgN/ha. arbitrary (set in relation to the initial value)
         'fast_mineralization_rate' : 0.6, # what fraction of applied organic matter mineralizes straight away
         'slow_mineralization_rate' : 0.02, # 0.02 rate of mineralization from organic->inorganic (assume linear decay). taken from schmidt2011 -- 50year turnover time of bulk SOM
         'loss_max' : 0.5, # 0.5 inorganic loss fraction with no SOM. Di2002 data had ~50% maximum leaching rates of N. giller1997 says up to 50% in high-rainfall environments
@@ -82,7 +82,7 @@ def land():
         'rain_cropfail_low_SOM' : 0.1, # rainfall value at which crop yields are 0 with lowest SOM. arbitrary
         'random_effect_sd' : 0.3, # std dev of yield multiplier effect (normal distribution, mu=1)
         'crop_CN_conversion' : 50, # 50 from Century model curves (middle of the y axis) -- pretty arbitrary. represents C:N ratio kind of
-        'residue_CN_conversion' : 50, # same as crop
+        'residue_CN_conversion' : 200, # 1/4 of the crop. elias1998
 
         ##### livestock #####
         'residue_loss_factor' : 0.9, #  90% conversion efficiency  
