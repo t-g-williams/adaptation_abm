@@ -68,7 +68,7 @@ def land():
         'organic_N_min_init' : 300, # kgN/ha. similar to initial value in Li2004
         'organic_N_max_init' : 300,
         # soil model
-        'max_organic_N' : 100000, # kgN/ha. arbitrary (set in relation to the initial value)
+        'max_organic_N' : 1000, # kgN/ha. arbitrary (set in relation to the initial value)
         'fast_mineralization_rate' : 0.6, # what fraction of applied organic matter mineralizes straight away
         'slow_mineralization_rate' : 0.02, # 0.02 rate of mineralization from organic->inorganic (assume linear decay). taken from schmidt2011 -- 50year turnover time of bulk SOM
         'loss_max' : 0.5, # 0.5 inorganic loss fraction with no SOM. Di2002 data had ~50% maximum leaching rates of N. giller1997 says up to 50% in high-rainfall environments
