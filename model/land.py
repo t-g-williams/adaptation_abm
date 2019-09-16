@@ -83,7 +83,7 @@ class Land():
         and convert back to "nitrogen"
         '''
         if self.t[0] > 0:
-            return self.yields[self.t[0]-1] * self.residue_factor / self.residue_CN_conversion # kgN/ha = kg crop/ha * __ * kgN/kgC 
+            return self.yields[self.t[0]-1] * self.residue_loss_factor * self.residue_multiplier / self.residue_CN_conversion # kgN/ha = kg crop/ha * __ * kgN/kgC 
         else:
             return np.full(self.n_plots, 0.)
 
@@ -127,13 +127,12 @@ class Land():
         # nutrient unconstrained yield
         self.yields_unconstrained[t] = self.max_yield * self.rf_factors[t] * errors # kg/ha
         # factor in nutrient contraints
-        max_with_nutrients = self.inorganic[t] * self.crop_CN_conversion # kgN/ha * kgC/kgN = kgC/ha ~= yield (per ha)
+        max_with_nutrients = self.inorganic[t] / (1/self.crop_CN_conversion+self.residue_multiplier/self.residue_CN_conversion) # kgN/ha / (kgN/kgC_yield) = kgC/ha ~= yield(perha
         self.yields[t] = np.minimum(self.yields_unconstrained[t], max_with_nutrients) # kg/ha
         with np.errstate(invalid='ignore'):
             self.nutrient_factors[t] = self.yields[t] / self.yields_unconstrained[t]
         # attribute to agents.
         agents.crop_production[t] = self.land_to_agent(self.yields[t] * self.area, agents.n_plots, mode='sum') # kg
-        # code.interact(local=dict(globals(), **locals()))
 
     def calculate_rainfall_factor(self, rain, virtual=False):
         '''

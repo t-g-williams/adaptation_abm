@@ -74,7 +74,7 @@ class Agents():
         # record agents with -ve wealth (not able to cope)
         self.cant_cope[t, self.wealth[t+1] < 0] = True
         # wealth (/livestock) constraints: can't carry more than your crop residues allows
-        max_ls = self.crop_production[t] * land.residue_factor / \
+        max_ls = self.crop_production[t] * land.residue_multiplier * land.residue_loss_factor / \
                 (land.livestock_residue_factor * land.livestock_frac_crops) # TLU = kgCrop * kgDM/kgCrop / kgDM/TLU / __
         max_wealth = max_ls * self.livestock_cost
         too_much = self.wealth[t+1] > max_wealth        

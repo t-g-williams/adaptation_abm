@@ -85,7 +85,8 @@ def land():
         'residue_CN_conversion' : 50, # same as crop
 
         ##### livestock #####
-        'residue_factor' : 2 * 0.9, #  90% conversion efficiency, 2x crop yield->maize residue conversion factor (FAO1987), 
+        'residue_loss_factor' : 0.9, #  90% conversion efficiency  
+        'residue_multiplier' : 2, # 2x crop yield->maize residue conversion factor (FAO1987), 
         'wealth_N_conversion' : 0.026, # 0.026 kgN/yr per birr. a proxy for livestock manure. derived as 3000birr/head and using values from Newcombe1987. nitrogen %age in manure also similar in Lupwayi2000
         'livestock_frac_crops' : 0.5, # fraction of livestock feed that comes from crops (in an ~average year). this influences the nitrogen input to farmland and the maximum herdsize attainable
         'livestock_residue_factor' : 2280, # kg dry matter / TLU / year.(Amsalu2014)
