@@ -69,12 +69,9 @@ class Land():
         inorganic[inorganic < 0] = 0 # constrain
 
         ### save final values
-        # if np.sum(inorganic == 0) > 0:
-        #     code.interact(local=dict(globals(), **locals()))
-        # if self.t[0] == 150:
-        #     code.interact(local=dict(globals(), **locals()))
         self.inorganic[self.t[0]] = inorganic # end of this year (for yields)
         self.organic[self.t[0]+1] = organic # start of next year
+        # code.interact(local=dict(globals(), **locals()))
 
     def crop_residue_input(self):
         '''
@@ -125,10 +122,10 @@ class Land():
         errors = np.random.normal(1, self.random_effect_sd, self.n_plots)
         errors[errors < 0] = 0
         # nutrient unconstrained yield
-        self.yields_unconstrained[t] = self.max_yield * self.rf_factors[t] * errors # kg/ha
+        self.yields_unconstrained[t] = self.max_yield * self.rf_factors[t] # kg/ha
         # factor in nutrient contraints
         max_with_nutrients = self.inorganic[t] / (1/self.crop_CN_conversion+self.residue_multiplier/self.residue_CN_conversion) # kgN/ha / (kgN/kgC_yield) = kgC/ha ~= yield(perha
-        self.yields[t] = np.minimum(self.yields_unconstrained[t], max_with_nutrients) # kg/ha
+        self.yields[t] = np.minimum(self.yields_unconstrained[t], max_with_nutrients) * errors # kg/ha
         with np.errstate(invalid='ignore'):
             self.nutrient_factors[t] = self.yields[t] / self.yields_unconstrained[t]
         # attribute to agents.
