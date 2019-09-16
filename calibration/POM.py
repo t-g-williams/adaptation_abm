@@ -72,7 +72,7 @@ def fitting_metrics(mod):
     ## and agent type 2 to be somewhere in the middle
     p1 = True if np.mean(mod.agents.cant_cope[-1, ag1]) == 1 else False
     v2 = np.mean(mod.agents.cant_cope[-1, ag2])
-    p2 = True if (v2 > 0.2) and (v2 < 0.8) else False
+    p2 = True if (v2 >= 0.2) and (v2 <= 0.8) else False
     p3 = True if np.mean(mod.agents.cant_cope[-1, ag3]) == 0 else False
     fit1 = bool(p1 * p2 * p3)
 
