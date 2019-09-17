@@ -59,6 +59,9 @@ class Agents():
 
         # income = crop_sales + payouts - cash_req - adap_costs
         self.income[t] = self.crop_sell_price*self.crop_production[t] + payouts - self.cash_req - adap_costs
+        ## TEMPORARY
+        CASH_REQ = self.A + self.B*np.maximum(self.wealth[t], 0)
+        self.income[t] = self.crop_sell_price*self.crop_production[t] + payouts - CASH_REQ - adap_costs
 
     def coping_measures(self, land):
         '''
@@ -80,6 +83,8 @@ class Agents():
         too_much = self.wealth[t+1] > max_wealth        
         self.wealth[t+1, too_much] = max_wealth[too_much]
         self.wealth[t+1, self.wealth[t+1] < self.max_neg_wealth] = self.max_neg_wealth
+        ## TEMPORARY
+        # self.wealth[t+1, self.wealth[t+1]<0] = 0
 
     def adaptation(self, land, adap_properties):
         '''
