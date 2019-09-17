@@ -19,19 +19,19 @@ import multiprocessing
 
 def main():
     nreps = 10000
-    exp_name = 'multi_scenario_compare'
+    exp_name = 'multi_scenario_compare2'
     ncores = 25
 
     # load default params
     inp_base = inp.compile()
     #### OR ####
     # load from POM experiment
-    f = '../outputs/POM/100000_10reps/input_params.pkl'
+    f = '../outputs/POM/big experiment/input_params_0.pkl'
     inp_base = pickle.load(open(f, 'rb'))
     # manually specify some variables (common to all scenarios)
     T = 100
     inp_base['model']['T'] = T
-    inp_base['model']['n_agents'] = 200
+    inp_base['model']['n_agents'] = 100
     inp_base['model']['exp_name'] = exp_name
     inp_base['agents']['adap_type'] = 'affording'
 
