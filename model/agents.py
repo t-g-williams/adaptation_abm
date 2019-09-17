@@ -48,20 +48,19 @@ class Agents():
         # costs and payouts for adaptation option
         adap_costs = np.full(self.N, 0.)
         payouts = np.full(self.N, 0.)
+        self.insurance_payout_year = False
         if adap_properties['type'] == 'insurance':
             # costs
             adap_costs[self.adapt[t]] = adap_properties['cost'] * land.area * self.n_plots[self.adapt[t]]
             # payouts
             if climate.rain[t] < adap_properties['magnitude']:
                 payouts[self.adapt[t]] = adap_properties['payout'] * self.n_plots[self.adapt[t]] * land.area
+                self.insurance_payout_year = True
         elif adap_properties['type'] == 'cover_crop':
             adap_costs[self.adapt[t]] = adap_properties['cost'] * land.area * self.n_plots[self.adapt[t]]
 
         # income = crop_sales + payouts - cash_req - adap_costs
         self.income[t] = self.crop_sell_price*self.crop_production[t] + payouts - self.cash_req - adap_costs
-        ## TEMPORARY
-        # CASH_REQ = self.A + self.B*np.maximum(self.wealth[t], 0)
-        # self.income[t] = self.crop_sell_price*self.crop_production[t] + payouts - CASH_REQ - adap_costs
 
     def coping_measures(self, land):
         '''
@@ -77,14 +76,28 @@ class Agents():
         # record agents with -ve wealth (not able to cope)
         self.cant_cope[t, self.wealth[t+1] < 0] = True
         # wealth (/livestock) constraints: can't carry more than your crop residues allows
-        max_ls = self.crop_production[t] * land.residue_multiplier * land.residue_loss_factor / \
-                (land.livestock_residue_factor * land.livestock_frac_crops) # TLU = kgCrop * kgDM/kgCrop / kgDM/TLU / __
-        max_wealth = max_ls * self.livestock_cost
-        too_much = self.wealth[t+1] > max_wealth        
+        max_ls_fodder = self.crop_production[t] * land.residue_multiplier * land.residue_loss_factor / \
+                (land.livestock_residue_factor) # TLU = kgCrop * kgDM/kgCrop / kgDM/TLU
+        # if 80% of livestock must be grazed on fodder, then the maximum wealth you can carry
+        # is 20% of your current livestock herds + whatever you can sustain from your crop residues
+        # i.e. it's assumed that some fraction of your livestock are fully independent of crop residue
+        # rather than all livestock requiring this fraction of feed from fodder
+        max_wealth = max_ls_fodder*self.livestock_cost + (1-land.livestock_frac_crops) * self.wealth[t]
+
+        # max_wealth_old = self.livestock_cost * self.crop_production[t] * land.residue_multiplier * land.residue_loss_factor / \
+        #         (land.livestock_residue_factor * land.livestock_frac_crops) # TLU = kgCrop * kgDM/kgCrop / kgDM/TLU / __
+
+        if self.insurance_payout_year:
+            # assume that any leftover income from the insurance payout can be converted
+            # to livestock/wealth without any fodder requirements
+            max_wealth = max_wealth + self.income[t]
+            code.interact(local=dict(globals(), **locals()))
+            xxxx
+        
+        too_much = self.wealth[t+1] > max_wealth 
         self.wealth[t+1, too_much] = max_wealth[too_much]
         self.wealth[t+1, self.wealth[t+1] < self.max_neg_wealth] = self.max_neg_wealth
-        ## TEMPORARY
-        # self.wealth[t+1, self.wealth[t+1]<0] = 0
+        # code.interact(local=dict(globals(), **locals()))
 
     def adaptation(self, land, adap_properties):
         '''
