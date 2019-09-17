@@ -97,7 +97,8 @@ def fitting_metrics(mod):
     ## 3. soil organic matter
     ## not consistently someone at maximum value
     maxs = np.max(mod.land.organic[-n_yrs:], axis=1)
-    fit3 = False if all(maxs == maxs[-1]) else True
+    # fit3 = False if all(maxs == maxs[-1]) else True
+    fit3 = False if max(maxs) == mod.land.max_organic_N else True
 
     ## 4. some agents have higher SOM than the start
     fit4 = True if np.percentile(mod.land.organic[-10:], 90) >= mod.land.organic_N_min_init else False
