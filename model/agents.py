@@ -60,8 +60,8 @@ class Agents():
         # income = crop_sales + payouts - cash_req - adap_costs
         self.income[t] = self.crop_sell_price*self.crop_production[t] + payouts - self.cash_req - adap_costs
         ## TEMPORARY
-        CASH_REQ = self.A + self.B*np.maximum(self.wealth[t], 0)
-        self.income[t] = self.crop_sell_price*self.crop_production[t] + payouts - CASH_REQ - adap_costs
+        # CASH_REQ = self.A + self.B*np.maximum(self.wealth[t], 0)
+        # self.income[t] = self.crop_sell_price*self.crop_production[t] + payouts - CASH_REQ - adap_costs
 
     def coping_measures(self, land):
         '''
