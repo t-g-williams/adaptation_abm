@@ -27,7 +27,7 @@ import plot.single_run as plt_single
 
 def main():
     # specify experimental settings
-    N_samples = 10000
+    N_samples = 200000
     ncores = 40
     nreps = 10
     inputs = {
@@ -44,7 +44,10 @@ def main():
         [4, 'land', 'livestock_frac_crops', 0, 1],
         [5, 'land', 'residue_CN_conversion', 25, 200],
         [6, 'agents', 'cash_req_mean', 5000, 30000],
-        [7, 'land', 'loss_max', 0.05, 0.95]],
+        [7, 'land', 'loss_max', 0.05, 0.95],
+        [8, 'agents', 'wealth_init_mean', 5000, 50000]],
+        # [9, 'agents', 'A', 1000, 10000],
+        # [10, 'agents', 'B', 0, 1]],
         columns = ['id','key1','key2','min_val','max_val'])
 
     # generate set of RVs
@@ -93,13 +96,21 @@ def fitting_metrics(mod):
 
     ## 3. soil organic matter
     ## not consistently someone at maximum value
-    # maxs = np.max(mod.land.organic[-n_yrs:], axis=1)
-    # fit3 = False if all(maxs == maxs[-1]) else True
+    maxs = np.max(mod.land.organic[-n_yrs:], axis=1)
+    fit3 = False if all(maxs == maxs[-1]) else True
 
     ## 4. some agents have higher SOM than the start
     fit4 = True if np.percentile(mod.land.organic[-10:], 90) >= mod.land.organic_N_min_init else False
 
-    return [fit1, fit4]#, fit2a, fit2b]
+    ## 5. middle agents were below zero and then came back up
+    fit5 = True if np.sum((np.min(mod.agents.wealth[:, ag2], axis=0)<0) * (mod.agents.wealth[-1,ag2]>0)) > 0 else False
+
+    # sequential fitting
+    fit5 = True if fit5*fit1 else False
+    fit3 = True if fit1*fit3 else False
+    fit4 = True if fit1*fit4 else False
+
+    return [fit1, fit3, fit4, fit5]#, fit2a, fit2b]
 
 def hypercube_sample(N, calib_vars):
     '''
@@ -207,6 +218,7 @@ def process_fits(fits, rvs, calib_vars, inputs, nreps):
     np.savetxt(outdir + 'rvs.csv', rvs)
 
     # identify the best fitting models
+    vals = vals.sort_index()
     max_fit = vals.index[-1]
     max_fit_locs = fit_pd.loc[fit_pd['sum']==max_fit, 'sum'].index
 
@@ -225,22 +237,25 @@ def process_fits(fits, rvs, calib_vars, inputs, nreps):
     # run and plot one of them
     inp_all = base_inputs.compile()
     inp_all = overwrite_inputs(inp_all, inputs)
-    inp_all = overwrite_rv_inputs(inp_all, rvs[max_fit_locs[0]], calib_vars.key1, calib_vars.key2)
-    inp_all['model']['exp_name'] = 'POM/{}_{}reps'.format(N, nreps)
-    m = model.Model(inp_all)
-    for t in range(m.T):
-        m.step()
-    plt_single.main(m)
-    fits_mod = fitting_metrics(m)
+    fits_mod = []
+    for v, vi in enumerate(max_fit_locs):
+        inp_all = overwrite_rv_inputs(inp_all, rvs[vi], calib_vars.key1, calib_vars.key2)
+        inp_all['model']['exp_name'] = 'POM/{}_{}reps/{}/'.format(N, nreps, v)
+        m = model.Model(inp_all)
+        for t in range(m.T):
+            m.step()
+        plt_single.main(m)
+        fits_mod.append(fitting_metrics(m))
 
-    # save the inputs -- as csv and pickle
-    df = pd.DataFrame.from_dict({(i,j): inp_all[i][j] 
-                               for i in inp_all.keys() 
-                               for j in inp_all[i].keys()},
-                           orient='index')
-    df.to_csv(outdir + 'input_params.csv')
-    with open(outdir + 'input_params.pkl', 'wb') as f:
-        pickle.dump(inp_all, f)
+        # save the inputs -- as csv and pickle
+        df = pd.DataFrame.from_dict({(i,j): inp_all[i][j] 
+                                   for i in inp_all.keys() 
+                                   for j in inp_all[i].keys()},
+                               orient='index')
+        df.to_csv(outdir + 'input_params_{}.csv'.format(v))
+        with open(outdir + 'input_params_{}.pkl'.format(v), 'wb') as f:
+            pickle.dump(inp_all, f)
+    
     code.interact(local=dict(globals(), **locals()))
 
 def overwrite_inputs(all_inputs, changes):
