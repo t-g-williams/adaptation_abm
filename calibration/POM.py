@@ -27,7 +27,7 @@ import plot.single_run as plt_single
 
 def main():
     # specify experimental settings
-    N_samples = 10000
+    N_samples = 200000
     ncores = 40
     nreps = 10
     inputs = {
@@ -105,6 +105,10 @@ def fitting_metrics(mod):
     ## 5. middle agents were below zero and then came back up
     fit5 = True if np.sum((np.min(mod.agents.wealth[:, ag2], axis=0)<0) * (mod.agents.wealth[-1,ag2]>0)) > 0 else False
 
+    # sequential fitting
+    fit5 = True if fit5*fit1 else False
+    fit3 = True if fit1*fit3 else False
+    fit4 = True if fit1*fit4 else False
 
     return [fit1, fit3, fit4, fit5]#, fit2a, fit2b]
 
