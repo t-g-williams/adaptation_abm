@@ -13,12 +13,12 @@ def compile():
 def model():
     d = {
         'n_agents' : 100,
-        'T' : 10, # number of years to simulate
+        'T' : 100, # number of years to simulate
         'exp_name' : 'test',
         'seed' : 0,
         'sim_id' : 0,
         'rep_id' : 0,
-        'adaptation_option' : 'none' # set to a random string for baseline
+        'adaptation_option' : 'insurance' # set to a random string for baseline
     }
     return d
 
