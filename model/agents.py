@@ -24,7 +24,7 @@ class Agents():
         self.wealth[0] = np.random.normal(self.wealth_init_mean, self.wealth_init_sd, self.N)
         self.wealth[0][self.wealth[0]<0] = 0 # fix any -ve values
         # money
-        self.income = np.full([self.T+1, self.N], np.nan)
+        self.income = np.full([self.T, self.N], np.nan)
         self.cash_req = np.random.normal(self.cash_req_mean, self.cash_req_sd, self.N)
         # coping measures
         self.coping_rqd = np.full([self.T, self.N], False)
