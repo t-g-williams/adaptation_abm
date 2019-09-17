@@ -44,7 +44,10 @@ def main():
         [4, 'land', 'livestock_frac_crops', 0, 1],
         [5, 'land', 'residue_CN_conversion', 25, 200],
         [6, 'agents', 'cash_req_mean', 5000, 30000],
-        [7, 'land', 'loss_max', 0.05, 0.95]],
+        [7, 'land', 'loss_max', 0.05, 0.95],
+        [8, 'agents', 'wealth_init_mean', 5000, 50000],
+        [9, 'agents', 'A', 1000, 10000],
+        [10, 'agents', 'B', 0, 1]],
         columns = ['id','key1','key2','min_val','max_val'])
 
     # generate set of RVs
