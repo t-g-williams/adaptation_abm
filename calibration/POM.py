@@ -27,7 +27,7 @@ import plot.single_run as plt_single
 
 def main():
     # specify experimental settings
-    N_samples = 50000
+    N_samples = 10000
     ncores = 40
     nreps = 10
     inputs = {
@@ -39,9 +39,8 @@ def main():
     calib_vars = pd.DataFrame(
         # id, key1, key2, min, max
         [[1, 'land', 'rain_cropfail_low_SOM', 0, 0.5],
-        # [2, 'land', 'slow_mineralization_rate', 0.01, 0.5],
         [2, 'land', 'fast_mineralization_rate', 0.05, 0.95],
-        [3, 'land', 'wealth_N_conversion', 0.01, 0.5],
+        [3, 'land', 'wealth_N_conversion', 0.01, 0.05],
         [4, 'land', 'livestock_frac_crops', 0, 1],
         [5, 'land', 'residue_CN_conversion', 25, 200],
         [6, 'agents', 'cash_req_mean', 5000, 30000],
@@ -97,7 +96,10 @@ def fitting_metrics(mod):
     # maxs = np.max(mod.land.organic[-n_yrs:], axis=1)
     # fit3 = False if all(maxs == maxs[-1]) else True
 
-    return [fit1, fit2a, fit2b]
+    ## 4. some agents have higher SOM than the start
+    fit4 = True if np.percentile(mod.land.organic[-10:], 90) >= mod.land.organic_N_min_init else False
+
+    return [fit1, fit4]#, fit2a, fit2b]
 
 def hypercube_sample(N, calib_vars):
     '''
