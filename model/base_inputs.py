@@ -52,7 +52,7 @@ def agents():
         'wealth_init_sd' : 0,
         'max_neg_wealth' : -100000, # birr. just for plotting. these ppl cant recover anyway
         # requirements
-        'cash_req_mean' : 17261/3, # 17261 birr/yr. median value from 2015 LSMS
+        'cash_req_mean' : 17261, # 17261 birr/yr. median value from 2015 LSMS
         'cash_req_sd' : 0,
         # market prices
         'crop_sell_price' : 2.17, # 2.17 birr/kg. mean 2015 maize price (FAO)
@@ -96,7 +96,7 @@ def land():
 def climate():
     d = {
         # annual climate measure -- assume normal distribution (truncated to [0,1])
-        'rain_mu' : 0.7, # 0.5 approximately fits country-wide CYF distribution for maize (BUT this variable is rain not CYF)
+        'rain_mu' : 0.6, # 0.5 approximately fits country-wide CYF distribution for maize (BUT this variable is rain not CYF)
         'rain_sd' : 0.2,
     }
     return d
