@@ -52,7 +52,7 @@ def agents():
         'wealth_init_sd' : 0,
         'max_neg_wealth' : -100000, # birr. just for plotting. these ppl cant recover anyway
         # requirements
-        'cash_req_mean' : 17261, # 17261 birr/yr. median value from 2015 LSMS
+        'cash_req_mean' : 17261/3, # 17261 birr/yr. median value from 2015 LSMS
         'cash_req_sd' : 0,
         # market prices
         'crop_sell_price' : 2.17, # 2.17 birr/kg. mean 2015 maize price (FAO)
@@ -65,10 +65,10 @@ def land():
     d = {
         ##### SOM #####
         # initial vals
-        'organic_N_min_init' : 2500, # kgN/ha. similar to initial value in Li2004
-        'organic_N_max_init' : 2500,
+        'organic_N_min_init' : 4000, # kgN/ha. similar to initial value in Li2004
+        'organic_N_max_init' : 4000,
         # soil model
-        'max_organic_N' : 10000, # kgN/ha. arbitrary (set in relation to the initial value)
+        'max_organic_N' : 8000, # kgN/ha. arbitrary (set in relation to the initial value)
         'fast_mineralization_rate' : 0.6, # what fraction of applied organic matter mineralizes straight away
         'slow_mineralization_rate' : 0.02, # 0.02 rate of mineralization from organic->inorganic (assume linear decay). taken from schmidt2011 -- 50year turnover time of bulk SOM
         'loss_max' : 0.5, # 0.5 inorganic loss fraction with no SOM. Di2002 data had ~50% maximum leaching rates of N. giller1997 says up to 50% in high-rainfall environments
@@ -96,7 +96,7 @@ def land():
 def climate():
     d = {
         # annual climate measure -- assume normal distribution (truncated to [0,1])
-        'rain_mu' : 0.6, # 0.5 approximately fits country-wide CYF distribution for maize (BUT this variable is rain not CYF)
+        'rain_mu' : 0.7, # 0.5 approximately fits country-wide CYF distribution for maize (BUT this variable is rain not CYF)
         'rain_sd' : 0.2,
     }
     return d

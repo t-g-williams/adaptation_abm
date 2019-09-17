@@ -128,8 +128,11 @@ class Land():
         self.yields[t] = np.minimum(self.yields_unconstrained[t], max_with_nutrients) * errors # kg/ha
         with np.errstate(invalid='ignore'):
             self.nutrient_factors[t] = self.yields[t] / self.yields_unconstrained[t]
+            self.nutrient_factors[t] = np.minimum(self.nutrient_factors[t], 1)
+
         # attribute to agents.
         agents.crop_production[t] = self.land_to_agent(self.yields[t] * self.area, agents.n_plots, mode='sum') # kg
+        # code.interact(local=dict(globals(), **locals()))
 
     def calculate_rainfall_factor(self, rain, virtual=False):
         '''

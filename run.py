@@ -3,6 +3,7 @@ import model.base_inputs as inputs
 import plot.single_run as plt
 import code
 import time
+import numpy as np
 
 st1 = time.time()
 # compile the inputs
@@ -17,7 +18,7 @@ for t in range(m.T):
 st2 = time.time()
 # print(st2-st1)
 
-# code.interact(local=dict(globals(), **locals()))
+code.interact(local=dict(globals(), **locals()))
 # plot
 plt.main(m)
 
