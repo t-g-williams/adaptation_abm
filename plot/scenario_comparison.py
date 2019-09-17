@@ -38,8 +38,10 @@ def agent_type_plots(mods, savedir):
     ax2s = [fig2.add_subplot(131),fig2.add_subplot(132),fig2.add_subplot(133)]
     fig3 = plt.figure(figsize=(12,4))
     ax3s = [fig3.add_subplot(131),fig3.add_subplot(132),fig3.add_subplot(133)]
-    fig4 = plt.figure(figsize=(12,4))
-    ax4s = [fig4.add_subplot(131),fig4.add_subplot(132),fig4.add_subplot(133)]
+    fig4 = plt.figure(figsize=(12,20))
+    ax4s = [fig4.add_subplot(311),fig4.add_subplot(312),fig4.add_subplot(313)]
+    fig5 = plt.figure(figsize=(12,20))
+    ax5s = [fig5.add_subplot(311),fig5.add_subplot(312),fig5.add_subplot(313)]
     ii = 0
     for m, mod in mods.items():
         # find agent types
@@ -55,6 +57,7 @@ def agent_type_plots(mods, savedir):
             # find the land-level agent types
             lan = np.in1d(mod.land.owner, mod.agents.id[ag])
             ax3s[a].plot(np.median(mod.land.organic[:,lan], axis=1), label=m, color=colors[ii])
+            ax5s[a].plot(mod.land.organic[:,lan], color=colors[ii], lw=0.5)
 
         ii += 1
     # some formatting
@@ -63,14 +66,17 @@ def agent_type_plots(mods, savedir):
         ax4s[a].set_title('Wealth : agent type {}'.format(a+1))
         ax2s[a].set_title('Coping : agent type {}'.format(a+1))
         ax3s[a].set_title('SOM : agent type {}'.format(a+1))
+        ax5s[a].set_title('SOM : agent type {}'.format(a+1))
         axs[a].set_xlabel('Time (yrs)')
         ax2s[a].set_xlabel('Time (yrs)')
         ax3s[a].set_xlabel('Time (yrs)')
         ax4s[a].set_xlabel('Time (yrs)')
+        ax5s[a].set_xlabel('Time (yrs)')
         axs[a].set_ylabel('Birr')
         ax4s[a].set_ylabel('Birr')
         ax2s[a].set_ylabel('P(coping rqd)')
         ax3s[a].set_ylabel('kg/ha')
+        ax5s[a].set_ylabel('kg/ha')
         axs[a].legend()
         ax2s[a].legend()
         ax3s[a].legend()
@@ -80,14 +86,16 @@ def agent_type_plots(mods, savedir):
         ax2s[a].grid(False)
         ax3s[a].grid(False)
         ax4s[a].grid(False)
+        ax5s[a].grid(False)
 
     if isinstance(savedir, bool):
-        return fig, fig2, fig3, fig4
+        return fig, fig2, fig3, fig4, fig5
     else:
         fig.savefig(savedir + 'type_wealth.png')
         fig4.savefig(savedir + 'type_wealth_all.png')
         fig2.savefig(savedir + 'type_coping.png')
         fig3.savefig(savedir + 'type_SOM.png')
+        fig5.savefig(savedir + 'type_SOM_all.png')
 
 
 def soil_wealth(mods, savedir):
