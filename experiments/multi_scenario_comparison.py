@@ -20,7 +20,7 @@ import multiprocessing
 def main():
     nreps = 1000
     exp_name = 'multi_scenario_compare3'
-    ncores = 25
+    ncores = 40
 
     # load default params
     inp_base = inp.compile()
