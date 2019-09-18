@@ -89,7 +89,7 @@ class Model():
         exp_yield = np.mean(rain_facs) * self.land.max_yield
         exp_crop_income = exp_yield * self.agents.crop_sell_price # birr/ha
         payout = exp_crop_income * props['payout_magnitude'] # birr/ha
-        cost = payout * props['climate_percentile'] # birr/ha
+        cost = payout * props['climate_percentile'] * props['cost_factor'] # birr/ha
         magnitude = np.percentile(rains, props['climate_percentile']*100)
 
         return cost, payout, magnitude
