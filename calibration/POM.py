@@ -27,7 +27,7 @@ import plot.single_run as plt_single
 
 def main():
     # specify experimental settings
-    N_samples = 200000
+    N_samples = 100000
     ncores = 40
     nreps = 10
     inputs = {
@@ -41,13 +41,13 @@ def main():
         [[1, 'land', 'rain_cropfail_low_SOM', 0, 0.5],
         [2, 'land', 'fast_mineralization_rate', 0.05, 0.95],
         [3, 'land', 'wealth_N_conversion', 0.01, 0.05],
-        [4, 'land', 'livestock_frac_crops', 0, 1],
+        [4, 'land', 'livestock_frac_crops', 0.5, 1],
         [5, 'land', 'residue_CN_conversion', 25, 200],
         [6, 'agents', 'cash_req_mean', 5000, 30000],
         [7, 'land', 'loss_max', 0.05, 0.95],
         [8, 'agents', 'wealth_init_mean', 5000, 50000]],
-        # [9, 'agents', 'A', 1000, 10000],
-        # [10, 'agents', 'B', 0, 1]],
+        # [9, 'climate', 'rain_mu', 0.2, 0.8],
+        # [10, 'land', 'random_effect_sd', 0, 1]],
         columns = ['id','key1','key2','min_val','max_val'])
 
     # generate set of RVs
@@ -216,7 +216,7 @@ def process_fits(fits, rvs, calib_vars, inputs, nreps):
 
     # write outputs
     fit_pd.to_csv(outdir + 'fits.csv')
-    np.savetxt(outdir + 'rvs.csv', rvs)
+    # np.savetxt(outdir + 'rvs.csv', rvs)
 
     # identify the best fitting models
     vals = vals.sort_index()
