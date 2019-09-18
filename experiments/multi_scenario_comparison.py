@@ -18,22 +18,23 @@ from tqdm import tqdm
 import multiprocessing
 
 def main():
-    nreps = 10000
-    exp_name = 'multi_scenario_compare2'
+    nreps = 1000
+    exp_name = 'multi_scenario_compare3'
     ncores = 25
 
     # load default params
     inp_base = inp.compile()
     #### OR ####
     # load from POM experiment
-    f = '../outputs/POM/big experiment/input_params_0.pkl'
+    f = '../outputs/POM/constrained livestock frac/input_params_0.pkl'
     inp_base = pickle.load(open(f, 'rb'))
     # manually specify some variables (common to all scenarios)
     T = 100
     inp_base['model']['T'] = T
-    inp_base['model']['n_agents'] = 100
+    inp_base['model']['n_agents'] = 1000
     inp_base['model']['exp_name'] = exp_name
-    inp_base['agents']['adap_type'] = 'affording'
+    inp_base['agents']['adap_type'] = 'always'
+    inp_base['adaptation']['insurance']['cost_factor'] = 1 # remove in future -- only cause not in POM experiment
 
     # define some scenarios
     scenarios = {
