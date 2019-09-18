@@ -25,6 +25,7 @@ def main(mods, nreps, inp_base, scenarios, exp_name, T):
 
     # first_round_plots(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
     wealth_trajectories(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
+    coping_probabilities(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
 
 def wealth_trajectories(mods, nreps, inp_base, scenarios, exp_name, T, savedir):
     '''
@@ -52,7 +53,7 @@ def wealth_trajectories(mods, nreps, inp_base, scenarios, exp_name, T, savedir):
                 var_base = var_t
             elif scenario in ['insurance','cover_crop']:
                 plt_mean = mean_t - mean_base
-                plt_var = var_t - var_base
+                plt_var = var_base - var_t
                 ax.plot(plt_mean, plt_var, label=scenario)#, marker='o')
                 for t in range(T-1):
                     # add time labels
@@ -69,8 +70,8 @@ def wealth_trajectories(mods, nreps, inp_base, scenarios, exp_name, T, savedir):
 
         ax.legend(loc='center left')
         ax.grid(False)
-        ax.set_xlabel('Change in mean wealth')
-        ax.set_ylabel('Change in wealth variance')
+        ax.set_xlabel('Increase in mean wealth')
+        ax.set_ylabel('Decrease in wealth variance')
         ax.set_title('Wealth trajectories')
         ax.axhline(y=0, color='k', ls=':')
         ax.axvline(x=0, color='k', ls=':')
