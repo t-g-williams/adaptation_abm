@@ -52,7 +52,7 @@ class Model():
             # save these
             self.adap_properties = {
                 'type' : 'insurance',
-                'cost' : cost,
+                'cost' : cost * self.all_inputs['adaptation']['insurance']['cost_factor'],
                 'payout' : payout,
                 'magnitude' : magnitude,
                 'adap' : True,

@@ -30,6 +30,7 @@ def adaptation():
         'insurance' : {
             'climate_percentile' : 0.1,
             'payout_magnitude' : 1, # relative to the expected yield (assuming perfect soil quality). if =1.5, then payout = 1.5*expected_yield
+            'cost_factor' : 1, # multiplier on insurance cost
             },
         'cover_crop' : {
             'N_fixation' : 80, # 80kg/ha representative of values reported in the literature. wittwer2017, buechi, couedel2018
@@ -41,7 +42,7 @@ def adaptation():
 def agents():
     d = {
         # adaptation / decision-making
-        'adap_type' : 'affording', # coping, switching, or affording
+        'adap_type' : 'affording', # coping, switching, affording, or always
 
         # plot ownership
         'n_plots_init' : [8, 11, 14], # uniformly sample from each
