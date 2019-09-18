@@ -18,9 +18,9 @@ from tqdm import tqdm
 import multiprocessing
 
 def main():
-    nreps = 1000
+    nreps = 2
     exp_name = 'multi_scenario_compare3'
-    ncores = 40
+    ncores = 1
 
     # load default params
     inp_base = inp.compile()

@@ -24,8 +24,37 @@ def main(mods, nreps, inp_base, scenarios, exp_name, T):
         os.makedirs(savedir)
 
     # first_round_plots(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
+    neg_wealth_probabilities(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
     wealth_trajectories(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
-    coping_probabilities(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
+
+def neg_wealth_probabilities(mods, nreps, inp_base, scenarios, exp_name, T, savedir):
+    '''
+    plot the probability that each agents' wealth is below zero over time
+    '''
+    for n, nplot in enumerate(inp_base['agents']['n_plots_init']):
+        fig, ax = plt.subplots(figsize=(8,8))
+        for scenario, mods_sc in mods.items():
+            ## calculate the wealth mean and std dev over time
+            # extract and format the wealth info
+            w = mods_sc['wealth']
+            all_wealth = []
+            for r in range(nreps):
+                agents = mods_sc['n_plots'][r] == nplot
+                all_wealth.append(list(w[r,:,agents]))
+            all_wealth = np.array([item for sublist in all_wealth for item in sublist])
+            # ^ this is (agents, time) shape
+            # extract mean and variance
+            probs_t = np.mean(all_wealth<=0, axis=0)
+
+            ax.plot(np.arange(T+1), probs_t, label=scenario)#, marker='o')
+
+        ax.legend(loc='center left')
+        ax.grid(False)
+        ax.set_xlabel('Time (years)')
+        ax.set_ylabel('P(wealth < 0)')
+        ax.set_title('Agent wealth')
+        fig.tight_layout()
+        fig.savefig(savedir + 'neg_wealth_prob_{}_plots.png'.format(nplot))
 
 def wealth_trajectories(mods, nreps, inp_base, scenarios, exp_name, T, savedir):
     '''
