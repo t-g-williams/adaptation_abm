@@ -13,11 +13,11 @@ inp = inputs.compile()
 #### OR ####
 
 # load from POM experiment
-f = '../outputs/POM/big experiment/input_params_0.pkl'
+f = '../outputs/POM/different max livestock/input_params_0.pkl'
 inp = pickle.load(open(f, 'rb'))
 
 ## change any params
-inp['model']['adaptation_option'] = 'insurance'
+inp['model']['adaptation_option'] = 'none'
 
 # initialize the model
 m = Model(inp)

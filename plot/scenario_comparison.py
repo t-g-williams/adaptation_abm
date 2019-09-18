@@ -51,13 +51,13 @@ def agent_type_plots(mods, savedir):
 
         for a, ag in enumerate(ags):
             axs[a].plot(np.median(mod.agents.wealth[:,ag], axis=1), label=m, color=colors[ii])
-            ax4s[a].plot(mod.agents.wealth[:,ag], color=colors[ii], lw=0.5)
+            ax4s[a].plot(mod.agents.wealth[:,ag], color=colors[ii])#, lw=0.5)
             ax2s[a].plot(np.mean(mod.agents.coping_rqd[:,ag], axis=1), label=m, color=colors[ii])
 
             # find the land-level agent types
             lan = np.in1d(mod.land.owner, mod.agents.id[ag])
             ax3s[a].plot(np.median(mod.land.organic[:,lan], axis=1), label=m, color=colors[ii])
-            ax5s[a].plot(mod.land.organic[:,lan], color=colors[ii], lw=0.5)
+            ax5s[a].plot(mod.land.organic[:,lan], color=colors[ii])#, lw=0.5)
 
         ii += 1
     # some formatting
@@ -89,7 +89,8 @@ def agent_type_plots(mods, savedir):
         ax5s[a].grid(False)
 
     if isinstance(savedir, bool):
-        return fig, fig2, fig3, fig4, fig5
+        # return fig, fig2, fig3, fig4, fig5
+        return fig4, fig5
     else:
         fig.savefig(savedir + 'type_wealth.png')
         fig4.savefig(savedir + 'type_wealth_all.png')
