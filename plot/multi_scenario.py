@@ -56,15 +56,15 @@ def wealth_trajectories(mods, nreps, inp_base, scenarios, exp_name, T, savedir):
                 ax.plot(plt_mean, plt_var, label=scenario, marker='o')
                 for t in range(T-1):
                     # add time labels
-                    if t % 10 == 0:
+                    if t % 5 == 0:
                         ax.text(plt_mean[t], plt_var[t], str(t))
-                    # add an arrow
-                    # try:
-                    #     ax.arrow(plt_mean[t], plt_var[t], plt_mean[t+1]-plt_mean[t], plt_var[t+1]-plt_var[t],
-                    #         lw=0, length_includes_head=True, 
-                    #         head_width=max(np.abs(plt_mean))/25, head_length=max(np.abs(plt_var))/10) 
-                    # except:
-                    #     pass
+                        # add an arrow
+                        try:
+                            ax.arrow(plt_mean[t], plt_var[t], plt_mean[t+1]-plt_mean[t], plt_var[t+1]-plt_var[t],
+                                lw=0, length_includes_head=True, 
+                                head_width=max(np.abs(plt_mean))/25, head_length=max(np.abs(plt_var))/10) 
+                        except:
+                            pass
                 # ax.quiver(plt_mean[:-1], plt_var[:-1],plt_mean[1:]-plt_mean[:-1], plt_var[1:]-plt_var[:-1], angles='xy', units='width', pivot='mid', lw=0)#, scale=1000000000)
 
         ax.legend(loc='center left')
