@@ -32,7 +32,7 @@ def agent_type_plots(mods, savedir):
     this assumes there's 3 agent types
     '''
     colors = ['b','r','k','g','y']
-    fig = plt.figure(figsize=(12,4))
+    fig = plt.figure(figsize=(18,6))
     axs = [fig.add_subplot(131),fig.add_subplot(132),fig.add_subplot(133)]
     fig2 = plt.figure(figsize=(12,4))
     ax2s = [fig2.add_subplot(131),fig2.add_subplot(132),fig2.add_subplot(133)]
