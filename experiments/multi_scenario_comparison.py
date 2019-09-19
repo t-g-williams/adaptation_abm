@@ -19,8 +19,8 @@ from tqdm import tqdm
 import multiprocessing
 
 def main():
-    nreps = 10000
-    exp_name = 'MS_100yrs_shock'
+    nreps = 1000
+    exp_name = 'MS_1000yrs_shock'
     ncores = 40
 
     # load default params
@@ -30,7 +30,7 @@ def main():
     f = '../outputs/POM/constrained livestock frac/input_params_0.pkl'
     inp_base = pickle.load(open(f, 'rb'))
     # manually specify some variables (common to all scenarios)
-    T = 100
+    T = 1000
     inp_base['model']['T'] = T
     inp_base['model']['n_agents'] = 100
     inp_base['model']['exp_name'] = exp_name
