@@ -16,6 +16,10 @@ class Climate():
         self.rain[self.rain < 0] = 0
         self.rain[self.rain > 1] = 1
 
+        # add in shock if necessary
+        if inputs['model']['shock']:
+            self.rain[self.shock_years] = self.shock_rain
+
 # def find_beta_params(mu, var):
 #     '''
 #     find the beta distribution parameters (alpha and beta)

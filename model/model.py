@@ -18,9 +18,9 @@ class Model():
         np.random.seed(self.seed)
 
         # initialize the sub-objects
+        self.climate = Climate(inputs)
         self.agents = Agents(inputs)
         self.land = Land(self.agents, inputs)
-        self.climate = Climate(inputs)
 
         # set the time
         # save as list so it is mutable (stays same over all objects)
