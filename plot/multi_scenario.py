@@ -23,9 +23,11 @@ def main(mods, nreps, inp_base, scenarios, exp_name, T):
     if not os.path.isdir(savedir):
         os.makedirs(savedir)
 
-    # first_round_plots(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
+    combined_wealth_income(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
     neg_wealth_probabilities(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
-    wealth_trajectories(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
+    agent_trajectories(mods, nreps, inp_base, scenarios, exp_name, T, savedir, 'wealth')
+    agent_trajectories(mods, nreps, inp_base, scenarios, exp_name, T, savedir, 'income')
+    first_round_plots(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
 
 def neg_wealth_probabilities(mods, nreps, inp_base, scenarios, exp_name, T, savedir):
     '''
@@ -55,17 +57,107 @@ def neg_wealth_probabilities(mods, nreps, inp_base, scenarios, exp_name, T, save
         ax.set_title('Agent wealth')
         fig.tight_layout()
         fig.savefig(savedir + 'neg_wealth_prob_{}_plots.png'.format(nplot))
+        plt.close('all')
 
-def wealth_trajectories(mods, nreps, inp_base, scenarios, exp_name, T, savedir):
+def combined_wealth_income(mods, nreps, inp_base, scenarios, exp_name, T, savedir):
     '''
     plot the trajectories of wealth mean and variance for the different agent groups
+    create two plots: one of mean-vs-variance and one with separate mean-variance plots
     '''
-    for n, nplot in enumerate(inp_base['agents']['n_plots_init']):
-        fig, ax = plt.subplots(figsize=(8,8))
+    plots = inp_base['agents']['n_plots_init']
+    N = len(plots)
+    fig = plt.figure(figsize=(5*N,10))
+    axs = {1 : [], 2 : [], 3 : []}
+    lims = {1 : [9999999,-999999], 2 : [9999999,-999999], 3 : [9999999,-999999]}
+
+    for n, nplot in enumerate(plots):
+        ax1 = fig.add_subplot(3,N,n+1)
+        ax2 = fig.add_subplot(3,N,N+n+1)
+        ax3 = fig.add_subplot(3,N,2*N+n+1)
+
         for scenario, mods_sc in mods.items():
             ## calculate the wealth mean and std dev over time
             # extract and format the wealth info
-            w = mods_sc['wealth']
+            wlth = mods_sc['wealth']
+            inc = mods_sc['income']
+            all_wealth = []
+            all_income = []
+            for r in range(nreps):
+                agents = mods_sc['n_plots'][r] == nplot
+                all_wealth.append(list(wlth[r,:,agents]))
+                all_income.append(list(inc[r,:,agents]))
+            all_wealth = np.array([item for sublist in all_wealth for item in sublist])
+            all_income = np.array([item for sublist in all_income for item in sublist])
+            # ^ this is (agents, time) shape
+            # extract mean and variance
+            mean_wlth = np.nanmean(all_wealth, axis=0)
+            mean_inc = np.nanmean(all_income, axis=0)
+            var_inc = np.var(all_income, axis=0)
+
+            ## create the plot
+            if scenario == 'baseline':
+                mean_base_wlth = mean_wlth
+                mean_base_inc = mean_inc
+                var_base_inc = var_inc
+            elif scenario in ['insurance','cover_crop']:
+                plt_mean_wlth = mean_wlth - mean_base_wlth
+                plt_mean_inc = mean_inc - mean_base_inc
+                plt_var_inc = var_base_inc - var_inc
+
+                ax1.plot(plt_mean_wlth, label=scenario)
+                ax2.plot(plt_mean_inc, label=scenario)
+                ax3.plot(plt_var_inc, label=scenario)
+
+        axs[1].append(ax1)
+        axs[2].append(ax2)
+        axs[3].append(ax3)
+        # plot-specific formatting
+        if n == 0:
+            ax1.set_ylabel('Change in wealth mean')
+            ax2.set_ylabel('Change in income mean')
+            ax3.set_ylabel('Change in income variance')
+            top_axs = [ax1,ax2,ax3]
+        ax1.set_title('{} plots'.format(nplot))
+        # limits
+        ax_tmp = [ax1,ax2,ax3]
+        for k, v in lims.items():
+            v[0] = min(v[0], ax_tmp[k-1].get_ylim()[0])
+            v[1] = max(v[1], ax_tmp[k-1].get_ylim()[1])
+
+    ## formatting of plots
+    for k,v in axs.items():
+        for i, vi in enumerate(v):
+            vi.grid(False)
+            vi.axhline(y=0, color='k')
+            vi.set_ylim(lims[k])
+
+            if k != 3:
+                vi.set_xticklabels([])
+            if i != 0:
+                vi.set_yticklabels([])
+            if k == 1:
+                vi.legend()
+            if k == 3:
+                vi.set_xlabel('Time (years)')
+
+    fig.tight_layout()
+    fig.savefig(savedir + 'combined_wealth_income.png')
+    plt.close('all')
+
+def agent_trajectories(mods, nreps, inp_base, scenarios, exp_name, T, savedir, plt_type):
+    '''
+    plot the trajectories of wealth mean and variance for the different agent groups
+    create two plots: one of mean-vs-variance and one with separate mean-variance plots
+    '''
+    for n, nplot in enumerate(inp_base['agents']['n_plots_init']):
+        fig, ax = plt.subplots(figsize=(8,8))
+        fig2 = plt.figure(figsize=(7,10))
+        ax1 = fig2.add_subplot(211)
+        ax2 = fig2.add_subplot(212)
+        for scenario, mods_sc in mods.items():
+            ## calculate the wealth mean and std dev over time
+            # extract and format the wealth info
+            w = mods_sc[plt_type]
             all_wealth = []
             for r in range(nreps):
                 agents = mods_sc['n_plots'][r] == nplot
@@ -73,7 +165,7 @@ def wealth_trajectories(mods, nreps, inp_base, scenarios, exp_name, T, savedir):
             all_wealth = np.array([item for sublist in all_wealth for item in sublist])
             # ^ this is (agents, time) shape
             # extract mean and variance
-            mean_t = np.mean(all_wealth, axis=0)
+            mean_t = np.nanmean(all_wealth, axis=0)
             var_t = np.var(all_wealth, axis=0)
 
             ## create the plot
@@ -84,9 +176,11 @@ def wealth_trajectories(mods, nreps, inp_base, scenarios, exp_name, T, savedir):
                 plt_mean = mean_t - mean_base
                 plt_var = var_base - var_t
                 ax.plot(plt_mean, plt_var, label=scenario)#, marker='o')
+                ax1.plot(plt_mean, label=scenario)
+                ax2.plot(-plt_var, label=scenario) # NOTE: VARIANCE INCREASE IS UP (OPPOSITE TO AX)
                 for t in range(T-1):
                     # add time labels
-                    if (t % 5 == 0) and (t<30):
+                    if ((t % 5 == 0) and (t<30)) or (t % 100 == 0):
                         ax.text(plt_mean[t], plt_var[t], str(t))
                         # # add an arrow
                         # try:
@@ -97,24 +191,37 @@ def wealth_trajectories(mods, nreps, inp_base, scenarios, exp_name, T, savedir):
                         #     pass
                 # ax.quiver(plt_mean[:-1], plt_var[:-1],plt_mean[1:]-plt_mean[:-1], plt_var[1:]-plt_var[:-1], angles='xy', units='width', pivot='mid', lw=0)#, scale=1000000000)
 
+        ## formatting of mean-vs-variance plot
         ax.legend(loc='center left')
         ax.grid(False)
-        ax.set_xlabel('Increase in mean wealth')
-        ax.set_ylabel('Decrease in wealth variance')
-        ax.set_title('Wealth trajectories')
+        ax.set_xlabel('Increase in mean {}'.format(plt_type))
+        ax.set_ylabel('Decrease in {} variance'.format(plt_type))
+        ax.set_title('{}, {} plots'.format(plt_type, nplot))
         ax.axhline(y=0, color='k', ls=':')
         ax.axvline(x=0, color='k', ls=':')
         xval = max(np.abs(ax.get_xlim()))
         yval = max(np.abs(ax.get_ylim()))
         ax.set_xlim([-xval, xval])
         ax.set_ylim([-yval, yval])
-        ax.text(xval, yval, 'SYNERGY', fontsize=22, ha='right', va='top')
-        ax.text(-xval, -yval, 'MALADAPTATION', fontsize=22, ha='left', va='bottom')
-        ax.text(xval, -yval, 'POVERTY REDUCTION', fontsize=22, ha='right', va='bottom')
-        ax.text(-xval, yval, 'STABILIZING', fontsize=22, ha='left', va='top')
+        ax.text(xval, yval, 'SYNERGY', fontsize=20, ha='right', va='top')
+        ax.text(-xval, -yval, 'MALADAPTATION', fontsize=20, ha='left', va='bottom')
+        ax.text(xval, -yval, 'DESTABILIZING,\nHIGHER MEAN', fontsize=20, ha='right', va='bottom')
+        ax.text(-xval, yval, 'STABILIZING,\nLOWER MEAN', fontsize=20, ha='left', va='top')
         fig.tight_layout()
-        fig.savefig(savedir + 'wealth_trajectories_{}_plots.png'.format(nplot))
+        fig.savefig(savedir + '{}_trajectories_{}_plots.png'.format(plt_type, nplot))
 
+        ## formatting of separate plots
+        for axx in [ax1, ax2]:
+            axx.legend()
+            axx.set_xlabel('Time (years)')
+            axx.grid(False)
+            axx.axhline(y=0, color='k')
+        ax1.set_ylabel('Change in {} mean'.format(plt_type))
+        ax2.set_ylabel('Change in {} variance'.format(plt_type))
+        ax1.set_title('{}, {} plots'.format(plt_type, nplot))
+        fig2.tight_layout()
+        fig2.savefig(savedir + 'timeseries_{}_trajectories_{}_plots.png'.format(plt_type, nplot))
+        plt.close('all')
 
 def first_round_plots(mods, nreps, inp_base, scenarios, exp_name, T, savedir):
     colors = ['b','r','k','g','y']
@@ -176,4 +283,5 @@ def first_round_plots(mods, nreps, inp_base, scenarios, exp_name, T, savedir):
     fig.savefig(savedir + 'type_wealth.png')
     fig2.savefig(savedir + 'type_coping.png')
     fig3.savefig(savedir + 'type_SOM.png')
+    plt.close('all')
     # code.interact(local=dict(globals(), **locals()))
