@@ -43,6 +43,7 @@ def agent_type_plots(mods, savedir):
     fig5 = plt.figure(figsize=(12,20))
     ax5s = [fig5.add_subplot(311),fig5.add_subplot(312),fig5.add_subplot(313)]
     ii = 0
+
     for m, mod in mods.items():
         # find agent types
         ags = [mod.agents.n_plots == mod.agents.n_plots_init[0],
@@ -59,6 +60,13 @@ def agent_type_plots(mods, savedir):
             ax3s[a].plot(np.median(mod.land.organic[:,lan], axis=1), label=m, color=colors[ii])
             ax5s[a].plot(mod.land.organic[:,lan], color=colors[ii])#, lw=0.5)
 
+            # show the shock on the plot, if necessary
+            if mod.shock:
+                for yr in mod.climate.shock_years:
+                    for axx in [axs[a], ax2s[a], ax3s[a], ax4s[a], ax5s[a]]:
+                        axx.axvline(x=yr, color='k', ls=':')
+                        axx.text(yr, axx.get_ylim()[1]*0.9, 'SHOCK', ha='center', rotation=90)
+
         ii += 1
     # some formatting
     for a in range(3):
@@ -67,11 +75,6 @@ def agent_type_plots(mods, savedir):
         ax2s[a].set_title('Coping : agent type {}'.format(a+1))
         ax3s[a].set_title('SOM : agent type {}'.format(a+1))
         ax5s[a].set_title('SOM : agent type {}'.format(a+1))
-        axs[a].set_xlabel('Time (yrs)')
-        ax2s[a].set_xlabel('Time (yrs)')
-        ax3s[a].set_xlabel('Time (yrs)')
-        ax4s[a].set_xlabel('Time (yrs)')
-        ax5s[a].set_xlabel('Time (yrs)')
         axs[a].set_ylabel('Birr')
         ax4s[a].set_ylabel('Birr')
         ax2s[a].set_ylabel('P(coping rqd)')
@@ -82,11 +85,9 @@ def agent_type_plots(mods, savedir):
         ax3s[a].legend()
         axs[a].axhline(y=0, color='k', ls=':')
         ax4s[a].axhline(y=0, color='k', ls=':')
-        axs[a].grid(False)
-        ax2s[a].grid(False)
-        ax3s[a].grid(False)
-        ax4s[a].grid(False)
-        ax5s[a].grid(False)
+        for axx in [axs[a], ax2s[a], ax3s[a], ax4s[a], ax5s[a]]:
+            axx.grid(False)
+            axx.set_xlabel('Time (yrs)')
 
     if isinstance(savedir, bool):
         # return fig, fig2, fig3, fig4, fig5

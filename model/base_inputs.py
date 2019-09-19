@@ -18,7 +18,8 @@ def model():
         'seed' : 0,
         'sim_id' : 0,
         'rep_id' : 0,
-        'adaptation_option' : 'insurance' # set to a random string for baseline
+        'adaptation_option' : 'insurance', # set to "none" for baseline
+        'shock' : False,
     }
     return d
 
@@ -99,5 +100,8 @@ def climate():
         # annual climate measure -- assume normal distribution (truncated to [0,1])
         'rain_mu' : 0.6, # 0.5 approximately fits country-wide CYF distribution for maize (BUT this variable is rain not CYF)
         'rain_sd' : 0.2,
+
+        'shock_years' : [30], # starting at 0 (pythonic)
+        'shock_rain' : 0.1, # the rain value in the simulated shock
     }
     return d
