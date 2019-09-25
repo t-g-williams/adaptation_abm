@@ -27,12 +27,12 @@ import plot.single_run as plt_single
 
 def main():
     # specify experimental settings
-    N_samples = 100
-    ncores = 1
+    N_samples = 100000
+    ncores = 40
     nreps = 10
-    exp_name = 'POM/new_land_rep'
+    exp_name = 'POM/new_land_rep_neg_wlth'
     inputs = {
-        'model' : {'n_agents' : 100, 'T' : 100, 'exp_name' : exp_name,
+        'model' : {'n_agents' : 500, 'T' : 100, 'exp_name' : exp_name,
                     'adaptation_option' : 'none'}
     }
 
@@ -75,7 +75,7 @@ def fitting_metrics(mod):
     ## and agent type 2 to be somewhere in the middle
     p1 = True if np.mean(mod.agents.cant_cope[-1, ag1]) == 1 else False
     v2 = np.mean(mod.agents.cant_cope[-1, ag2])
-    p2 = True if (v2 >= 0.2) and (v2 <= 0.8) else False
+    p2 = True if (v2 >= 0.1) and (v2 <= 0.9) else False
     p3 = True if np.mean(mod.agents.cant_cope[-1, ag3]) == 0 else False
     fit1 = bool(p1 * p2 * p3)
 
@@ -104,8 +104,8 @@ def fitting_metrics(mod):
     ## 4. some agents have higher SOM than the start
     fit4 = True if np.percentile(mod.land.organic[-10:], 90) >= mod.land.organic_N_min_init else False
 
-    ## 5. middle agents were below zero and then came back up
-    fit5 = True if np.sum((np.min(mod.agents.wealth[:, ag2], axis=0)<0) * (mod.agents.wealth[-1,ag2]>0)) > 0 else False
+    ## 5. middle agents were at/below zero and then came back up
+    fit5 = True if np.sum((np.min(mod.agents.wealth[:, ag2], axis=0)<=0) * (mod.agents.wealth[-1,ag2]>0)) > 0 else False
 
     # sequential fitting
     fit5 = True if fit5*fit1 else False
@@ -171,19 +171,29 @@ def run_chunk_sims(ixs, rvs, inp_all, calib_vars):
     inp_all = copy.deepcopy(inp_all) # just in case there are parallel issues with ids
     fits = {}
 
-    with tqdm(ixs, disable = not True) as pbar:
-        for ix in ixs:
-            # initialize the inputs
-            inp_all = overwrite_rv_inputs(inp_all, rvs[ix], calib_vars.key1, calib_vars.key2)
-            
-            # run the model
-            m = model.Model(inp_all)
-            for t in range(m.T):
-                m.step()
+    # with tqdm(ixs, disable = not True) as pbar:
+    for ix in (tqdm(ixs) if (0 in ixs) else ixs):
+        # initialize the inputs
+        inp_all = overwrite_rv_inputs(inp_all, rvs[ix], calib_vars.key1, calib_vars.key2)
+        
+        # run the model
+        m = model.Model(inp_all)
+        for t in range(m.T):
+            m.step()
 
-            # calculate model fitting metrics
-            fits[ix] = fitting_metrics(m)
-            pbar.update()
+        # calculate model fitting metrics
+        fits[ix] = fitting_metrics(m)
+        # pbar.update() # will give rough estimate (just single core)
+    # else:
+    #     for ix in ixs:
+    #         # initialize the inputs
+    #         inp_all = overwrite_rv_inputs(inp_all, rvs[ix], calib_vars.key1, calib_vars.key2)
+    #         # run the model
+    #         m = model.Model(inp_all)
+    #         for t in range(m.T):
+    #             m.step()
+    #         # calculate model fitting metrics
+    #         fits[ix] = fitting_metrics(m)
 
     return fits
 
@@ -216,6 +226,7 @@ def process_fits(fits, rvs, calib_vars, inputs, nreps, exp_name):
     fig.savefig(outdir + 'histogram.png')
 
     # write outputs
+    fit_pd = fit_pd.sort_values(by='sum', axis=0, ascending=False)
     fit_pd.to_csv(outdir + 'fits.csv')
     # np.savetxt(outdir + 'rvs.csv', rvs)
 
@@ -228,12 +239,18 @@ def process_fits(fits, rvs, calib_vars, inputs, nreps, exp_name):
     vals_best = rvs[max_fit_locs]
     vals_sc = (vals_best - np.array(calib_vars['min_val'])[None,:]) / np.array(calib_vars['max_val']-calib_vars['min_val'])[None,:]
     fig, ax = plt.subplots(figsize=(8,5))
-    ax.plot(np.transpose(vals_sc))
+    # plot everything within 10% of this quality
+    ok_fits = fit_pd.loc[fit_pd['sum'] >= 0.9*max_fit, 'sum'].index
+    vals_ok = rvs[ok_fits]
+    vals_ok_sc = (vals_ok - np.array(calib_vars['min_val'])[None,:]) / np.array(calib_vars['max_val']-calib_vars['min_val'])[None,:]
+    ax.plot(np.transpose(vals_ok_sc), alpha=0.5, lw=0.5, color='k')
+    ax.plot(np.transpose(vals_sc), color='b')
     ax.set_xticks(np.arange(calib_vars.shape[0]))
     ax.set_xticklabels(calib_vars.key2, rotation=90)
     ax.set_ylabel('Value (scaled)')
     ax.xaxis.grid(True)
     ax.yaxis.grid(False)
+    ax.legend()
     fig.savefig(outdir + 'param_vals.png')
 
     # run and plot one of them
