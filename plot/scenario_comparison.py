@@ -43,8 +43,12 @@ def agent_type_plots(mods, savedir):
     fig5 = plt.figure(figsize=(12,20))
     ax5s = [fig5.add_subplot(311),fig5.add_subplot(312),fig5.add_subplot(313)]
     ii = 0
-
+    shock = False
     for m, mod in mods.items():
+        if mod.shock:
+            shock = True
+            shock_years = mod.climate.shock_years
+
         # find agent types
         ags = [mod.agents.n_plots == mod.agents.n_plots_init[0],
             mod.agents.n_plots == mod.agents.n_plots_init[1],
@@ -60,14 +64,8 @@ def agent_type_plots(mods, savedir):
             ax3s[a].plot(np.median(mod.land.organic[:,lan], axis=1), label=m, color=colors[ii])
             ax5s[a].plot(mod.land.organic[:,lan], color=colors[ii])#, lw=0.5)
 
-            # show the shock on the plot, if necessary
-            if mod.shock:
-                for yr in mod.climate.shock_years:
-                    for axx in [axs[a], ax2s[a], ax3s[a], ax4s[a], ax5s[a]]:
-                        axx.axvline(x=yr, color='k', ls=':')
-                        axx.text(yr, axx.get_ylim()[1]*0.9, 'SHOCK', ha='center', rotation=90)
-
         ii += 1
+
     # some formatting
     for a in range(3):
         axs[a].set_title('Wealth : agent type {}'.format(a+1))
@@ -88,6 +86,11 @@ def agent_type_plots(mods, savedir):
         for axx in [axs[a], ax2s[a], ax3s[a], ax4s[a], ax5s[a]]:
             axx.grid(False)
             axx.set_xlabel('Time (yrs)')
+            # show the shock on the plot, if necessary
+            if shock:
+                for yr in shock_years:
+                    axx.axvline(x=yr, color='k', ls=':')
+                    axx.text(yr, axx.get_ylim()[0]+(axx.get_ylim()[1]-axx.get_ylim()[0])*0.1, 'SHOCK', ha='center', va='bottom', rotation=90)
 
     if isinstance(savedir, bool):
         # return fig, fig2, fig3, fig4, fig5
