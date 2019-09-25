@@ -27,7 +27,7 @@ import plot.single_run as plt_single
 
 def main():
     # specify experimental settings
-    N_samples = 1000
+    N_samples = 100
     ncores = 1
     nreps = 10
     exp_name = 'POM/new_land_rep'
@@ -242,7 +242,7 @@ def process_fits(fits, rvs, calib_vars, inputs, nreps, exp_name):
     fits_mod = []
     for v, vi in enumerate(max_fit_locs):
         inp_all = overwrite_rv_inputs(inp_all, rvs[vi], calib_vars.key1, calib_vars.key2)
-        inp_all['model']['exp_name'] = 'POM/{}_{}reps/{}/'.format(N, nreps, v)
+        inp_all['model']['exp_name'] = '{}/{}_{}reps/{}/'.format(exp_name, N, nreps, v)
         m = model.Model(inp_all)
         for t in range(m.T):
             m.step()
