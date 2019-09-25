@@ -83,6 +83,8 @@ def agent_type_plots(mods, savedir):
         ax3s[a].legend()
         axs[a].axhline(y=0, color='k', ls=':')
         ax4s[a].axhline(y=0, color='k', ls=':')
+        ax3s[a].axhline(y=0, color='k', ls=':')
+        ax5s[a].axhline(y=0, color='k', ls=':')
         for axx in [axs[a], ax2s[a], ax3s[a], ax4s[a], ax5s[a]]:
             axx.grid(False)
             axx.set_xlabel('Time (yrs)')

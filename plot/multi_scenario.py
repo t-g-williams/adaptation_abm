@@ -283,6 +283,7 @@ def first_round_plots(mods, nreps, inp_base, scenarios, exp_name, T, savedir, sh
         ax3s[a].set_ylabel('kg/ha')
         ax3s[a].set_ylabel('Birr')
         axs[a].axhline(y=0, color='k', ls=':')
+        ax3s[a].axhline(y=0, color='k', ls=':')
         for axx in [axs[a], ax2s[a], ax3s[a], ax4s[a]]:
             axx.legend()
             axx.grid(False)
