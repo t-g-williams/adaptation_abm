@@ -27,7 +27,7 @@ import plot.single_run as plt_single
 
 def main():
     # specify experimental settings
-    N_samples = 100000
+    N_samples = 1000
     ncores = 40
     nreps = 10
     exp_name = 'POM/new_land_rep_neg_wlth'
@@ -171,8 +171,7 @@ def run_chunk_sims(ixs, rvs, inp_all, calib_vars):
     inp_all = copy.deepcopy(inp_all) # just in case there are parallel issues with ids
     fits = {}
 
-    # with tqdm(ixs, disable = not True) as pbar:
-    for ix in (tqdm(ixs) if (0 in ixs) else ixs):
+    for ix in (tqdm(ixs) if (0 in ixs) else ixs): # pbar will be rough
         # initialize the inputs
         inp_all = overwrite_rv_inputs(inp_all, rvs[ix], calib_vars.key1, calib_vars.key2)
         
@@ -183,17 +182,6 @@ def run_chunk_sims(ixs, rvs, inp_all, calib_vars):
 
         # calculate model fitting metrics
         fits[ix] = fitting_metrics(m)
-        # pbar.update() # will give rough estimate (just single core)
-    # else:
-    #     for ix in ixs:
-    #         # initialize the inputs
-    #         inp_all = overwrite_rv_inputs(inp_all, rvs[ix], calib_vars.key1, calib_vars.key2)
-    #         # run the model
-    #         m = model.Model(inp_all)
-    #         for t in range(m.T):
-    #             m.step()
-    #         # calculate model fitting metrics
-    #         fits[ix] = fitting_metrics(m)
 
     return fits
 
