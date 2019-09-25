@@ -21,18 +21,18 @@ def main(results, shock_mags, shock_times, exp_name):
 
 
     adap_scenarios = list(results.keys())
-    nplots = results[adap_scenarios[0]].columns
-    fig = plt.figure(figsize=(6*len(shock_mags),4*len(nplots)))
+    land_area = results[adap_scenarios[0]].columns
+    fig = plt.figure(figsize=(6*len(shock_mags),4*len(land_area)))
     axs = []
     lims = {}
     for m, mi in enumerate(shock_mags):
         lims[m] = [99999,-99999]
     ms = []
 
-    for n, nplot in enumerate(nplots):
+    for n, nplot in enumerate(land_area):
         for m, mag in enumerate(shock_mags):
             # create the axis
-            ax = fig.add_subplot(len(shock_mags), len(nplots), len(shock_mags)*m+(n+1))
+            ax = fig.add_subplot(len(shock_mags), len(land_area), len(shock_mags)*m+(n+1))
             axs.append(ax)
 
             for sc in adap_scenarios:
@@ -42,7 +42,7 @@ def main(results, shock_mags, shock_times, exp_name):
 
             # formatting
             if m==0: # top row
-                ax.set_title('{} plots'.format(nplot))
+                ax.set_title('{} ha'.format(nplot))
                 ax.legend(loc='upper left')
             if n==0: # left column
                 ax.set_ylabel('Magnitude = {}'.format(mag))

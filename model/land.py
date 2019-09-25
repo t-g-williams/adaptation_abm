@@ -12,8 +12,8 @@ class Land():
         self.T = self.all_inputs['model']['T']
 
         # how many total plots?
-        self.n_plots = sum(agents.n_plots)
-        self.owner = np.repeat(agents.id, agents.n_plots)
+        self.n_plots = agents.N
+        self.owner = agents.id
 
         ##### soil properties #####
         # represents the START of the year
@@ -23,8 +23,8 @@ class Land():
         self.inorganic = np.full([self.T, self.n_plots], np.nan)
 
         ##### crop yields #####
-        self.yields = np.full([self.T, self.n_plots], np.nan)
-        self.yields_unconstrained = np.full([self.T, self.n_plots], np.nan)
+        self.yields = np.full([self.T, self.n_plots], -9999) # kg
+        self.yields_unconstrained = np.full([self.T, self.n_plots], -9999)# kg
         self.nutrient_factors = np.full([self.T, self.n_plots], np.nan)
         self.rf_factors = np.full([self.T, self.n_plots], np.nan)
 
@@ -71,7 +71,6 @@ class Land():
         ### save final values
         self.inorganic[self.t[0]] = inorganic # end of this year (for yields)
         self.organic[self.t[0]+1] = organic # start of next year
-        # code.interact(local=dict(globals(), **locals()))
 
     def crop_residue_input(self):
         '''
@@ -91,12 +90,11 @@ class Land():
         (above the crop residues they have consumed)
         is given by the fraction of their consumption that is from crop residue
         '''
-        # agents' wealth is split equally between their fields. birr / field
-        wealth_per_field = agents.wealth[self.t[0]] / agents.n_plots
-        wealth_per_field = np.repeat(wealth_per_field, agents.n_plots) # change shape
-        wealth_per_field = np.maximum(wealth_per_field, 0) # assume ppl in debt have no livestock
-        N_per_field = wealth_per_field / self.area * self.wealth_N_conversion * (1-self.livestock_frac_crops) # birr/field * field/ha * kgN/birr * __ = kgN/ha
-        return N_per_field
+        # agents' wealth is split equally over their land. birr / ha
+        wealth_per_ha = agents.wealth[self.t[0]] / agents.land_area
+        wealth_per_ha = np.maximum(wealth_per_ha, 0) # assume ppl in debt have no livestock
+        N_per_ha = wealth_per_ha * self.wealth_N_conversion * (1-self.livestock_frac_crops) # birr/ha * kgN/birr * __ = kgN/ha
+        return N_per_ha
 
     def cover_crop_input(self, agents, adap_properties):
         '''
@@ -132,8 +130,9 @@ class Land():
             self.nutrient_factors[t] = self.yields[t] / self.yields_unconstrained[t]
             self.nutrient_factors[t] = np.minimum(self.nutrient_factors[t], 1)
 
-        # attribute to agents.
-        agents.crop_production[t] = self.land_to_agent(self.yields[t] * self.area, agents.n_plots, mode='sum') # kg
+        # attribute to agents
+        agents.crop_production[t] = self.yields[t] * agents.land_area # kg
+        # code.interact(local=dict(globals(), **locals()))
 
     def calculate_rainfall_factor(self, rain, virtual=False):
         '''
@@ -176,28 +175,6 @@ class Land():
             amt = self.all_inputs['adaptation']['fertilizer_fixed']['application_rate']
             fert_applied[fields] = amt
             # add costs to agents
-            agents.fert_costs[agents.t[0], ag] += amt * agents.fertilizer_cost * self.area * agents.n_plots[ag]
+            agents.fert_costs[agents.t[0], ag] += amt * agents.fertilizer_cost * agents.land_area[ag]
         
-        return fert_applied
-
-    def land_to_agent(self, vals, num_fields, mode='sum'):
-        '''
-        convert a land-level property to an agent-level property.
-        assumes the owners of the land parcels are ordered (0, ..., N_frmrs)
-        vectorized
-        '''
-        cumsums = np.concatenate(([0], np.cumsum(vals)))
-        ends = np.cumsum(num_fields) # this is the index that corresponds to the final element of each agent's sum
-        starts = ends - num_fields
-        ag_sums = cumsums[ends] - cumsums[starts]
-
-        if mode == 'sum':
-            return ag_sums
-        elif mode == 'average':
-            return ag_sums / num_fields
-
-    def agent_to_land(self, vals):
-        '''
-        convert an agent-level property to land
-        '''
-        return vals[self.owner]        
+        return fert_applied    

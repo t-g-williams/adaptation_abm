@@ -47,7 +47,7 @@ def agents():
         'adap_type' : 'affording', # coping, switching, affording, or always
 
         # plot ownership
-        'n_plots_init' : [8, 11, 14], # uniformly sample from each
+        'land_area_init' : [1, 1.5, 2], # ha. uniformly sample from each
 
         ##### cash + wealth #####
         # initial (normal distribution)
@@ -78,7 +78,6 @@ def land():
         'loss_min' : 0.05, # 0.05 inorganic loss fraction with maximum SOM. Di2002 had ~5% minimum leaching.
         
         ##### yield #####
-        'area' : 0.13, # 0.13 ha. mean in LSMS 2015
         'max_yield' : 6590, # 6590 kg/ha. maximum, unconstrained yield. 95%ile for Ethiopia-wide LSMS (all 3 years) maize yields
         'rain_crit' : 0.8, # value at which rainfall starts to be limiting. 0.8 in CENTURY
         'rain_cropfail_high_SOM' : 0, # rainfall value at which crop yields are 0 with highest SOM. arbitrary

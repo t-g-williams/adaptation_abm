@@ -36,7 +36,7 @@ def neg_wealth_probabilities(mods, nreps, inp_base, scenarios, exp_name, T, save
     '''
     plot the probability that each agents' wealth is below zero over time
     '''
-    for n, nplot in enumerate(inp_base['agents']['n_plots_init']):
+    for n, land_area in enumerate(inp_base['agents']['land_area_init']):
         fig, ax = plt.subplots(figsize=(8,8))
         for scenario, mods_sc in mods.items():
             ## calculate the wealth mean and std dev over time
@@ -44,7 +44,7 @@ def neg_wealth_probabilities(mods, nreps, inp_base, scenarios, exp_name, T, save
             w = mods_sc['wealth']
             all_wealth = []
             for r in range(nreps):
-                agents = mods_sc['n_plots'][r] == nplot
+                agents = mods_sc['land_area'][r] == nplot
                 all_wealth.append(list(w[r,:,agents]))
             all_wealth = np.array([item for sublist in all_wealth for item in sublist])
             # ^ this is (agents, time) shape
@@ -59,7 +59,7 @@ def neg_wealth_probabilities(mods, nreps, inp_base, scenarios, exp_name, T, save
         ax.set_ylabel('P(wealth < 0)')
         ax.set_title('Agent wealth')
         fig.tight_layout()
-        fig.savefig(savedir + 'neg_wealth_prob_{}_plots.png'.format(nplot))
+        fig.savefig(savedir + 'neg_wealth_prob_{}_ha.png'.format(str(land_area.replace('.','_'))))
         plt.close('all')
 
 def combined_wealth_income(mods, nreps, inp_base, scenarios, exp_name, T, savedir):
@@ -67,13 +67,13 @@ def combined_wealth_income(mods, nreps, inp_base, scenarios, exp_name, T, savedi
     plot the trajectories of wealth mean and variance for the different agent groups
     create two plots: one of mean-vs-variance and one with separate mean-variance plots
     '''
-    plots = inp_base['agents']['n_plots_init']
+    plots = inp_base['agents']['land_area_init']
     N = len(plots)
     fig = plt.figure(figsize=(5*N,10))
     axs = {1 : [], 2 : [], 3 : []}
     lims = {1 : [9999999,-999999], 2 : [9999999,-999999], 3 : [9999999,-999999]}
 
-    for n, nplot in enumerate(plots):
+    for n, land_area in enumerate(plots):
         ax1 = fig.add_subplot(3,N,n+1)
         ax2 = fig.add_subplot(3,N,N+n+1)
         ax3 = fig.add_subplot(3,N,2*N+n+1)
@@ -86,7 +86,7 @@ def combined_wealth_income(mods, nreps, inp_base, scenarios, exp_name, T, savedi
             all_wealth = []
             all_income = []
             for r in range(nreps):
-                agents = mods_sc['n_plots'][r] == nplot
+                agents = mods_sc['land_area'][r] == land_area
                 all_wealth.append(list(wlth[r,:,agents]))
                 all_income.append(list(inc[r,:,agents]))
             all_wealth = np.array([item for sublist in all_wealth for item in sublist])
@@ -120,7 +120,7 @@ def combined_wealth_income(mods, nreps, inp_base, scenarios, exp_name, T, savedi
             ax2.set_ylabel('Change in income mean')
             ax3.set_ylabel('Change in income variance')
             top_axs = [ax1,ax2,ax3]
-        ax1.set_title('{} plots'.format(nplot))
+        ax1.set_title('{} ha'.format(land_area))
         # limits
         ax_tmp = [ax1,ax2,ax3]
         for k, v in lims.items():
@@ -152,7 +152,7 @@ def agent_trajectories(mods, nreps, inp_base, scenarios, exp_name, T, savedir, p
     plot the trajectories of wealth mean and variance for the different agent groups
     create two plots: one of mean-vs-variance and one with separate mean-variance plots
     '''
-    for n, nplot in enumerate(inp_base['agents']['n_plots_init']):
+    for n, land_area in enumerate(inp_base['agents']['land_area_init']):
         fig, ax = plt.subplots(figsize=(8,8))
         fig2 = plt.figure(figsize=(7,10))
         ax1 = fig2.add_subplot(211)
@@ -163,7 +163,7 @@ def agent_trajectories(mods, nreps, inp_base, scenarios, exp_name, T, savedir, p
             w = mods_sc[plt_type]
             all_wealth = []
             for r in range(nreps):
-                agents = mods_sc['n_plots'][r] == nplot
+                agents = mods_sc['land_area'][r] == land_area
                 all_wealth.append(list(w[r,:,agents]))
             all_wealth = np.array([item for sublist in all_wealth for item in sublist])
             # ^ this is (agents, time) shape
@@ -211,7 +211,7 @@ def agent_trajectories(mods, nreps, inp_base, scenarios, exp_name, T, savedir, p
         ax.text(xval, -yval, 'DESTABILIZING,\nHIGHER MEAN', fontsize=20, ha='right', va='bottom')
         ax.text(-xval, yval, 'STABILIZING,\nLOWER MEAN', fontsize=20, ha='left', va='top')
         fig.tight_layout()
-        fig.savefig(savedir + '{}_trajectories_{}_plots.png'.format(plt_type, nplot))
+        fig.savefig(savedir + '{}_trajectories_{}_ha.png'.format(plt_type, str(land_area).replace('.','_')))
 
         ## formatting of separate plots
         for axx in [ax1, ax2]:
@@ -223,7 +223,7 @@ def agent_trajectories(mods, nreps, inp_base, scenarios, exp_name, T, savedir, p
         ax2.set_ylabel('Change in {} variance'.format(plt_type))
         ax1.set_title('{}, {} plots'.format(plt_type, nplot))
         fig2.tight_layout()
-        fig2.savefig(savedir + 'timeseries_{}_trajectories_{}_plots.png'.format(plt_type, nplot))
+        fig2.savefig(savedir + 'timeseries_{}_trajectories_{}_ha.png'.format(plt_type, str(land_area).replace('.','_')))
         plt.close('all')
 
 def first_round_plots(mods, nreps, inp_base, scenarios, exp_name, T, savedir, shock_years=[]):
@@ -247,18 +247,16 @@ def first_round_plots(mods, nreps, inp_base, scenarios, exp_name, T, savedir, sh
         ag_data = [copy.copy(out_dict), copy.copy(out_dict), copy.copy(out_dict)]
         for r in range(nreps):
             # find agent types
-            ags = [mod['n_plots'][r] == inp_base['agents']['n_plots_init'][0],
-                mod['n_plots'][r] == inp_base['agents']['n_plots_init'][1],
-                mod['n_plots'][r] == inp_base['agents']['n_plots_init'][2]]
+            ags = [mod['land_area'][r] == inp_base['agents']['land_area_init'][0],
+                mod['land_area'][r] == inp_base['agents']['land_area_init'][1],
+                mod['land_area'][r] == inp_base['agents']['land_area_init'][2]]
 
             # add their data to the dictionaries
             for a, ag in enumerate(ags):
                 ag_data[a]['wealth'] = np.nanmean(np.array([ag_data[a]['wealth'], np.mean(mod['wealth'][r,:,ag], axis=0)]), axis=0)
                 ag_data[a]['income'] = np.nanmean(np.array([ag_data[a]['income'], np.mean(mod['income'][r,:,ag], axis=0)]), axis=0)
                 ag_data[a]['coping'] = np.nanmean(np.array([ag_data[a]['coping'], np.mean(mod['coping'][r,:,ag], axis=0)]), axis=0)
-                # find the land-level agent types
-                lan = np.in1d(mod['owners'][r], np.arange(ag.shape[0])[ag])
-                ag_data[a]['SOM'] = np.nanmean(np.array([ag_data[a]['SOM'], np.mean(mod['organic'][r][:,lan], axis=1)]), axis=0)
+                ag_data[a]['SOM'] =    np.nanmean(np.array([ag_data[a]['SOM'], np.mean(mod['organic'][r][:,ag], axis=0)]), axis=0)
 
         ## PLOT ##
         for a, ag in enumerate(ags):

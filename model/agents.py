@@ -16,16 +16,16 @@ class Agents():
         self.id = np.arange(self.N)
 
         # generate land ownership
-        self.n_plots = self.init_farm_size()
-        self.crop_production = np.full([self.T, self.N], np.nan)
+        self.land_area = self.init_farm_size()
+        self.crop_production = np.full([self.T, self.N], -9999)
 
         # wealth (cash holdings)
         # this represents the START of the year
-        self.wealth = np.full([self.T+1, self.N], np.nan)
+        self.wealth = np.full([self.T+1, self.N], -9999)
         self.wealth[0] = np.random.normal(self.wealth_init_mean, self.wealth_init_sd, self.N)
         self.wealth[0][self.wealth[0]<0] = 0 # fix any -ve values
         # money
-        self.income = np.full([self.T, self.N], np.nan)
+        self.income = np.full([self.T, self.N], -9999)
         self.cash_req = np.random.normal(self.cash_req_mean, self.cash_req_sd, self.N)
         # coping measures
         self.coping_rqd = np.full([self.T, self.N], False)
@@ -35,14 +35,12 @@ class Agents():
 
     def init_farm_size(self):
         '''
-        initialize agent-level farm size (number of pixels)
-        use values derived from LSMS
-        constrain them to be >0 and <MAX_VALUE
+        initialize agent-level farm size (ha)
         '''
-        if self.N == len(self.n_plots_init):
-            return np.array(self.n_plots_init)
+        if self.N == len(self.land_area_init):
+            return np.array(self.land_area_init)
         else:
-            return np.random.choice(self.n_plots_init, size=self.N)
+            return np.random.choice(self.land_area_init, size=self.N)
         
     def calculate_income(self, land, climate, adap_properties):
         '''
@@ -54,14 +52,14 @@ class Agents():
         self.insurance_payout_year = False
         if adap_properties['type'] == 'insurance':
             # costs
-            adap_costs[self.adapt[t]] = adap_properties['cost'] * land.area * self.n_plots[self.adapt[t]]
+            adap_costs[self.adapt[t]] = adap_properties['cost'] * self.land_area[self.adapt[t]]
             # payouts
             if climate.rain[t] < adap_properties['magnitude']:
                 payouts = np.full(self.N, 0.)
-                payouts[self.adapt[t]] = adap_properties['payout'] * self.n_plots[self.adapt[t]] * land.area
+                payouts[self.adapt[t]] = adap_properties['payout'] * self.land_area[self.adapt[t]]
                 self.insurance_payout_year = True
         elif adap_properties['type'] == 'cover_crop':
-            adap_costs[self.adapt[t]] = adap_properties['cost'] * land.area * self.n_plots[self.adapt[t]]
+            adap_costs[self.adapt[t]] = adap_properties['cost'] * self.land_area[self.adapt[t]]
 
         # income = crop_sales - cash_req - adap_costs
         self.income[t] = self.crop_sell_price*self.crop_production[t] - self.cash_req - adap_costs
@@ -71,7 +69,7 @@ class Agents():
             # and any left over, they use to buy fodder
             # which will increase their maximum wealth capacity
             self.remaining_payout = np.minimum(np.maximum(payouts+self.income[t], 0), payouts) # outer "minimum" is in case their income is +ve --> they can only use the payout for fodder
-            self.income[t] += payouts
+            self.income[t] += payouts.astype(int)
 
     def coping_measures(self, land):
         '''
@@ -122,7 +120,7 @@ class Agents():
                 self.adapt[t+1, self.coping_rqd[t]] = ~self.adapt[t, self.coping_rqd[t]]
             elif self.adap_type == 'affording':
                 # agents adapt if they can afford it
-                afford = self.wealth[t+1] >= (adap_properties['cost'] * land.area * self.n_plots)
+                afford = self.wealth[t+1] >= (adap_properties['cost'] * self.land_area)
                 self.adapt[t+1, afford] = True
             elif self.adap_type == 'always':
                 # all agents adapt

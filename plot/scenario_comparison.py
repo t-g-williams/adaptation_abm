@@ -23,12 +23,11 @@ def main(mods, save=True):
     agent_type_plots(mods, savedir)
 
     # soil_wealth(mods, savedir)
-    # n_plots(mods, savedir)
     # coping(mods, savedir)
 
 def agent_type_plots(mods, savedir):
     '''
-    plot each agent type (number of plots) separately
+    plot each agent type (land area) separately
     this assumes there's 3 agent types
     '''
     colors = ['b','r','k','g','y']
@@ -50,19 +49,16 @@ def agent_type_plots(mods, savedir):
             shock_years = mod.climate.shock_years
 
         # find agent types
-        ags = [mod.agents.n_plots == mod.agents.n_plots_init[0],
-            mod.agents.n_plots == mod.agents.n_plots_init[1],
-            mod.agents.n_plots == mod.agents.n_plots_init[2]]
+        ags = [mod.agents.land_area == mod.agents.land_area_init[0],
+            mod.agents.land_area == mod.agents.land_area_init[1],
+            mod.agents.land_area == mod.agents.land_area_init[2]]
 
         for a, ag in enumerate(ags):
             axs[a].plot(np.median(mod.agents.wealth[:,ag], axis=1), label=m, color=colors[ii])
-            ax4s[a].plot(mod.agents.wealth[:,ag], color=colors[ii])#, lw=0.5)
             ax2s[a].plot(np.mean(mod.agents.coping_rqd[:,ag], axis=1), label=m, color=colors[ii])
-
-            # find the land-level agent types
-            lan = np.in1d(mod.land.owner, mod.agents.id[ag])
-            ax3s[a].plot(np.median(mod.land.organic[:,lan], axis=1), label=m, color=colors[ii])
-            ax5s[a].plot(mod.land.organic[:,lan], color=colors[ii])#, lw=0.5)
+            ax3s[a].plot(np.median(mod.land.organic[:,ag], axis=1), label=m, color=colors[ii])
+            ax4s[a].plot(mod.agents.wealth[:,ag], color=colors[ii])#, lw=0.5)
+            ax5s[a].plot(mod.land.organic[:,ag], color=colors[ii])#, lw=0.5)
 
         ii += 1
 
@@ -129,60 +125,6 @@ def soil_wealth(mods, savedir):
         return fig
     else:
         fig.savefig(savedir + 'soil_wealth.png')
-
-def n_plots(mods, savedir):
-    '''
-    effect of number of plots on outcomes
-    '''
-    fig = plt.figure(figsize=(16,4))
-    ax1 = fig.add_subplot(141)
-    ax2 = fig.add_subplot(142)
-    ax3 = fig.add_subplot(143)
-    ax4 = fig.add_subplot(144)
-    axs = [ax1,ax2,ax3,ax4]
-
-    for m, mod in mods.items():
-        xs = np.arange(0, mod.agents.n_plots.max()+1)
-        ys = np.full(xs.shape, np.nan)
-        y2s = np.full(xs.shape, np.nan)
-        y3s = np.full(xs.shape, np.nan)
-        y4s = np.full(xs.shape, np.nan)
-        ag_soil_quality = mod.land.land_to_agent(mod.land.organic[-1], mod.agents.n_plots, mode='average')
-        for i, x in enumerate(xs):
-            ags = mod.agents.n_plots == x
-            if np.sum(ags) > 0:
-                ys[i] = np.mean(mod.agents.coping_rqd[:, ags])
-                y2s[i] = np.mean(mod.agents.crop_production[:, ags])
-                y3s[i] = np.mean(ag_soil_quality[ags])
-                y4s[i] = np.mean(mod.agents.wealth[-1, ags])
-
-        ax1.plot(xs, ys, marker='o', label=m)
-        ax2.plot(xs, y2s, marker='o', label=m)
-        ax3.plot(xs, y3s, marker='o', label=m)
-        ax4.plot(xs, y4s, marker='o', label=m)
-    
-    ax1.set_ylim([0,1])
-    ax1.set_xlabel('Number of plots')
-    ax1.set_title('Coping frequency')
-    ax2.set_xlabel('Number of plots')
-    ax2.set_title('Crop production (kg)')
-    ax3.set_xlabel('Number of plots')
-    ax3.set_title('Final SOM (kg/ha)')
-    ax4.set_xlabel('Number of plots')
-    ax4.set_title('Wealth (birr)')
-
-    for ax in axs:
-        ax.grid(False)
-        ax.legend()
-    
-    if isinstance(savedir, bool):
-        return fig
-    else:
-        fig.savefig(savedir + 'n_plots.png')
-
-
-    
-    
 
 def coping(mods, savedir):
     '''

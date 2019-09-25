@@ -27,11 +27,12 @@ import plot.single_run as plt_single
 
 def main():
     # specify experimental settings
-    N_samples = 100000
-    ncores = 40
+    N_samples = 1000
+    ncores = 1
     nreps = 10
+    exp_name = 'POM/new_land_rep'
     inputs = {
-        'model' : {'n_agents' : 100, 'T' : 100, 'exp_name' : 'POM',
+        'model' : {'n_agents' : 100, 'T' : 100, 'exp_name' : exp_name,
                     'adaptation_option' : 'none'}
     }
 
@@ -57,16 +58,16 @@ def main():
     fits = run_model(rvs, inputs, calib_vars, ncores, nreps)
     
     # process the fit data
-    process_fits(fits, rvs, calib_vars, inputs, nreps)
+    process_fits(fits, rvs, calib_vars, inputs, nreps, exp_name)
 
 def fitting_metrics(mod):
     '''
     determine whether the model displays the desired patterns
     '''
     n_yrs = 10 # how many years to do calculations over (from the end of the simulation)
-    ag1 = mod.agents.n_plots == mod.agents.n_plots_init[0]
-    ag2 = mod.agents.n_plots == mod.agents.n_plots_init[1]
-    ag3 = mod.agents.n_plots == mod.agents.n_plots_init[2]
+    ag1 = mod.agents.land_area == mod.agents.land_area_init[0]
+    ag2 = mod.agents.land_area == mod.agents.land_area_init[1]
+    ag3 = mod.agents.land_area == mod.agents.land_area_init[2]
     
     ## 1. agent wealth
     ## we want agent type 1 (lowest land) to have -ve wealth with certainty
@@ -186,12 +187,12 @@ def run_chunk_sims(ixs, rvs, inp_all, calib_vars):
 
     return fits
 
-def process_fits(fits, rvs, calib_vars, inputs, nreps):
+def process_fits(fits, rvs, calib_vars, inputs, nreps, exp_name):
     '''
     process the POM results
     '''
     N = rvs.shape[0]
-    outdir = '../outputs/POM/{}_{}reps/'.format(N, nreps)
+    outdir = '../outputs/{}/{}_{}reps/'.format(exp_name, N, nreps)
     if not os.path.isdir(outdir):
         os.makedirs(outdir)
     # code.interact(local=dict(globals(), **locals()))

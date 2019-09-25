@@ -80,9 +80,9 @@ def run_shock_sims(nreps, inp_base, adap_scenarios, shock_mags, shock_times, nco
         base = extract_arrays(tmp)
 
         # run each of the shock sims
-        nplots = params['agents']['n_plots_init']
+        land_area = params['agents']['land_area_init']
         idx = pd.MultiIndex.from_product([shock_mags,shock_times], names=('mag','time'))
-        diffs_pd = pd.DataFrame(index=idx, columns=nplots)
+        diffs_pd = pd.DataFrame(index=idx, columns=land_area)
         for shock_yr in shock_times:
             for shock_mag in shock_mags:
                 # add the shock conditions
@@ -100,10 +100,10 @@ def run_shock_sims(nreps, inp_base, adap_scenarios, shock_mags, shock_times, nco
                 # sum over the required years
                 diff_sums = np.mean(inc_diffs[:,shock_yr:(shock_yr+T),:], axis=1)
                 # loop over the agent types
-                for n, nplot in enumerate(nplots):
-                    ags = tmp['n_plots'] == nplot
+                for n, area in enumerate(land_area):
+                    ags = tmp['land_area'] == area
                     # calculate the mean over agents and replications
-                    diffs_pd.loc[(shock_mag, shock_yr), nplot] = np.mean(diff_sums[ags])
+                    diffs_pd.loc[(shock_mag, shock_yr), area] = np.mean(diff_sums[ags])
 
         scenario_results[scenario] = diffs_pd
     
@@ -112,7 +112,7 @@ def run_shock_sims(nreps, inp_base, adap_scenarios, shock_mags, shock_times, nco
 
 def extract_arrays(tmp):
     return {
-        'n_plots' : np.array([oi for tmp_i in tmp for oi in tmp_i['n_plots']]),
+        'land_area' : np.array([oi for tmp_i in tmp for oi in tmp_i['land_area']]),
         'income' : np.array([oi for tmp_i in tmp for oi in tmp_i['income']]),   
     }
 
@@ -121,7 +121,7 @@ def run_chunk_reps(reps, params):
     run a chunk of replications
     '''
     params = copy.copy(params)
-    ms = {'n_plots' : [], 'income' : []}
+    ms = {'land_area' : [], 'income' : []}
     # with tqdm(reps, disable = not True) as pbar:
     for r in reps:
         params['model']['seed'] = r # set the seed
@@ -131,7 +131,7 @@ def run_chunk_reps(reps, params):
         for t in range(m.T):
             m.step()
         # append to list
-        ms['n_plots'].append(m.agents.n_plots)
+        ms['land_area'].append(m.agents.land_area)
         ms['income'].append(m.agents.income.astype(int))
         # pbar.update()
 

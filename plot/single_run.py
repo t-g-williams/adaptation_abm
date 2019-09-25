@@ -34,7 +34,6 @@ def main(mod, save=True):
     # soil(mod, qs, savedir)
     # yields(mod, qs, savedir)
     # coping(mod, qs, savedir)
-    # n_plots(mod, savedir)
     adaptation(mod, savedir)
     
 
@@ -61,11 +60,11 @@ def inputs(mod, savedir):
     # rndm_area[rndm_area>mod.agents.land_max] = mod.agents.land_max
     # rndm_plots = np.round(rndm_area / mod.land.area).astype(int)
     # rndm_plots[rndm_plots <= 0] = 1
-    rndms = np.random.choice(mod.agents.n_plots_init, size=1000)
+    rndms = np.random.choice(mod.agents.land_area_init, size=1000)
     # breaks = np.arange(0, rndms.max()+1)
     ax2 = fig.add_subplot(132)
     ax2.hist(rndms, alpha=alpha)
-    ax2.set_xlabel('Number of plots')
+    ax2.set_xlabel('Land area (ha)')
     ax2.set_ylabel('Frequency')
 
     # 3. wealth
@@ -145,53 +144,6 @@ def coping(mod, qs, savedir):
     else:
         fig.savefig(savedir + 'coping.png')
 
-def n_plots(mod, savedir):
-    '''
-    outcomes as a function of number of plots
-    '''
-    fig = plt.figure(figsize=(16,4))
-    ax1 = fig.add_subplot(141)
-    ax2 = fig.add_subplot(142)
-    ax3 = fig.add_subplot(143)
-    ax4 = fig.add_subplot(144)
-
-    # 1. coping amount
-    xs = np.arange(0, mod.agents.n_plots.max()+1)
-    ys = np.full(xs.shape, np.nan)
-    y2s = np.full(xs.shape, np.nan)
-    y3s = np.full(xs.shape, np.nan)
-    y4s = np.full(xs.shape, np.nan)
-    ag_soil_quality = mod.land.land_to_agent(mod.land.organic[-1], mod.agents.n_plots, mode='average')
-    for i, x in enumerate(xs):
-        ags = mod.agents.n_plots == x
-        if np.sum(ags) > 0:
-            ys[i] = np.mean(mod.agents.coping_rqd[:, ags])
-            y2s[i] = np.mean(mod.agents.crop_production[:, ags])
-            y3s[i] = np.mean(ag_soil_quality[ags])
-            y4s[i] = np.mean(mod.agents.wealth[-1, ags])
-
-    ax1.plot(xs, ys, marker='o')
-    ax1.set_ylim([0,1])
-    ax1.set_xlabel('Number of plots')
-    ax1.set_title('Coping frequency')
-
-    ax2.plot(xs, y2s, marker='o')
-    ax2.set_xlabel('Number of plots')
-    ax2.set_title('Crop production (kg)')
-
-    ax3.plot(xs, y3s, marker='o')
-    ax3.set_xlabel('Number of plots')
-    ax3.set_title('Final SOM (kg/ha)')
-
-    ax4.plot(xs, y4s, marker='o')
-    ax4.set_xlabel('Number of plots')
-    ax4.set_title('Wealth (birr)')
-
-    if isinstance(savedir, bool):
-        return fig
-    else:
-        fig.savefig(savedir + 'n_plots.png')
-
 def adaptation(mod, savedir):
     '''
     plot regional and agent-level adaptation trajectories
@@ -244,7 +196,7 @@ def adaptation(mod, savedir):
 def type_wealth(mod, savedir):
     fig = plt.figure(figsize=(12,6))
     ax = fig.add_subplot(111)
-    type_timeseries(mod.agents.wealth, mod.agents.n_plots, ax, 'birr', 'Wealth')
+    type_timeseries(mod.agents.wealth, mod.agents.land_area, ax, 'birr', 'Wealth')
     fig.tight_layout()
     ax.axhline(y=0, color='k')
     if isinstance(savedir, bool):
@@ -257,8 +209,8 @@ def type_coping(mod, savedir):
     ax = fig.add_subplot(131)
     ax2 = fig.add_subplot(132)
     ax3 = fig.add_subplot(133)
-    type_timeseries(mod.agents.coping_rqd, mod.agents.n_plots, ax, 'P(coping rqd)', 'Coping', mean=True)
-    type_timeseries(mod.agents.cant_cope, mod.agents.n_plots, ax2, 'P(cant cope)', 'Not able to cope', mean=True)
+    type_timeseries(mod.agents.coping_rqd, mod.agents.land_area, ax, 'P(coping rqd)', 'Coping', mean=True)
+    type_timeseries(mod.agents.cant_cope, mod.agents.land_area, ax2, 'P(cant cope)', 'Not able to cope', mean=True)
     agent_trajectories(mod.agents.coping_rqd, ax3)
     ax3.set_xlabel("No coping rqd (cumsum)")
     ax3.set_ylabel('Coping rqd (cumsum)')
@@ -275,8 +227,8 @@ def type_nutrients(mod, savedir):
     fig = plt.figure(figsize=(16,6))
     ax = fig.add_subplot(121)
     ax2 = fig.add_subplot(122)
-    type_timeseries(mod.land.organic, mod.agents.n_plots[mod.land.owner], ax, 'kg/ha', 'Organic N')#, mean=True)
-    type_timeseries(mod.land.inorganic, mod.agents.n_plots[mod.land.owner], ax2, 'kg/ha', 'Inorganic N')#, mean=True)
+    type_timeseries(mod.land.organic, mod.agents.land_area, ax, 'kg/ha', 'Organic N')#, mean=True)
+    type_timeseries(mod.land.inorganic, mod.agents.land_area, ax2, 'kg/ha', 'Inorganic N')#, mean=True)
     ax.set_ylim([0, ax.get_ylim()[1]])
     ax2.set_ylim([0, ax2.get_ylim()[1]])
     fig.tight_layout()
@@ -290,9 +242,9 @@ def type_yields(mod, savedir):
     ax = fig.add_subplot(131)
     ax2 = fig.add_subplot(132)
     ax3 = fig.add_subplot(133)
-    type_timeseries(mod.land.rf_factors, mod.agents.n_plots[mod.land.owner], ax, '', 'Rainfall effect', mean=True)
-    type_timeseries(mod.land.nutrient_factors, mod.agents.n_plots[mod.land.owner], ax2, '', 'Nutrient effect', mean=True)
-    type_timeseries(mod.land.yields, mod.agents.n_plots[mod.land.owner], ax3, 'kg/ha', 'Crop yield', mean=True)
+    type_timeseries(mod.land.rf_factors, mod.agents.land_area, ax, '', 'Rainfall effect', mean=True)
+    type_timeseries(mod.land.nutrient_factors, mod.agents.land_area, ax2, '', 'Nutrient effect', mean=True)
+    type_timeseries(mod.land.yields, mod.agents.land_area, ax3, 'kg/ha', 'Crop yield', mean=True)
     fig.tight_layout()
     ax.set_ylim([0,1])
     ax2.set_ylim([0,1])
@@ -301,28 +253,28 @@ def type_yields(mod, savedir):
     else:
         fig.savefig(savedir + 'single_yields.png')
 
-def type_timeseries(d, n_plots, ax, ylab, title, mean=False):
+def type_timeseries(d, land_area, ax, ylab, title, mean=False):
     '''
     create a plot separating agents by their "type"
     which is given by their number of plots
     it assumes each agent has a value for "d" at each time step
     '''
     colors = ['k','b','r']
-    uniqs = np.unique(n_plots)
+    uniqs = np.unique(land_area)
     if len(uniqs) > 3:
         print('too many unique types!')
         return
     
     for ui, u in enumerate(uniqs):
-        ixs = n_plots==u
-        ix_nums = np.arange(n_plots.shape[0])[ixs]
+        ixs = land_area==u
+        ix_nums = np.arange(land_area.shape[0])[ixs]
         if mean:
             plt_d = np.nanmean(d[:,ixs], axis=1)
-            ax.plot(plt_d, label='{} plots'.format(u), color=colors[ui])
+            ax.plot(plt_d, label='{} ha'.format(u), color=colors[ui])
         else:
             plt_d = d[:,ixs]
             for i, ix in enumerate(ix_nums):
-                lgd = '{} plots'.format(u) if i == 0 else '_nolegend_'
+                lgd = '{} ha'.format(u) if i == 0 else '_nolegend_'
                 ax.plot(d[:,ix], label=lgd, color=colors[ui])
 
     ax.grid(False)

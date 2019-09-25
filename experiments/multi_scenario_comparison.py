@@ -75,7 +75,7 @@ def multi_mod_run(nreps, inp_base, scenarios, ncores):
         mods[name] = {
             'wealth' : np.array([oi for tmp_i in tmp for oi in tmp_i['wealth']]).astype(int),
             'organic' : [oi.astype(int) for tmp_i in tmp for oi in tmp_i['organic']], # each rep is different length
-            'n_plots' : np.array([oi for tmp_i in tmp for oi in tmp_i['n_plots']]),
+            'land_area' : np.array([oi for tmp_i in tmp for oi in tmp_i['land_area']]),
             'coping' : np.array([oi for tmp_i in tmp for oi in tmp_i['coping']]),
             'owners' : [oi for tmp_i in tmp for oi in tmp_i['owners']],
             'income' : np.array([oi for tmp_i in tmp for oi in tmp_i['income']]).astype(int),
@@ -88,7 +88,7 @@ def run_chunk_reps(reps, params):
     run a chunk of replications
     '''
     params = copy.copy(params)
-    ms = {'wealth' : [], 'organic' : [], 'coping' : [], 'n_plots' : [], 'owners' : [],
+    ms = {'wealth' : [], 'organic' : [], 'coping' : [], 'land_area' : [], 'owners' : [],
         'income' : []}
     # with tqdm(reps, disable = not True) as pbar:
     for r in reps:
@@ -101,7 +101,7 @@ def run_chunk_reps(reps, params):
         # append to list
         ms['wealth'].append(m.agents.wealth)
         ms['organic'].append(m.land.organic)
-        ms['n_plots'].append(m.agents.n_plots)
+        ms['land_area'].append(m.agents.land_area)
         ms['coping'].append(m.agents.coping_rqd)
         ms['owners'].append(m.land.owner)
         ms['income'].append(m.agents.income)
