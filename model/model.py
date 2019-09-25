@@ -64,7 +64,8 @@ class Model():
             self.adap_properties = {
                 'type' : 'cover_crop',
                 'cost' : cost * props['cost_factor'],
-                'N_fixation' : props['N_fixation'],
+                'N_fixation_min' : props['N_fixation_min'],
+                'N_fixation_max' : props['N_fixation_max'],
                 'adap' : True,
             }
 

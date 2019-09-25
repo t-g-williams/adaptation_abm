@@ -101,12 +101,14 @@ class Land():
     def cover_crop_input(self, agents, adap_properties):
         '''
         calculate the input from legume cover crops
+        assume a linear model between the specified minimum and maximum amounts
         '''
         inputs = np.full(self.n_plots, 0.)
         if adap_properties['type'] == 'cover_crop':
             adap = agents.adapt[agents.t[0]]
             fields = np.in1d(self.owner, agents.id[adap]) # identify the fields
-            inputs[fields] += adap_properties['N_fixation'] # kg/ha
+            inputs[fields] += adap_properties['N_fixation_min'] + \
+                (1-self.organic[self.t[0],fields] / self.max_organic_N) * (adap_properties['N_fixation_max']-adap_properties['N_fixation_min']) # kg/ha
 
         return inputs
 
