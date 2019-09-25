@@ -102,7 +102,7 @@ class Agents():
         self.wealth[t+1, self.wealth[t+1] < self.max_neg_wealth] = self.max_neg_wealth
         # code.interact(local=dict(globals(), **locals()))
         ## TEMPORARY
-        self.wealth[t+1, self.wealth[t+1]<0] = 0
+        # self.wealth[t+1, self.wealth[t+1]<0] = 0
 
     def adaptation(self, land, adap_properties):
         '''
