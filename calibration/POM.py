@@ -27,14 +27,15 @@ import plot.single_run as plt_single
 
 def main():
     # specify experimental settings
-    N_samples = 1000
-    ncores = 40
-    nreps = 10
-    exp_name = 'POM/new_land_rep_neg_wlth'
+    N_samples = 100
+    ncores = 1
+    nreps = 2
+    exp_name = 'test/POM'
     inputs = {
         'model' : {'n_agents' : 500, 'T' : 100, 'exp_name' : exp_name,
                     'adaptation_option' : 'none'}
     }
+    fit_threshold = 0.8
 
     # define the variables for calibration
     calib_vars = pd.DataFrame(
@@ -58,7 +59,7 @@ def main():
     fits = run_model(rvs, inputs, calib_vars, ncores, nreps)
     
     # process the fit data
-    process_fits(fits, rvs, calib_vars, inputs, nreps, exp_name)
+    process_fits(fits, rvs, calib_vars, inputs, nreps, exp_name, fit_threshold)
 
 def fitting_metrics(mod):
     '''
@@ -185,7 +186,7 @@ def run_chunk_sims(ixs, rvs, inp_all, calib_vars):
 
     return fits
 
-def process_fits(fits, rvs, calib_vars, inputs, nreps, exp_name):
+def process_fits(fits, rvs, calib_vars, inputs, nreps, exp_name, fit_threshold):
     '''
     process the POM results
     '''
@@ -215,6 +216,7 @@ def process_fits(fits, rvs, calib_vars, inputs, nreps, exp_name):
 
     # write outputs
     fit_pd = fit_pd.sort_values(by='sum', axis=0, ascending=False)
+    fit_pd['sim_number'] = fit_pd.index
     fit_pd.to_csv(outdir + 'fits.csv')
     # np.savetxt(outdir + 'rvs.csv', rvs)
 
@@ -228,7 +230,7 @@ def process_fits(fits, rvs, calib_vars, inputs, nreps, exp_name):
     vals_sc = (vals_best - np.array(calib_vars['min_val'])[None,:]) / np.array(calib_vars['max_val']-calib_vars['min_val'])[None,:]
     fig, ax = plt.subplots(figsize=(8,5))
     # plot everything within 10% of this quality
-    ok_fits = fit_pd.loc[fit_pd['sum'] >= 0.9*max_fit, 'sum'].index
+    ok_fits = fit_pd.loc[fit_pd['sum'] >= fit_threshold*max_fit, 'sum'].index
     vals_ok = rvs[ok_fits]
     vals_ok_sc = (vals_ok - np.array(calib_vars['min_val'])[None,:]) / np.array(calib_vars['max_val']-calib_vars['min_val'])[None,:]
     ax.plot(np.transpose(vals_ok_sc), alpha=0.5, lw=0.5, color='k')
@@ -263,7 +265,7 @@ def process_fits(fits, rvs, calib_vars, inputs, nreps, exp_name):
         with open(outdir + 'input_params_{}.pkl'.format(v), 'wb') as f:
             pickle.dump(inp_all, f)
     
-    code.interact(local=dict(globals(), **locals()))
+    # code.interact(local=dict(globals(), **locals()))
 
 def overwrite_inputs(all_inputs, changes):
     '''
