@@ -19,24 +19,24 @@ from tqdm import tqdm
 import multiprocessing
 
 def main():
-    nreps = 1000
-    exp_name = 'MS_1000yrs_shock'
+    nreps = 100
+    exp_name = '2019_10_8'
     ncores = 40
 
     # load default params
     inp_base = inp.compile()
     #### OR ####
     # load from POM experiment
-    f = '../outputs/POM/constrained livestock frac/input_params_0.pkl'
+    pom_nvars = 10000
+    pom_nreps = 10
+    f = '../outputs/{}/POM/{}_{}reps/input_params_0.pkl'.format(exp_name, pom_nvars, pom_nreps)
     inp_base = pickle.load(open(f, 'rb'))
     # manually specify some variables (common to all scenarios)
-    T = 1000
+    T = 100
     inp_base['model']['T'] = T
-    inp_base['model']['n_agents'] = 100
+    inp_base['model']['n_agents'] = 200
     inp_base['model']['exp_name'] = exp_name
     inp_base['agents']['adap_type'] = 'always'
-    inp_base['adaptation']['insurance']['cost_factor'] = 1 # remove in future -- only cause not in POM experiment
-    # inp_base['agents']['n_plots_init'] = [15,16,17,18,19]
 
     #### adaptation scenarios
     scenarios = {
@@ -47,11 +47,11 @@ def main():
     shock_years = []
 
     #### shock scenarios
-    scenarios = {
-        'baseline' : {'model' : {'adaptation_option' : 'none', 'shock' : False}},
-        'shock' : {'model' : {'adaptation_option' : 'none', 'shock' : True}, 'climate' : {'shock_years' : [15], 'shock_rain' : 0.1}},
-    }
-    shock_years = [15]
+    # scenarios = {
+    #     'baseline' : {'model' : {'adaptation_option' : 'none', 'shock' : False}},
+    #     'shock' : {'model' : {'adaptation_option' : 'none', 'shock' : True}, 'climate' : {'shock_years' : [15], 'shock_rain' : 0.1}},
+    # }
+    # shock_years = [15]
 
     #### RUN THE MODELS ####
     mods = multi_mod_run(nreps, inp_base, scenarios, ncores)
