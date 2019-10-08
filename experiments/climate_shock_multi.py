@@ -37,11 +37,6 @@ def main():
     inp_base['model']['exp_name'] = exp_name
     inp_base['agents']['adap_type'] = 'always'
     inp_base['model']['shock'] = False
-    # remove in future -- only cause not in POM experiment
-    # inp_base['adaptation']['insurance']['cost_factor'] = 1 
-    # inp_base['climate']['shock_years'] = [15]
-    # inp_base['climate']['shock_rain'] = 0.1
-    # inp_base['agents']['land_area_init'] = [1, 1.5, 2]
 
     #### adaptation scenarios
     adap_scenarios = {
@@ -60,7 +55,7 @@ def main():
     results = run_shock_sims(exp_name, nreps, inp_base, adap_scenarios, shock_mags, shock_times, ncores, T_res)
 
     #### PLOT ####
-    shock_plot.main(results, shock_mags, shock_times, exp_name)
+    shock_plot.main(results, shock_mags, shock_times, T_res, exp_name)
 
 def run_shock_sims(exp_name, nreps, inp_base, adap_scenarios, shock_mags, shock_times, ncores, T_res):
     '''
@@ -92,7 +87,7 @@ def run_shock_sims(exp_name, nreps, inp_base, adap_scenarios, shock_mags, shock_
 
         # run each of the shock sims
         land_area = params['agents']['land_area_init']
-        idx = pd.MultiIndex.from_product([shock_mags,shock_times,T_res], names=('mag','time','assess_pd'))
+        idx = pd.MultiIndex.from_product([shock_mags,T_res,shock_times], names=('mag','assess_pd','time'))
         diffs_pd = pd.DataFrame(index=idx, columns=land_area)
         for shock_yr in shock_times:
             for shock_mag in shock_mags:
@@ -115,7 +110,7 @@ def run_shock_sims(exp_name, nreps, inp_base, adap_scenarios, shock_mags, shock_
                     for n, area in enumerate(land_area):
                         ags = tmp['land_area'] == area
                         # calculate the mean over agents and replications
-                        diffs_pd.loc[(shock_mag, shock_yr, T), area] = np.mean(diff_sums[ags])
+                        diffs_pd.loc[(shock_mag, T, shock_yr), area] = np.mean(diff_sums[ags])
 
         scenario_results[scenario] = diffs_pd
         diffs_pd.to_csv(savename)
