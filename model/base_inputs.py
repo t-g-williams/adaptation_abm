@@ -12,7 +12,7 @@ def compile():
 
 def model():
     d = {
-        'n_agents' : 100,
+        'n_agents' : 200,
         'T' : 100, # number of years to simulate
         'exp_name' : 'test',
         'seed' : 0,
@@ -44,7 +44,7 @@ def adaptation():
 def agents():
     d = {
         # adaptation / decision-making
-        'adap_type' : 'affording', # coping, switching, affording, or always
+        'adap_type' : 'always', # coping, switching, affording, or always
 
         # plot ownership
         'land_area_init' : [1, 1.5, 2], # ha. uniformly sample from each
@@ -53,7 +53,7 @@ def agents():
         # initial (normal distribution)
         'wealth_init_mean' : 15000,
         'wealth_init_sd' : 0,
-        'max_neg_wealth' : -100000, # birr. just for plotting. these ppl cant recover anyway
+        'max_neg_wealth' : 0, # birr. just for plotting. these ppl cant recover anyway
         # requirements
         'cash_req_mean' : 17261, # 17261 birr/yr. median value from 2015 LSMS
         'cash_req_sd' : 0,

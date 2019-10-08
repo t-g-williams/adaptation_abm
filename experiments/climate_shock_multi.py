@@ -20,28 +20,28 @@ from tqdm import tqdm
 import multiprocessing
 
 def main():
-    nreps = 1000
-    exp_name = 'climate_shocks'
+    nreps = 100
+    exp_name = '2019_10_8'
     ncores = 40
 
     # load default params
     inp_base = inp.compile()
     #### OR ####
     # load from POM experiment
-    f = '../outputs/POM/constrained livestock frac/input_params_0.pkl'
+    pom_nvars = 10000
+    pom_nreps = 10
+    f = '../outputs/{}/POM/{}_{}reps/input_params_0.pkl'.format(exp_name, pom_nvars, pom_nreps)
     inp_base = pickle.load(open(f, 'rb'))
     # manually specify some variables (common to all scenarios)
-    T = 120
-    inp_base['model']['T'] = T
-    inp_base['model']['n_agents'] = 100
+    inp_base['model']['n_agents'] = 200
     inp_base['model']['exp_name'] = exp_name
     inp_base['agents']['adap_type'] = 'always'
-    # remove in future -- only cause not in POM experiment
-    inp_base['adaptation']['insurance']['cost_factor'] = 1 
     inp_base['model']['shock'] = False
-    inp_base['climate']['shock_years'] = [15]
-    inp_base['climate']['shock_rain'] = 0.1
-    
+    # remove in future -- only cause not in POM experiment
+    # inp_base['adaptation']['insurance']['cost_factor'] = 1 
+    # inp_base['climate']['shock_years'] = [15]
+    # inp_base['climate']['shock_rain'] = 0.1
+    # inp_base['agents']['land_area_init'] = [1, 1.5, 2]
 
     #### adaptation scenarios
     adap_scenarios = {
@@ -52,23 +52,34 @@ def main():
 
     #### shock scenarios
     shock_mags = [0.1, 0.2, 0.3]
-    shock_times = [10,20,30,40,50]
-    T = 30 # how many years to calculate effects over
+    shock_times = [10,20,30,40,50,60,70,80,90,100]
+    T_res = [1,2,5,10] # how many years to calculate effects over
+    inp_base['model']['T'] = shock_times[-1] + T_res[-1]
 
     #### RUN THE MODELS ####
-    results = run_shock_sims(nreps, inp_base, adap_scenarios, shock_mags, shock_times, ncores, T)
+    results = run_shock_sims(exp_name, nreps, inp_base, adap_scenarios, shock_mags, shock_times, ncores, T_res)
 
     #### PLOT ####
     shock_plot.main(results, shock_mags, shock_times, exp_name)
 
-def run_shock_sims(nreps, inp_base, adap_scenarios, shock_mags, shock_times, ncores, T):
+def run_shock_sims(exp_name, nreps, inp_base, adap_scenarios, shock_mags, shock_times, ncores, T_res):
     '''
     loop over the adaptation and shock scenarios
     '''
+    outdir = '../outputs/{}/shocks/'.format(exp_name)
+    if not os.path.isdir(outdir):
+        os.mkdir(outdir)
+
     rep_chunks = POM.chunkIt(np.arange(nreps), ncores)
     scenario_results = {}
 
     for scenario, scenario_params in adap_scenarios.items():
+        # load if results already saved
+        savename = '{}/{}_reps_{}.csv'.format(outdir, nreps, scenario)
+        if os.path.exists(savename):
+            scenario_results[scenario] = pd.read_csv(savename, index_col=[0,1,2])
+            continue
+
         # change the params for the scenario
         params = copy.copy(inp_base)
         for k, v in scenario_params.items():
@@ -81,7 +92,7 @@ def run_shock_sims(nreps, inp_base, adap_scenarios, shock_mags, shock_times, nco
 
         # run each of the shock sims
         land_area = params['agents']['land_area_init']
-        idx = pd.MultiIndex.from_product([shock_mags,shock_times], names=('mag','time'))
+        idx = pd.MultiIndex.from_product([shock_mags,shock_times,T_res], names=('mag','time','assess_pd'))
         diffs_pd = pd.DataFrame(index=idx, columns=land_area)
         for shock_yr in shock_times:
             for shock_mag in shock_mags:
@@ -98,17 +109,18 @@ def run_shock_sims(nreps, inp_base, adap_scenarios, shock_mags, shock_times, nco
                 tmp = extract_arrays(tmp)
                 inc_diffs = base['income'] - tmp['income']
                 # sum over the required years
-                diff_sums = np.mean(inc_diffs[:,shock_yr:(shock_yr+T),:], axis=1)
-                # loop over the agent types
-                for n, area in enumerate(land_area):
-                    ags = tmp['land_area'] == area
-                    # calculate the mean over agents and replications
-                    diffs_pd.loc[(shock_mag, shock_yr), area] = np.mean(diff_sums[ags])
+                for T in T_res:
+                    diff_sums = np.mean(inc_diffs[:,shock_yr:(shock_yr+T),:], axis=1)
+                    # loop over the agent types
+                    for n, area in enumerate(land_area):
+                        ags = tmp['land_area'] == area
+                        # calculate the mean over agents and replications
+                        diffs_pd.loc[(shock_mag, shock_yr, T), area] = np.mean(diff_sums[ags])
 
         scenario_results[scenario] = diffs_pd
-    
+        diffs_pd.to_csv(savename)
+
     return scenario_results
-    # code.interact(local=dict(globals(), **locals()))
 
 def extract_arrays(tmp):
     return {
