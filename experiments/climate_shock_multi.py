@@ -57,7 +57,7 @@ def main():
     #### PLOT ####
     shock_plot.main(results, shock_mags, shock_times, T_res, exp_name)
 
-def run_shock_sims(exp_name, nreps, inp_base, adap_scenarios, shock_mags, shock_times, ncores, T_res):
+def run_shock_sims(exp_name, nreps, inp_base, adap_scenarios, shock_mags, shock_times, ncores, T_res, save=True, flat_reps=True):
     '''
     loop over the adaptation and shock scenarios
     '''
@@ -69,11 +69,12 @@ def run_shock_sims(exp_name, nreps, inp_base, adap_scenarios, shock_mags, shock_
     scenario_results = {}
 
     for scenario, scenario_params in adap_scenarios.items():
-        # load if results already saved
-        savename = '{}/{}_reps_{}.csv'.format(outdir, nreps, scenario)
-        if os.path.exists(savename):
-            scenario_results[scenario] = pd.read_csv(savename, index_col=[0,1,2])
-            continue
+        if save:
+            # load if results already saved
+            savename = '{}/{}_reps_{}.csv'.format(outdir, nreps, scenario)
+            if os.path.exists(savename):
+                scenario_results[scenario] = pd.read_csv(savename, index_col=[0,1,2])
+                continue
 
         # change the params for the scenario
         params = copy.copy(inp_base)
@@ -85,10 +86,16 @@ def run_shock_sims(exp_name, nreps, inp_base, adap_scenarios, shock_mags, shock_
         tmp = Parallel(n_jobs=ncores)(delayed(run_chunk_reps)(rep_chunks[i], params) for i in range(len(rep_chunks)))
         base = extract_arrays(tmp)
 
-        # run each of the shock sims
+        ## run each of the shock sims
         land_area = params['agents']['land_area_init']
-        idx = pd.MultiIndex.from_product([shock_mags,T_res,shock_times], names=('mag','assess_pd','time'))
+        
+        # create a dataframe
+        if flat_reps:
+            idx = pd.MultiIndex.from_product([shock_mags,T_res,shock_times], names=('mag','assess_pd','time'))
+        else:
+            idx = pd.MultiIndex.from_product([shock_mags,T_res,shock_times,np.arange(nreps)], names=('mag','assess_pd','time','rep'))
         diffs_pd = pd.DataFrame(index=idx, columns=land_area)
+
         for shock_yr in shock_times:
             for shock_mag in shock_mags:
                 # add the shock conditions
@@ -110,10 +117,15 @@ def run_shock_sims(exp_name, nreps, inp_base, adap_scenarios, shock_mags, shock_
                     for n, area in enumerate(land_area):
                         ags = tmp['land_area'] == area
                         # calculate the mean over agents and replications
-                        diffs_pd.loc[(shock_mag, T, shock_yr), area] = np.mean(diff_sums[ags])
+                        if flat_reps:
+                            diffs_pd.loc[(shock_mag, T, shock_yr), area] = np.mean(diff_sums[ags])
+                        else:
+                            for r in range(nreps):
+                                diffs_pd.loc[(shock_mag, T, shock_yr, r), area] = np.mean(diff_sums[r,ags[r]])
 
         scenario_results[scenario] = diffs_pd
-        diffs_pd.to_csv(savename)
+        if save:
+            diffs_pd.to_csv(savename)
 
     return scenario_results
 
