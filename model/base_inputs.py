@@ -69,7 +69,7 @@ def land():
         ##### SOM #####
         # initial vals
         'organic_N_min_init' : 4000, # kgN/ha. similar to initial value in Li2004
-        'organic_N_max_init' : 4000,
+        'organic_N_max_init' : 4000, # NOTE: CURRENTLY THE MODEL SETS THIS TO BE THE SAME AS MIN
         # soil model
         'max_organic_N' : 8000, # kgN/ha. arbitrary (set in relation to the initial value)
         'fast_mineralization_rate' : 0.6, # what fraction of applied organic matter mineralizes straight away

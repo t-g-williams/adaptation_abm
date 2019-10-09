@@ -34,6 +34,7 @@ class Land():
         kgN / ha
         '''
         # sample from uniform distribution
+        self.organic_N_max_init = self.organic_N_min_init
         self.organic[0] = np.random.uniform(self.organic_N_min_init, self.organic_N_max_init, self.n_plots)
 
     def update_soil(self, agents, adap_properties):
