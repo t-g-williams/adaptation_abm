@@ -39,6 +39,9 @@ class Agents():
         '''
         if self.N == len(self.land_area_init):
             return np.array(self.land_area_init)
+        elif self.N % len(self.land_area_init) == 0:
+            # equal number of each
+            return np.repeat(self.land_area_init, self.N / len(self.land_area_init))
         else:
             return np.random.choice(self.land_area_init, size=self.N)
         
