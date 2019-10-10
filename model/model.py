@@ -91,7 +91,7 @@ class Model():
         rain_facs = np.full(rains.shape, np.nan)
         for r, rain in enumerate(rains):
             rain_facs[r] = self.land.calculate_rainfall_factor(rain, virtual=True)
-        exp_yield = np.mean(rain_facs) * self.land.max_yield
+        exp_yield = np.mean(rain_facs) * self.land.max_yield * 0.5 # 0.5 assumed mean nutrient factor
         exp_crop_income = exp_yield * self.agents.crop_sell_price # birr/ha
         payout = exp_crop_income * props['payout_magnitude'] # birr/ha
         cost = payout * props['climate_percentile'] # birr/ha
