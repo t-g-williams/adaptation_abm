@@ -12,7 +12,7 @@ def compile():
 
 def model():
     d = {
-        'n_agents' : 100,
+        'n_agents' : 200,
         'T' : 100, # number of years to simulate
         'exp_name' : 'test',
         'seed' : 0,
@@ -44,7 +44,7 @@ def adaptation():
 def agents():
     d = {
         # adaptation / decision-making
-        'adap_type' : 'affording', # coping, switching, affording, or always
+        'adap_type' : 'always', # coping, switching, affording, or always
 
         # plot ownership
         'land_area_init' : [1, 1.5, 2], # ha. uniformly sample from each
@@ -53,7 +53,7 @@ def agents():
         # initial (normal distribution)
         'wealth_init_mean' : 15000,
         'wealth_init_sd' : 0,
-        'max_neg_wealth' : -100000, # birr. just for plotting. these ppl cant recover anyway
+        'max_neg_wealth' : 0, # birr. just for plotting. these ppl cant recover anyway
         # requirements
         'cash_req_mean' : 17261, # 17261 birr/yr. median value from 2015 LSMS
         'cash_req_sd' : 0,
@@ -69,7 +69,7 @@ def land():
         ##### SOM #####
         # initial vals
         'organic_N_min_init' : 4000, # kgN/ha. similar to initial value in Li2004
-        'organic_N_max_init' : 4000,
+        'organic_N_max_init' : 4000, # NOTE: CURRENTLY THE MODEL SETS THIS TO BE THE SAME AS MIN
         # soil model
         'max_organic_N' : 8000, # kgN/ha. arbitrary (set in relation to the initial value)
         'fast_mineralization_rate' : 0.6, # what fraction of applied organic matter mineralizes straight away

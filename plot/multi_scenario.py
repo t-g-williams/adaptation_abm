@@ -25,12 +25,132 @@ def main(mods, nreps, inp_base, scenarios, exp_name, T, shock_years=[]):
 
     if len(shock_years) == 0:
         # only run these for the adaptation scenarios -- this assumes the length of shock years here is zero
+        poverty_trap_combined(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
+        poverty_trap(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
+        sys.exit()
         combined_wealth_income(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
         neg_wealth_probabilities(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
         agent_trajectories(mods, nreps, inp_base, scenarios, exp_name, T, savedir, 'wealth')
         agent_trajectories(mods, nreps, inp_base, scenarios, exp_name, T, savedir, 'income')
     
     first_round_plots(mods, nreps, inp_base, scenarios, exp_name, T, savedir, shock_years)
+
+def poverty_trap_combined(mods, nreps, inp_base, scenarios, exp_name, T, savedir):
+    '''
+    plot wealth(t) against wealth(t+1)
+    '''
+    burnin_yrs = 10
+    fig = plt.figure(figsize=(5,5))
+    cols = ['black','red','blue']
+    sc = -1 # scenario counter
+    ax = fig.add_subplot(111)
+
+    for scenario, mods_sc in mods.items():
+        sc +=1
+        wlth = mods_sc['wealth']
+
+        ## calculate pairs of wealth(t) and wealth(t+1)
+        wlth_t = []
+        wlth_t1 = []
+        for r in range(nreps):        
+            for t in range(burnin_yrs, inp_base['model']['T']):
+                wlth_t.append(wlth[r,t,:])
+                wlth_t1.append(wlth[r,t+1,:])
+        
+        wlth_t = np.array([item for sublist in wlth_t for item in sublist])
+        wlth_t1 = np.array([item for sublist in wlth_t1 for item in sublist])
+
+        # format for plotting
+        xs = np.linspace(wlth_t.min(), np.percentile(wlth_t, q=90), 100)
+        ys = np.full((99,3), np.nan)
+        for i in range(1, len(xs)):
+            try:
+                ys[i-1] = np.percentile(wlth_t1[(wlth_t >= xs[i-1]) & (wlth_t < xs[i])], q=[10,50,90])
+            except:
+                ys[i-1] = np.array([np.nan,np.nan,np.nan])
+        
+        # plot
+        ax.plot(xs[:-1], ys[:,1], color=cols[sc], lw=1.5, label=scenario) # median
+
+    # formatting
+    mx = max(ax.get_xlim()[1], ax.get_ylim()[1])
+    ax.set_xlim([0, mx])
+    ax.set_ylim([0, mx])
+    ax.grid(False)
+    ax.set_xlabel('Wealth(t)')
+    ax.set_ylabel('Wealth(t+1)')
+    ax.set_title('Poverty trap dynamics')
+    ax.legend()
+    ax.plot([0,mx], [0,mx], lw=0.75, color='k')
+    fig.savefig(savedir + 'poverty_trap_combined.png')
+    plt.close('all')
+
+def poverty_trap(mods, nreps, inp_base, scenarios, exp_name, T, savedir):
+    '''
+    plot wealth(t) against wealth(t+1)
+    '''
+    burnin_yrs = 10
+    plots = inp_base['agents']['land_area_init']
+    N = len(plots)
+    fig = plt.figure(figsize=(5*N,5))
+    axs = []
+    cols = ['black','red','blue']
+    mx = 0
+
+    for n, land_area in enumerate(plots):
+        sc = -1 # scenario counter
+        ax = fig.add_subplot(1,N,n+1)
+        axs.append(ax)
+
+        for scenario, mods_sc in mods.items():
+            sc +=1
+            wlth = mods_sc['wealth']
+
+            ## calculate pairs of wealth(t) and wealth(t+1)
+            wlth_t = []
+            wlth_t1 = []
+            for r in range(nreps):
+                agents = mods_sc['land_area'][r] == land_area
+            
+                for t in range(burnin_yrs, inp_base['model']['T']):
+                    wlth_t.append(wlth[r,t,agents])
+                    wlth_t1.append(wlth[r,t+1,agents])
+            
+            wlth_t = np.array([item for sublist in wlth_t for item in sublist])
+            wlth_t1 = np.array([item for sublist in wlth_t1 for item in sublist])
+
+            # format for plotting
+            xs = np.linspace(wlth_t.min(), np.percentile(wlth_t, q=90), 100)
+            ys = np.full((99,3), np.nan)
+            for i in range(1, len(xs)):
+                try:
+                    ys[i-1] = np.percentile(wlth_t1[(wlth_t >= xs[i-1]) & (wlth_t < xs[i])], q=[10,50,90])
+                except:
+                    ys[i-1] = np.array([np.nan,np.nan,np.nan])
+            
+            # plot
+            ax.plot(xs[:-1], ys[:,1], color=cols[sc], lw=1.5, label=scenario) # median
+            mx = max(mx, max(xs.max(), ys.max()))
+
+    # formatting
+    for a, ax in enumerate(axs):
+        ax.set_xlim([0, mx])
+        ax.set_ylim([0, mx])
+        ax.grid(False)
+        ax.set_xlabel('Wealth(t)')
+        ax.set_title('{} ha'.format(plots[a]))
+        ax.legend()
+        ax.plot([0,mx], [0,mx], lw=0.75, color='k')
+
+        if a>0:
+            ax.set_yticklabels([])
+        else:
+            ax.set_ylabel('Wealth(t+1)')
+
+    fig.tight_layout()
+    fig.savefig(savedir + 'poverty_trap.png')
+    plt.close('all')
+    # code.interact(local=dict(globals(), **locals()))
 
 def neg_wealth_probabilities(mods, nreps, inp_base, scenarios, exp_name, T, savedir):
     '''

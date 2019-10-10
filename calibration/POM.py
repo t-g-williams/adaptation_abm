@@ -27,12 +27,12 @@ import plot.single_run as plt_single
 
 def main():
     # specify experimental settings
-    N_samples = 100
-    ncores = 1
-    nreps = 2
-    exp_name = 'test/POM'
+    N_samples = 100000
+    ncores = 40
+    nreps = 10
+    exp_name = '2019_10_9/POM'
     inputs = {
-        'model' : {'n_agents' : 500, 'T' : 100, 'exp_name' : exp_name,
+        'model' : {'n_agents' : 200, 'T' : 100, 'exp_name' : exp_name,
                     'adaptation_option' : 'none'}
     }
     fit_threshold = 0.8
