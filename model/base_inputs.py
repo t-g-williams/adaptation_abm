@@ -28,6 +28,7 @@ def adaptation():
         # 'fertilizer_fixed' : {
         #     'application_rate' : 147.2, # kg/ha. median from LSMS (ALL fertilizer. i assume this equals Nitrogen)
         #     },
+        'burnin_period' : 10, # years before adaptation options come into effect
         'insurance' : {
             'climate_percentile' : 0.1,
             'payout_magnitude' : 1, # relative to the expected yield (assuming perfect soil quality). if =1.5, then payout = 1.5*expected_yield

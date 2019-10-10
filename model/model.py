@@ -76,6 +76,9 @@ class Model():
                 'type' : 'none'
             }
 
+        # set burn-in period
+        self.adap_properties['burnin_period'] = self.all_inputs['adaptation']['burnin_period']
+
     def calc_insurance_cost(self):
         '''
         calculate the annual cost for insurance, assuming fair payouts

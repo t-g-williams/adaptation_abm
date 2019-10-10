@@ -89,6 +89,10 @@ def agent_type_plots(mods, savedir):
                 for yr in shock_years:
                     axx.axvline(x=yr, color='k', ls=':')
                     axx.text(yr, axx.get_ylim()[0]+(axx.get_ylim()[1]-axx.get_ylim()[0])*0.1, 'SHOCK', ha='center', va='bottom', rotation=90)
+            # show the burnin period
+            burnin = mod.adap_properties['burnin_period']
+            axx.fill_between([0, burnin], [axx.get_ylim()[0],axx.get_ylim()[0]],[axx.get_ylim()[1],axx.get_ylim()[1]], color='0.5', alpha=0.3)
+            # axx.text(burnin/2, axx.get_ylim()[1], '\nBURN-IN', ha='center', va='top')
 
     if isinstance(savedir, bool):
         # return fig, fig2, fig3, fig4, fig5

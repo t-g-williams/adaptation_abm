@@ -108,9 +108,11 @@ class Agents():
     def adaptation(self, land, adap_properties):
         '''
         simulate adaption decision-making
+        assume there is a burn-in period before any adaptation option comes into effect
+        this is because there's some dependence on the initial condition / starting wealth value
         '''
-        if adap_properties['adap']:
-            t = self.t[0]
+        t = self.t[0]
+        if adap_properties['adap'] and (t >= adap_properties['burnin_period']):
             if self.adap_type == 'coping':
                 # agents engage in the adaptation option next period
                 # if they had to cope this period
