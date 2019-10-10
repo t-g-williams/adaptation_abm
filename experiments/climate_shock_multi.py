@@ -84,7 +84,12 @@ def run_shock_sims(exp_name, nreps, inp_base, adap_scenarios, shock_mags, shock_
                 params[k][k2] = v2
         
         # run baseline sims
-        tmp = Parallel(n_jobs=ncores)(delayed(run_chunk_reps)(rep_chunks[i], params) for i in range(len(rep_chunks)))
+        if ncores > 1:
+            tmp = Parallel(n_jobs=ncores)(delayed(run_chunk_reps)(rep_chunks[i], params) for i in range(len(rep_chunks)))
+        else:
+            tmp = []
+            for i in rep_chunks:
+                tmp.append(run_chunk_reps(i, params))
         base = extract_arrays(tmp)
 
         ## run each of the shock sims
@@ -106,8 +111,13 @@ def run_shock_sims(exp_name, nreps, inp_base, adap_scenarios, shock_mags, shock_
                 params_shock['climate']['shock_rain'] = shock_mag
 
                 # run the model under these conditions
-                tmp = Parallel(n_jobs=ncores)(delayed(run_chunk_reps)(rep_chunks[i], params_shock) for i in range(len(rep_chunks)))
-                
+                if ncores > 1:
+                    tmp = Parallel(n_jobs=ncores)(delayed(run_chunk_reps)(rep_chunks[i], params_shock) for i in range(len(rep_chunks)))
+                else:
+                    tmp = []
+                    for i in rep_chunks:
+                        tmp.append(run_chunk_reps(i, params))
+
                 # calculate the resilience factors
                 tmp = extract_arrays(tmp)
                 inc_diffs = base['income'] - tmp['income']
