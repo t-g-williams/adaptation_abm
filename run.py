@@ -14,14 +14,17 @@ inp = inputs.compile()
 #### OR ####
 
 # load from POM experiment
-# f = '../outputs/POM/different max livestock/input_params_0.pkl'
-# inp = pickle.load(open(f, 'rb'))
+f = '../outputs/2019_10_9/POM/100000_10reps/input_params_0.pkl'
+inp = pickle.load(open(f, 'rb'))
+
 
 ## change any params
 inp['model']['adaptation_option'] = 'none'
-# inp['model']['shock'] = False
-inp['model']['T'] = 1000
-inp['model']['n_agents'] = 1000
+inp['model']['shock'] = True
+inp['model']['T'] = 30
+inp['model']['n_agents'] = 3
+inp['climate']['shock_years'] = [15]
+inp['climate']['shock_rain'] = 0.15
 
 # initialize the model
 m = Model(inp)
@@ -31,8 +34,8 @@ for t in range(m.T):
 
 st2 = time.time()
 print(st2-st1)
-sys.exit()
 code.interact(local=dict(globals(), **locals()))
+sys.exit()
 # plot
 plt.main(m)
 
