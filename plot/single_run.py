@@ -35,7 +35,7 @@ def main(mod, save=True):
     # yields(mod, qs, savedir)
     # coping(mod, qs, savedir)
     adaptation(mod, savedir)
-    
+    plt.close('all')    
 
 def inputs(mod, savedir):
     '''
