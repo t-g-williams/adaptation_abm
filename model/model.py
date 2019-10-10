@@ -28,6 +28,7 @@ class Model():
         
         # initialize adaptation options
         self.init_adaptation_option()
+        np.random.seed(self.seed*2) # set seed again -- init adap option uses random numbers only if adap option selected
 
     def step(self):
         '''
