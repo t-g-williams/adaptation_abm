@@ -45,7 +45,7 @@ def main():
         [3, 'land', 'wealth_N_conversion', 0.01, 0.05],
         [4, 'land', 'livestock_frac_crops', 0.5, 1],
         [5, 'land', 'residue_CN_conversion', 25, 200],
-        [6, 'agents', 'cash_req_mean', 5000, 30000],
+        [6, 'agents', 'cash_req_mean', 5000, 20000],
         [7, 'land', 'loss_max', 0.05, 0.95],
         [8, 'agents', 'wealth_init_mean', 5000, 50000]],
         # [9, 'climate', 'rain_mu', 0.2, 0.8],
