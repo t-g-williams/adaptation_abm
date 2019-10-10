@@ -41,6 +41,8 @@ def agent_type_plots(mods, savedir):
     ax4s = [fig4.add_subplot(311),fig4.add_subplot(312),fig4.add_subplot(313)]
     fig5 = plt.figure(figsize=(12,20))
     ax5s = [fig5.add_subplot(311),fig5.add_subplot(312),fig5.add_subplot(313)]
+    fig6 = plt.figure(figsize=(12,20))
+    ax6s = [fig6.add_subplot(311),fig6.add_subplot(312),fig6.add_subplot(313)]
     ii = 0
     shock = False
     for m, mod in mods.items():
@@ -59,6 +61,7 @@ def agent_type_plots(mods, savedir):
             ax3s[a].plot(np.median(mod.land.organic[:,ag], axis=1), label=m, color=colors[ii])
             ax4s[a].plot(mod.agents.wealth[:,ag], color=colors[ii])#, lw=0.5)
             ax5s[a].plot(mod.land.organic[:,ag], color=colors[ii])#, lw=0.5)
+            ax6s[a].plot(np.median(mod.agents.income[:,ag], axis=1), label=m, color=colors[ii])
 
         ii += 1
 
@@ -69,19 +72,23 @@ def agent_type_plots(mods, savedir):
         ax2s[a].set_title('Coping : agent type {}'.format(a+1))
         ax3s[a].set_title('SOM : agent type {}'.format(a+1))
         ax5s[a].set_title('SOM : agent type {}'.format(a+1))
+        ax6s[a].set_title('Income : agent type {}'.format(a+1))
         axs[a].set_ylabel('Birr')
         ax4s[a].set_ylabel('Birr')
         ax2s[a].set_ylabel('P(coping rqd)')
         ax3s[a].set_ylabel('kg/ha')
         ax5s[a].set_ylabel('kg/ha')
+        ax6s[a].set_ylabel('Birr')
         axs[a].legend()
         ax2s[a].legend()
         ax3s[a].legend()
+        ax6s[a].legend()
         axs[a].axhline(y=0, color='k', ls=':')
         ax4s[a].axhline(y=0, color='k', ls=':')
         ax3s[a].axhline(y=0, color='k', ls=':')
         ax5s[a].axhline(y=0, color='k', ls=':')
-        for axx in [axs[a], ax2s[a], ax3s[a], ax4s[a], ax5s[a]]:
+        ax6s[a].axhline(y=0, color='k', ls=':')
+        for axx in [axs[a], ax2s[a], ax3s[a], ax4s[a], ax5s[a], ax6s[a]]:
             axx.grid(False)
             axx.set_xlabel('Time (yrs)')
             # show the shock on the plot, if necessary
@@ -103,7 +110,7 @@ def agent_type_plots(mods, savedir):
         fig2.savefig(savedir + 'type_coping.png')
         fig3.savefig(savedir + 'type_SOM.png')
         fig5.savefig(savedir + 'type_SOM_all.png')
-
+        fig6.savefig(savedir + 'type_income.png')
 
 def soil_wealth(mods, savedir):
     fig = plt.figure(figsize=(12,4))
