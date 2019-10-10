@@ -24,7 +24,7 @@ from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.inspection import partial_dependence
 
 def main():
-    exp_name = '2019_10_9'
+    exp_name = '2019_10_10'
     N_vars = 10 # number of random variable sets to generate
     N_reps = 100 # number of times to repeat model for each variable set
     ncores = 10
@@ -35,7 +35,6 @@ def main():
     f = '../outputs/{}/POM/{}_{}reps/input_params_0.pkl'.format(exp_name, pom_nvars, pom_nreps)
     inp_base = pickle.load(open(f, 'rb'))
     # manually specify some variables (common to all scenarios)
-    inp_base['model']['T'] = 100
     inp_base['model']['n_agents'] = 200
     inp_base['model']['exp_name'] = exp_name
     inp_base['agents']['adap_type'] = 'always'
@@ -54,9 +53,10 @@ def main():
     params, keys, names = hypercube_sample(N_vars, sens_vars, inp_base, perturb_perc)
 
     ### 3. run the policy analysis
-    T_shock = [30]
+    T_shock = [30] # measured after the burn-in
     T_res = [10]
     shock_mag = [0.1]
+    inp_base['model']['T'] = T_shock[0] + T_res[0] + inp_base['adaptation']['burnin_period']
     Ys = calculate_QoI(exp_name, params, keys, names, inp_base, N_reps, ncores, T_shock, T_res, shock_mag)
 
     ### 4. run the random forest

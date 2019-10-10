@@ -47,9 +47,9 @@ def main():
 
     #### shock scenarios
     shock_mags = [0.1, 0.2, 0.3]
-    shock_times = [10,20,30,40,50,60,70,80,90,100]
+    shock_times = [10,20,30,40,50,60,70,80,90,100] # measured after the burn-in period
     T_res = [1,2,5,10] # how many years to calculate effects over
-    inp_base['model']['T'] = shock_times[-1] + T_res[-1]
+    inp_base['model']['T'] = shock_times[-1] + T_res[-1] + inp_base['adaptation']['burnin_period']
 
     #### RUN THE MODELS ####
     results = run_shock_sims(exp_name, nreps, inp_base, adap_scenarios, shock_mags, shock_times, ncores, T_res)
@@ -65,6 +65,7 @@ def run_shock_sims(exp_name, nreps, inp_base, adap_scenarios, shock_mags, shock_
     if not os.path.isdir(outdir):
         os.mkdir(outdir)
 
+    T_burn = inp_base['adaptation']['burnin_period']
     rep_chunks = POM.chunkIt(np.arange(nreps), ncores)
     scenario_results = {}
 
@@ -101,7 +102,7 @@ def run_shock_sims(exp_name, nreps, inp_base, adap_scenarios, shock_mags, shock_
                 # add the shock conditions
                 params_shock = copy.copy(params)
                 params_shock['model']['shock'] = True
-                params_shock['climate']['shock_years'] = [shock_yr]
+                params_shock['climate']['shock_years'] = [shock_yr+T_burn] # shock time is measured after the burn-in period
                 params_shock['climate']['shock_rain'] = shock_mag
 
                 # run the model under these conditions
@@ -112,7 +113,7 @@ def run_shock_sims(exp_name, nreps, inp_base, adap_scenarios, shock_mags, shock_
                 inc_diffs = base['income'] - tmp['income']
                 # sum over the required years
                 for T in T_res:
-                    diff_sums = np.mean(inc_diffs[:,shock_yr:(shock_yr+T),:], axis=1)
+                    diff_sums = np.mean(inc_diffs[:,(shock_yr+T_burn):(shock_yr+T+T_burn),:], axis=1)
                     # loop over the agent types
                     for n, area in enumerate(land_area):
                         ags = tmp['land_area'] == area
