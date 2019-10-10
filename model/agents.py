@@ -70,6 +70,7 @@ class Agents():
             # which will increase their maximum wealth capacity
             self.remaining_payout = np.minimum(np.maximum(payouts+self.income[t], 0), payouts) # outer "minimum" is in case their income is +ve --> they can only use the payout for fodder
             self.income[t] += payouts.astype(int)
+        # code.interact(local=dict(globals(), **locals()))
 
     def coping_measures(self, land):
         '''

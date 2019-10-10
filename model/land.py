@@ -133,7 +133,6 @@ class Land():
 
         # attribute to agents
         agents.crop_production[t] = self.yields[t] * agents.land_area # kg
-        # code.interact(local=dict(globals(), **locals()))
 
     def calculate_rainfall_factor(self, rain, virtual=False):
         '''
