@@ -24,10 +24,10 @@ from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.inspection import partial_dependence
 
 def main():
-    exp_name = '2019_10_9'
-    N_vars = 10 # number of random variable sets to generate
+    exp_name = '2019_10_10'
+    N_vars = 1000 # number of random variable sets to generate
     N_reps = 100 # number of times to repeat model for each variable set
-    ncores = 10
+    ncores = 30
 
     ### 1. load the POM variables
     pom_nvars = 100000
@@ -35,7 +35,6 @@ def main():
     f = '../outputs/{}/POM/{}_{}reps/input_params_0.pkl'.format(exp_name, pom_nvars, pom_nreps)
     inp_base = pickle.load(open(f, 'rb'))
     # manually specify some variables (common to all scenarios)
-    inp_base['model']['T'] = 100
     inp_base['model']['n_agents'] = 200
     inp_base['model']['exp_name'] = exp_name
     inp_base['agents']['adap_type'] = 'always'
@@ -54,16 +53,17 @@ def main():
     params, keys, names = hypercube_sample(N_vars, sens_vars, inp_base, perturb_perc)
 
     ### 3. run the policy analysis
-    T_shock = [30]
+    T_shock = [30] # measured after the burn-in
     T_res = [10]
     shock_mag = [0.1]
+    inp_base['model']['T'] = T_shock[0] + T_res[0] + inp_base['adaptation']['burnin_period']
     Ys = calculate_QoI(exp_name, params, keys, names, inp_base, N_reps, ncores, T_shock, T_res, shock_mag)
 
     ### 4. run the random forest
     var_imp, pdp_data, fit = random_forest(Ys, params, names, keys)
 
     ### 5. plot results
-    plot_rf_results(var_imp, pdp_data, fit, exp_name)
+    plot_rf_results(var_imp, pdp_data, fit, Ys.mean(), exp_name)
 
 def hypercube_sample(N, sens_vars, inp_base, perturb_perc):
     '''
@@ -159,7 +159,7 @@ def random_forest(y, X, varz, keys):
 
     return var_imp, pdp_data, fit
 
-def plot_rf_results(var_imp, pdp_data, fit, exp_name):
+def plot_rf_results(var_imp, pdp_data, fit, mean_val, exp_name):
     ## have the plot function here for now
 
     ## A. variable importance
@@ -178,16 +178,48 @@ def plot_rf_results(var_imp, pdp_data, fit, exp_name):
     ax.set_xlabel('Variable importance')
     fig.savefig('../outputs/{}/sensitivity/variable_importance.png'.format(exp_name))
         
-    ## B. partial dependence plots
-    fig = plt.figure(figsize=(15,5))
-    ax1 = fig.add_subplot(131)
-    ax2 = fig.add_subplot(132)
-    ax3 = fig.add_subplot(133)
-    ax1.plot(pdp_data['livestock_frac_crops'][0][0], pdp_data['livestock_frac_crops'][1][0])
+## B. partial dependence plots
+# land
+    fig = plt.figure(figsize=(15,12))
+    N = 11
+    axs = []
+    for n in range(N):
+        axs.append(fig.add_subplot(4,3,n+1))
+
+    ## land
+    n_land = 6
+    for i in range(n_land):
+        var = var_imp[var_imp.key=='land'].iloc[i]['variable']
+        axs[i].plot(pdp_data[var][1][0], pdp_data[var][0][0]+mean_val)
+        axs[i].set_xlabel(var)
+
+    # agents
+    for j in range(3):
+        var = var_imp[var_imp.key=='agents'].iloc[j]['variable']
+        axs[i+j+1].plot(pdp_data[var][1][0], pdp_data[var][0][0]+mean_val)
+        axs[i+j+1].set_xlabel(var)
+
+    # climate
+    for k in range(2):
+        var = var_imp[var_imp.key=='climate'].iloc[k]['variable']
+        axs[i+j+k+2].plot(pdp_data[var][1][0], pdp_data[var][0][0]+mean_val)
+        axs[i+j+k+2].set_xlabel(var)
+
+    for a, ax in enumerate(axs):
+        ax.grid(False)
+        ax.set_ylim([0,1])
+        if a % 3 == 0:
+            ax.set_ylabel('P(CC>ins)')
+        else:
+            ax.set_yticklabels([])
+
+    axs[0].set_title('LAND')
+    axs[6].set_title('AGENTS')
+    axs[9].set_title('CLIMATE')
+
     fig.savefig('../outputs/{}/sensitivity/partial_dependence.png'.format(exp_name))
 
-    code.interact(local=dict(globals(), **locals()))
-
+    # code.interact(local=dict(globals(), **locals()))
 
 if __name__ == '__main__':
     main()

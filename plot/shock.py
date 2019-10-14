@@ -7,6 +7,7 @@ import brewer2mpl
 import os
 import copy
 import sys
+import xarray
 from . import plot_style
 plot_type = 'paper'#'presentation_black_bg'
 styles = plot_style.create() # get the plotting styles
@@ -20,6 +21,45 @@ def main(results, shock_mags, shock_times, T_res, exp_name):
     adap_scenarios = list(results.keys())
     land_area = results[adap_scenarios[0]].columns
     
+    grid_plot(savedir, adap_scenarios, land_area, results, shock_mags, shock_times, T_res, exp_name)
+    line_plots(savedir, adap_scenarios, land_area, results, shock_mags, shock_times, T_res, exp_name)
+
+def grid_plot(savedir, adap_scenarios, land_area, results, shock_mags, shock_times, T_res, exp_name):
+    '''
+    for each agent type, plot a grid showing P(CC>ins) as a function of T_res and T_shock
+    '''
+    # calculate the probability that CC > insurance
+    bools = results['cover_crop'] > results['insurance']
+    probs = bools.groupby(level=[0,1,2]).mean() # take the mean over the replications
+
+    # create a separate figure for each shock magnitude
+    for m, mag in enumerate(shock_mags):
+        fig, axs = plt.subplots(1, len(land_area), figsize=(6*len(land_area), 5))
+
+        for li, land in enumerate(land_area):
+            ax = axs[li]
+            vals = probs.loc[[mag], land].to_xarray()
+
+            # create imshow plot (using xarray imshow wrapper)
+            if li==(len(land_area)-1): # include color bar
+                vals[0].plot(ax=ax, cmap='gray',vmin=0,vmax=1, 
+                    cbar_kwargs={'label' : 'P(CC>ins)'})
+            else:
+                vals[0].plot(ax=ax, cmap='gray',vmin=0,vmax=1, add_colorbar=False)
+            
+            # formatting
+            if li > 0:
+                ax.set_ylabel('')
+                ax.set_yticklabels([])
+            ax.set_title('{} ha'.format(land))
+
+        fig.savefig(savedir + 'shock_grid_{}.png'.format(str(mag).replace('.','_'))) 
+
+def line_plots(savedir, adap_scenarios, land_area, results, shock_mags, shock_times, T_res, exp_name):
+    '''
+    compare the relative benefit of each policy over time
+    '''
+
     # create a separate plot for each shock magnitude
     for m, mag in enumerate(shock_mags):
 
@@ -38,7 +78,7 @@ def main(results, shock_mags, shock_times, T_res, exp_name):
 
                 for sc in adap_scenarios:
                     # extract the plot data
-                    d = results[sc][nplot][mag][T]
+                    d = results[sc][nplot][mag][T].groupby('time').mean()
                     ax.plot(d.index, d, label=sc, marker='o')
 
                 # formatting
@@ -66,7 +106,6 @@ def main(results, shock_mags, shock_times, T_res, exp_name):
 
         axs[0].text(axs[0].get_xlim()[1], axs[0].get_ylim()[1], 'Larger damage', ha='right', va='top')
         axs[0].text(axs[0].get_xlim()[1], axs[0].get_ylim()[0], 'Smaller damage', ha='right', va='bottom')
-
 
         fig.tight_layout()
         fig.savefig(savedir + 'shock_effects_{}.png'.format(str(mag).replace('.','_')))

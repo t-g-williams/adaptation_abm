@@ -20,15 +20,17 @@ from tqdm import tqdm
 import multiprocessing
 
 def main():
-    nreps = 100
-    exp_name = '2019_10_8'
+    nreps = 104
+    exp_name = '2019_10_10'
     ncores = 40
+    save = True
+    flat_reps = False
 
     # load default params
     inp_base = inp.compile()
     #### OR ####
     # load from POM experiment
-    pom_nvars = 10000
+    pom_nvars = 100000
     pom_nreps = 10
     f = '../outputs/{}/POM/{}_{}reps/input_params_0.pkl'.format(exp_name, pom_nvars, pom_nreps)
     inp_base = pickle.load(open(f, 'rb'))
@@ -46,13 +48,13 @@ def main():
     }
 
     #### shock scenarios
-    shock_mags = [0.1, 0.2, 0.3]
-    shock_times = [10,20,30,40,50,60,70,80,90,100]
+    shock_mags = [0.1]#, 0.2, 0.3]
+    shock_times = [10,20,30,40,50,60,70,80,90,100] # measured after the burn-in period
     T_res = [1,2,5,10] # how many years to calculate effects over
-    inp_base['model']['T'] = shock_times[-1] + T_res[-1]
+    inp_base['model']['T'] = shock_times[-1] + T_res[-1] + inp_base['adaptation']['burnin_period']
 
     #### RUN THE MODELS ####
-    results = run_shock_sims(exp_name, nreps, inp_base, adap_scenarios, shock_mags, shock_times, ncores, T_res)
+    results = run_shock_sims(exp_name, nreps, inp_base, adap_scenarios, shock_mags, shock_times, ncores, T_res, save=save, flat_reps=flat_reps)
 
     #### PLOT ####
     shock_plot.main(results, shock_mags, shock_times, T_res, exp_name)
@@ -65,6 +67,7 @@ def run_shock_sims(exp_name, nreps, inp_base, adap_scenarios, shock_mags, shock_
     if not os.path.isdir(outdir):
         os.mkdir(outdir)
 
+    T_burn = inp_base['adaptation']['burnin_period']
     rep_chunks = POM.chunkIt(np.arange(nreps), ncores)
     scenario_results = {}
 
@@ -73,7 +76,8 @@ def run_shock_sims(exp_name, nreps, inp_base, adap_scenarios, shock_mags, shock_
             # load if results already saved
             savename = '{}/{}_reps_{}.csv'.format(outdir, nreps, scenario)
             if os.path.exists(savename):
-                scenario_results[scenario] = pd.read_csv(savename, index_col=[0,1,2])
+                ixs = [0,1,2] if flat_reps else [0,1,2,3]
+                scenario_results[scenario] = pd.read_csv(savename, index_col=ixs)
                 continue
 
         # change the params for the scenario
@@ -83,8 +87,18 @@ def run_shock_sims(exp_name, nreps, inp_base, adap_scenarios, shock_mags, shock_
                 params[k][k2] = v2
         
         # run baseline sims
-        tmp = Parallel(n_jobs=ncores)(delayed(run_chunk_reps)(rep_chunks[i], params) for i in range(len(rep_chunks)))
+        if ncores > 1:
+            tmp = Parallel(n_jobs=ncores)(delayed(run_chunk_reps)(rep_chunks[i], params) for i in range(len(rep_chunks)))
+        else:
+            tmp = []
+            for i in rep_chunks:
+                tmp.append(run_chunk_reps(i, params))
         base = extract_arrays(tmp)
+
+        # for resilience assessment: subtract values from the no_intervention scenario?
+        if scenario == 'baseline':
+            print('doing baseline comparison...')
+            no_intervention = base
 
         ## run each of the shock sims
         land_area = params['agents']['land_area_init']
@@ -101,18 +115,23 @@ def run_shock_sims(exp_name, nreps, inp_base, adap_scenarios, shock_mags, shock_
                 # add the shock conditions
                 params_shock = copy.copy(params)
                 params_shock['model']['shock'] = True
-                params_shock['climate']['shock_years'] = [shock_yr]
+                params_shock['climate']['shock_years'] = [shock_yr+T_burn] # shock time is measured after the burn-in period
                 params_shock['climate']['shock_rain'] = shock_mag
 
                 # run the model under these conditions
-                tmp = Parallel(n_jobs=ncores)(delayed(run_chunk_reps)(rep_chunks[i], params_shock) for i in range(len(rep_chunks)))
-                
+                if ncores > 1:
+                    tmp = Parallel(n_jobs=ncores)(delayed(run_chunk_reps)(rep_chunks[i], params_shock) for i in range(len(rep_chunks)))
+                else:
+                    tmp = []
+                    for i in rep_chunks:
+                        tmp.append(run_chunk_reps(i, params))
+
                 # calculate the resilience factors
                 tmp = extract_arrays(tmp)
-                inc_diffs = base['income'] - tmp['income']
+                inc_diffs = no_intervention['wealth'] - tmp['wealth'] # use wealth or income?
                 # sum over the required years
                 for T in T_res:
-                    diff_sums = np.mean(inc_diffs[:,shock_yr:(shock_yr+T),:], axis=1)
+                    diff_sums = np.mean(inc_diffs[:,(shock_yr+T_burn):(shock_yr+T+T_burn),:], axis=1)
                     # loop over the agent types
                     for n, area in enumerate(land_area):
                         ags = tmp['land_area'] == area
@@ -120,6 +139,7 @@ def run_shock_sims(exp_name, nreps, inp_base, adap_scenarios, shock_mags, shock_
                         if flat_reps:
                             diffs_pd.loc[(shock_mag, T, shock_yr), area] = np.mean(diff_sums[ags])
                         else:
+                            # NOTE : THIS IS VERY SLOW FOR SOME REASON!!!!!!
                             for r in range(nreps):
                                 diffs_pd.loc[(shock_mag, T, shock_yr, r), area] = np.mean(diff_sums[r,ags[r]])
 
@@ -133,6 +153,7 @@ def extract_arrays(tmp):
     return {
         'land_area' : np.array([oi for tmp_i in tmp for oi in tmp_i['land_area']]),
         'income' : np.array([oi for tmp_i in tmp for oi in tmp_i['income']]),   
+        'wealth' : np.array([oi for tmp_i in tmp for oi in tmp_i['wealth']]),   
     }
 
 def run_chunk_reps(reps, params):
@@ -140,7 +161,7 @@ def run_chunk_reps(reps, params):
     run a chunk of replications
     '''
     params = copy.copy(params)
-    ms = {'land_area' : [], 'income' : []}
+    ms = {'land_area' : [], 'income' : [], 'wealth' : []}
     # with tqdm(reps, disable = not True) as pbar:
     for r in reps:
         params['model']['seed'] = r # set the seed
@@ -152,6 +173,7 @@ def run_chunk_reps(reps, params):
         # append to list
         ms['land_area'].append(m.agents.land_area)
         ms['income'].append(m.agents.income.astype(int))
+        ms['wealth'].append(m.agents.wealth.astype(int))
         # pbar.update()
 
     return ms
