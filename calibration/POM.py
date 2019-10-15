@@ -30,7 +30,7 @@ def main():
     N_samples = 100000
     ncores = 40
     nreps = 10
-    exp_name = '2019_10_15_3/POM'
+    exp_name = '2019_10_15_4/POM'
     inputs = {
         'model' : {'n_agents' : 200, 'T' : 100, 'exp_name' : exp_name,
                     'adaptation_option' : 'none'}
@@ -45,8 +45,8 @@ def main():
         [3, 'land', 'wealth_N_conversion', 0.01, 0.05],
         [4, 'land', 'livestock_frac_crops', 0.5, 1],
         [5, 'land', 'residue_CN_conversion', 25, 200],
-        [6, 'agents', 'cash_req_mean', 5000, 20000],
-        [7, 'land', 'loss_max', 0.05, 0.95],
+        [6, 'agents', 'cash_req_mean', 2000, 20000],
+        [7, 'land', 'loss_max', 0.05, 0.75],
         [8, 'agents', 'wealth_init_mean', 5000, 50000]],
         # [9, 'climate', 'rain_mu', 0.2, 0.8],
         # [10, 'land', 'random_effect_sd', 0, 1]],
