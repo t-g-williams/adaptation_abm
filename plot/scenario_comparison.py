@@ -33,6 +33,10 @@ def agent_type_plots(mods, savedir):
     colors = ['b','r','k','g','y']
     fig = plt.figure(figsize=(18,6))
     axs = [fig.add_subplot(131),fig.add_subplot(132),fig.add_subplot(133)]
+    fig6 = plt.figure(figsize=(12,20))
+    ax6s = [fig6.add_subplot(311),fig6.add_subplot(312),fig6.add_subplot(313)]
+    fig7 = plt.figure(figsize=(12,20))
+    ax7s = [fig7.add_subplot(311),fig7.add_subplot(312),fig7.add_subplot(313)]
     fig2 = plt.figure(figsize=(12,4))
     ax2s = [fig2.add_subplot(131),fig2.add_subplot(132),fig2.add_subplot(133)]
     fig3 = plt.figure(figsize=(12,4))
@@ -41,8 +45,8 @@ def agent_type_plots(mods, savedir):
     ax4s = [fig4.add_subplot(311),fig4.add_subplot(312),fig4.add_subplot(313)]
     fig5 = plt.figure(figsize=(12,20))
     ax5s = [fig5.add_subplot(311),fig5.add_subplot(312),fig5.add_subplot(313)]
-    fig6 = plt.figure(figsize=(12,20))
-    ax6s = [fig6.add_subplot(311),fig6.add_subplot(312),fig6.add_subplot(313)]
+    fig8 = plt.figure(figsize=(18,6))
+    ax8s = [fig8.add_subplot(131),fig8.add_subplot(132),fig8.add_subplot(133)]
     ii = 0
     shock = False
     for m, mod in mods.items():
@@ -62,6 +66,8 @@ def agent_type_plots(mods, savedir):
             ax4s[a].plot(mod.agents.wealth[:,ag], color=colors[ii])#, lw=0.5)
             ax5s[a].plot(mod.land.organic[:,ag], color=colors[ii])#, lw=0.5)
             ax6s[a].plot(np.median(mod.agents.income[:,ag], axis=1), label=m, color=colors[ii])
+            ax7s[a].plot(np.median(mod.land.yields[:,ag], axis=1), label=m, color=colors[ii])
+            ax8s[a].plot(mod.climate.rain, np.median(mod.land.yields[:,ag], axis=1), 'o', label=m, color=colors[ii])
 
         ii += 1
 
@@ -73,12 +79,17 @@ def agent_type_plots(mods, savedir):
         ax3s[a].set_title('SOM : agent type {}'.format(a+1))
         ax5s[a].set_title('SOM : agent type {}'.format(a+1))
         ax6s[a].set_title('Income : agent type {}'.format(a+1))
+        ax7s[a].set_title('Yield : agent type {}'.format(a+1))
+        ax8s[a].set_title('Yield : agent type {}'.format(a+1))
         axs[a].set_ylabel('Birr')
         ax4s[a].set_ylabel('Birr')
         ax2s[a].set_ylabel('P(coping rqd)')
         ax3s[a].set_ylabel('kg/ha')
         ax5s[a].set_ylabel('kg/ha')
         ax6s[a].set_ylabel('Birr')
+        ax7s[a].set_ylabel('kg/ha')
+        ax8s[a].set_ylabel('kg/ha')
+        ax8s[a].set_xlabel('Rainfall')
         axs[a].legend()
         ax2s[a].legend()
         ax3s[a].legend()
@@ -88,7 +99,7 @@ def agent_type_plots(mods, savedir):
         ax3s[a].axhline(y=0, color='k', ls=':')
         ax5s[a].axhline(y=0, color='k', ls=':')
         ax6s[a].axhline(y=0, color='k', ls=':')
-        for axx in [axs[a], ax2s[a], ax3s[a], ax4s[a], ax5s[a], ax6s[a]]:
+        for axx in [axs[a], ax2s[a], ax3s[a], ax4s[a], ax5s[a], ax6s[a], ax7s[a]]:
             axx.grid(False)
             axx.set_xlabel('Time (yrs)')
             # show the shock on the plot, if necessary
@@ -111,6 +122,7 @@ def agent_type_plots(mods, savedir):
         fig3.savefig(savedir + 'type_SOM.png')
         fig5.savefig(savedir + 'type_SOM_all.png')
         fig6.savefig(savedir + 'type_income.png')
+        fig7.savefig(savedir + 'type_yields.png')
 
 def soil_wealth(mods, savedir):
     fig = plt.figure(figsize=(12,4))
