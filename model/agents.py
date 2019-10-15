@@ -102,7 +102,7 @@ class Agents():
             max_wealth += self.remaining_payout
         
         too_much = self.wealth[t+1] > max_wealth
-        too_much[too_much==True] = False # TEMPORARY!!!
+        # too_much[too_much==True] = False # TEMPORARY!!!
         self.wealth[t+1, too_much] = max_wealth[too_much]
         self.wealth[t+1, self.wealth[t+1] < self.max_neg_wealth] = self.max_neg_wealth
         # if t == 20:

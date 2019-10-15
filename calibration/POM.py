@@ -27,10 +27,10 @@ import plot.single_run as plt_single
 
 def main():
     # specify experimental settings
-    N_samples = 50000
+    N_samples = 100000
     ncores = 40
     nreps = 10
-    exp_name = '2019_10_15_no_upr_wealth/POM'
+    exp_name = '2019_10_15_2/POM'
     inputs = {
         'model' : {'n_agents' : 200, 'T' : 100, 'exp_name' : exp_name,
                     'adaptation_option' : 'none'}
@@ -40,7 +40,7 @@ def main():
     # define the variables for calibration
     calib_vars = pd.DataFrame(
         # id, key1, key2, min, max
-        [[1, 'land', 'rain_cropfail_low_SOM', 0, 0.5],
+        [[1, 'land', 'rain_cropfail_low_SOM', 0.25, 0.5],
         [2, 'land', 'fast_mineralization_rate', 0.05, 0.95],
         [3, 'land', 'wealth_N_conversion', 0.01, 0.05],
         [4, 'land', 'livestock_frac_crops', 0.5, 1],
