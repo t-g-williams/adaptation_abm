@@ -209,8 +209,8 @@ def type_coping(mod, savedir):
     ax = fig.add_subplot(131)
     ax2 = fig.add_subplot(132)
     ax3 = fig.add_subplot(133)
-    type_timeseries(mod.agents.coping_rqd, mod.agents.land_area, ax, 'P(coping rqd)', 'Coping', mean=True)
-    type_timeseries(mod.agents.cant_cope, mod.agents.land_area, ax2, 'P(cant cope)', 'Not able to cope', mean=True)
+    type_timeseries(mod.agents.coping_rqd, mod.agents.land_area, ax, 'P(coping rqd)', 'Coping', plt_mean=True)
+    type_timeseries(mod.agents.cant_cope, mod.agents.land_area, ax2, 'P(cant cope)', 'Not able to cope', plt_mean=True)
     agent_trajectories(mod.agents.coping_rqd, ax3)
     ax3.set_xlabel("No coping rqd (cumsum)")
     ax3.set_ylabel('Coping rqd (cumsum)')
@@ -227,8 +227,8 @@ def type_nutrients(mod, savedir):
     fig = plt.figure(figsize=(16,6))
     ax = fig.add_subplot(121)
     ax2 = fig.add_subplot(122)
-    type_timeseries(mod.land.organic, mod.agents.land_area, ax, 'kg/ha', 'Organic N')#, mean=True)
-    type_timeseries(mod.land.inorganic, mod.agents.land_area, ax2, 'kg/ha', 'Inorganic N')#, mean=True)
+    type_timeseries(mod.land.organic, mod.agents.land_area, ax, 'kg/ha', 'Organic N')#, plt_mean=True)
+    type_timeseries(mod.land.inorganic, mod.agents.land_area, ax2, 'kg/ha', 'Inorganic N')#, plt_mean=True)
     ax.set_ylim([0, ax.get_ylim()[1]])
     ax2.set_ylim([0, ax2.get_ylim()[1]])
     fig.tight_layout()
@@ -242,9 +242,9 @@ def type_yields(mod, savedir):
     ax = fig.add_subplot(131)
     ax2 = fig.add_subplot(132)
     ax3 = fig.add_subplot(133)
-    type_timeseries(mod.land.rf_factors, mod.agents.land_area, ax, '', 'Rainfall effect', mean=True)
-    type_timeseries(mod.land.nutrient_factors, mod.agents.land_area, ax2, '', 'Nutrient effect', mean=True)
-    type_timeseries(mod.land.yields, mod.agents.land_area, ax3, 'kg/ha', 'Crop yield', mean=True)
+    type_timeseries(mod.land.rf_factors, mod.agents.land_area, ax, '', 'Rainfall effect', plt_mean=True)
+    type_timeseries(mod.land.nutrient_factors, mod.agents.land_area, ax2, '', 'Nutrient effect', plt_mean=True)
+    type_timeseries(mod.land.yields, mod.agents.land_area, ax3, 'kg/ha', 'Crop yield', plt_mean=True)
     fig.tight_layout()
     ax.set_ylim([0,1])
     ax2.set_ylim([0,1])
@@ -253,12 +253,13 @@ def type_yields(mod, savedir):
     else:
         fig.savefig(savedir + 'single_yields.png')
 
-def type_timeseries(d, land_area, ax, ylab, title, mean=False):
+def type_timeseries(d, land_area, ax, ylab, title, plt_mean=False):
     '''
     create a plot separating agents by their "type"
     which is given by their number of plots
     it assumes each agent has a value for "d" at each time step
     '''
+    # print(title)
     colors = ['k','b','r']
     uniqs = np.unique(land_area)
     if len(uniqs) > 3:
@@ -268,8 +269,9 @@ def type_timeseries(d, land_area, ax, ylab, title, mean=False):
     for ui, u in enumerate(uniqs):
         ixs = land_area==u
         ix_nums = np.arange(land_area.shape[0])[ixs]
-        if mean:
-            plt_d = np.nanmean(d[:,ixs], axis=1)
+        if plt_mean:
+            # print(np.mean(d[:,ixs], axis=1))
+            plt_d = np.mean(d[:,ixs], axis=1)
             ax.plot(plt_d, label='{} ha'.format(u), color=colors[ui])
         else:
             plt_d = d[:,ixs]

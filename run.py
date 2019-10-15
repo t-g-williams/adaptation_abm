@@ -14,17 +14,19 @@ inp = inputs.compile()
 #### OR ####
 
 # load from POM experiment
-f = '../outputs/2019_10_9/POM/100000_10reps/input_params_0.pkl'
+f = '../outputs/2019_10_10/POM/100000_10reps/input_params_0.pkl'
 inp = pickle.load(open(f, 'rb'))
 
 
 ## change any params
-inp['model']['adaptation_option'] = 'none'
-inp['model']['shock'] = True
-inp['model']['T'] = 30
+inp['model']['adaptation_option'] = 'insurance'
+inp['model']['shock'] = False
+inp['model']['T'] = 60
 inp['model']['n_agents'] = 3
-inp['climate']['shock_years'] = [15]
-inp['climate']['shock_rain'] = 0.15
+# inp['climate']['shock_years'] = [15]
+# inp['climate']['shock_rain'] = 0.15
+inp['model']['exp_name'] = 'test'
+inp['climate']['rain_mu'] = 0.5
 
 # initialize the model
 m = Model(inp)
@@ -34,10 +36,10 @@ for t in range(m.T):
 
 st2 = time.time()
 print(st2-st1)
-code.interact(local=dict(globals(), **locals()))
-sys.exit()
+# sys.exit()
 # plot
 plt.main(m)
+code.interact(local=dict(globals(), **locals()))
 
 st3 = time.time()
 # print(st3-st2)
