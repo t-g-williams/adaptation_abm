@@ -93,9 +93,13 @@ class Agents():
         # is 20% of your current livestock herds + whatever you can sustain from your crop residues
         # i.e. it's assumed that some fraction of your livestock are fully independent of crop residue
         # rather than all livestock requiring this fraction of feed from fodder
+        buffer_yrs = 1
+        crop_prod = np.mean(self.crop_production[max(0,t-buffer_yrs):t], axis=0)
+        # print(crop_prod)
         max_ls_fodder = self.crop_production[t] * land.residue_multiplier * land.residue_loss_factor / \
                 (land.livestock_residue_factor) # TLU = kgCrop * kgDM/kgCrop / kgDM/TLU
         max_wealth = max_ls_fodder*self.livestock_cost + (1-land.livestock_frac_crops) * self.wealth[t]
+        # code.interact(local=dict(globals(), **locals()))
 
         if self.insurance_payout_year:
             # assume that any leftover income from the insurance payout is converted to livestock/wealth
