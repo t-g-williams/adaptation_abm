@@ -73,7 +73,7 @@ class Agents():
             # which will increase their maximum wealth capacity
             self.remaining_payout = np.minimum(np.maximum(payouts+self.income[t], 0), payouts) # outer "minimum" is in case their income is +ve --> they can only use the payout for fodder
             self.income[t] += payouts.astype(int)
-        # code.interact(local=dict(globals(), **locals()))
+            # code.interact(local=dict(globals(), **locals()))
 
     def coping_measures(self, land):
         '''
@@ -101,10 +101,12 @@ class Agents():
             # assume that any leftover income from the insurance payout is converted to livestock/wealth
             max_wealth += self.remaining_payout
         
-        too_much = self.wealth[t+1] > max_wealth 
+        too_much = self.wealth[t+1] > max_wealth
+        too_much[too_much==True] = False # TEMPORARY!!!
         self.wealth[t+1, too_much] = max_wealth[too_much]
         self.wealth[t+1, self.wealth[t+1] < self.max_neg_wealth] = self.max_neg_wealth
-        # code.interact(local=dict(globals(), **locals()))
+        # if t == 20:
+        #     code.interact(local=dict(globals(), **locals()))
         ## TEMPORARY
         # self.wealth[t+1, self.wealth[t+1]<0] = 0
 

@@ -27,10 +27,10 @@ import plot.single_run as plt_single
 
 def main():
     # specify experimental settings
-    N_samples = 100000
+    N_samples = 50000
     ncores = 40
     nreps = 10
-    exp_name = '2019_10_10/POM'
+    exp_name = '2019_10_15_no_upr_wealth/POM'
     inputs = {
         'model' : {'n_agents' : 200, 'T' : 100, 'exp_name' : exp_name,
                     'adaptation_option' : 'none'}
