@@ -15,21 +15,23 @@ styles['plot_type'] = plot_type
 plt.style.use('fivethirtyeight')
 plt.style.use(styles[plot_type])
 
-def main(results, shock_mags, shock_times, T_res, exp_name):
+def main(results, shock_mags, shock_times, T_res, exp_name, baseline_resilience, outcome):
     savedir = '../outputs/{}/shocks/'.format(exp_name)
 
     adap_scenarios = list(results.keys())
     land_area = results[adap_scenarios[0]].columns
     
-    grid_plot(savedir, adap_scenarios, land_area, results, shock_mags, shock_times, T_res, exp_name)
-    line_plots(savedir, adap_scenarios, land_area, results, shock_mags, shock_times, T_res, exp_name)
+    grid_plot(savedir, adap_scenarios, land_area, results, shock_mags, shock_times, T_res, exp_name, baseline_resilience, outcome)
+    line_plots(savedir, adap_scenarios, land_area, results, shock_mags, shock_times, T_res, exp_name, baseline_resilience, outcome)
 
-def grid_plot(savedir, adap_scenarios, land_area, results, shock_mags, shock_times, T_res, exp_name):
+def grid_plot(savedir, adap_scenarios, land_area, results, shock_mags, shock_times, T_res, exp_name, baseline_resilience, outcome):
     '''
     for each agent type, plot a grid showing P(CC>ins) as a function of T_res and T_shock
     '''
     # calculate the probability that CC > insurance
-    bools = results['cover_crop'] > results['insurance']
+    # these are measures of DAMAGE
+    # so for cover_crop to be better, damage should be lower
+    bools = results['cover_crop'] < results['insurance']
     probs = bools.groupby(level=[0,1,2]).mean() # take the mean over the replications
 
     # create a separate figure for each shock magnitude
@@ -42,10 +44,10 @@ def grid_plot(savedir, adap_scenarios, land_area, results, shock_mags, shock_tim
 
             # create imshow plot (using xarray imshow wrapper)
             if li==(len(land_area)-1): # include color bar
-                vals[0].plot(ax=ax, cmap='gray',vmin=0,vmax=1, 
+                vals[0].plot(ax=ax, cmap='bwr',vmin=0,vmax=1, 
                     cbar_kwargs={'label' : 'P(CC>ins)'})
             else:
-                vals[0].plot(ax=ax, cmap='gray',vmin=0,vmax=1, add_colorbar=False)
+                vals[0].plot(ax=ax, cmap='bwr',vmin=0,vmax=1, add_colorbar=False)
             
             # formatting
             if li > 0:
@@ -53,15 +55,17 @@ def grid_plot(savedir, adap_scenarios, land_area, results, shock_mags, shock_tim
                 ax.set_yticklabels([])
             ax.set_title('{} ha'.format(land))
 
-        fig.savefig(savedir + 'shock_grid_{}.png'.format(str(mag).replace('.','_'))) 
+        ext = '_baseline' if baseline_resilience else ''
+        fig.savefig(savedir + '{}_shock_grid_{}{}.png'.format(outcome, str(mag).replace('.','_'), ext)) 
 
-def line_plots(savedir, adap_scenarios, land_area, results, shock_mags, shock_times, T_res, exp_name):
+def line_plots(savedir, adap_scenarios, land_area, results, shock_mags, shock_times, T_res, exp_name, baseline_resilience, outcome):
     '''
     compare the relative benefit of each policy over time
     '''
 
     # create a separate plot for each shock magnitude
     for m, mag in enumerate(shock_mags):
+        mag_str = str(mag).replace('.','_')
 
         fig = plt.figure(figsize=(6*len(T_res),4*len(land_area)))
         axs = []
@@ -108,4 +112,5 @@ def line_plots(savedir, adap_scenarios, land_area, results, shock_mags, shock_ti
         axs[0].text(axs[0].get_xlim()[1], axs[0].get_ylim()[0], 'Smaller damage', ha='right', va='bottom')
 
         fig.tight_layout()
-        fig.savefig(savedir + 'shock_effects_{}.png'.format(str(mag).replace('.','_')))
+        ext = '_baseline' if baseline_resilience else ''
+        fig.savefig(savedir + '{}_shock_effects_{}{}.png'.format(outcome, mag_str, ext))

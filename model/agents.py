@@ -94,7 +94,7 @@ class Agents():
         # i.e. it's assumed that some fraction of your livestock are fully independent of crop residue
         # rather than all livestock requiring this fraction of feed from fodder
         buffer_yrs = 1
-        crop_prod = np.mean(self.crop_production[max(0,t-buffer_yrs):t], axis=0)
+        # crop_prod = np.mean(self.crop_production[max(0,t-buffer_yrs):t], axis=0)
         # print(crop_prod)
         max_ls_fodder = self.crop_production[t] * land.residue_multiplier * land.residue_loss_factor / \
                 (land.livestock_residue_factor) # TLU = kgCrop * kgDM/kgCrop / kgDM/TLU

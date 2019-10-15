@@ -15,15 +15,16 @@ import numpy as np
 import pandas as pd
 import pickle
 import copy
+import time
 from joblib import Parallel, delayed
 from tqdm import tqdm
 import multiprocessing
 
 def main():
-    nreps = 104
-    exp_name = '2019_10_10'
+    nreps = 105
+    exp_name = '2019_10_15_4'
     ncores = 40
-    save = True
+    load = False
     flat_reps = False
 
     # load default params
@@ -48,22 +49,29 @@ def main():
     }
 
     #### shock scenarios
-    shock_mags = [0.1]#, 0.2, 0.3]
-    shock_times = [10,20,30,40,50,60,70,80,90,100] # measured after the burn-in period
-    T_res = [1,2,5,10] # how many years to calculate effects over
-    inp_base['model']['T'] = shock_times[-1] + T_res[-1] + inp_base['adaptation']['burnin_period']
+    shock_mags = [0.1]#, 0.3]
+    shock_times = np.arange(2,51,step=2) # measured after the burn-in period
+    T_res = np.arange(1,16) # how many years to calculate effects over
+    inp_base['model']['T'] = shock_times[-1] + T_res[-1] + inp_base['adaptation']['burnin_period'] + 1
 
-    #### RUN THE MODELS ####
-    results = run_shock_sims(exp_name, nreps, inp_base, adap_scenarios, shock_mags, shock_times, ncores, T_res, save=save, flat_reps=flat_reps)
+    t1 = time.time()
+    for baseline_resilience in [True,False]: # note: this currently runs all sims twice so is inefficient
+        for outcome in ['wealth','income']:
+            #### RUN THE MODELS ####
+            results = run_shock_sims(exp_name, nreps, inp_base, adap_scenarios, shock_mags, shock_times, ncores, T_res, baseline_resilience, outcome, load=load, flat_reps=flat_reps)
+            #### PLOT ####
+            shock_plot.main(results, shock_mags, shock_times, T_res, exp_name, baseline_resilience, outcome)
+    t2 = time.time()
+    print('{} seconds'.format(t2-t1))
 
-    #### PLOT ####
-    shock_plot.main(results, shock_mags, shock_times, T_res, exp_name)
-
-def run_shock_sims(exp_name, nreps, inp_base, adap_scenarios, shock_mags, shock_times, ncores, T_res, save=True, flat_reps=True):
+def run_shock_sims(exp_name, nreps, inp_base, adap_scenarios, shock_mags, shock_times, ncores, T_res, baseline_resilience, outcome, load=True, flat_reps=True):
     '''
     loop over the adaptation and shock scenarios
     '''
-    outdir = '../outputs/{}/shocks/'.format(exp_name)
+    outdir1 = '../outputs/{}/shocks/'.format(exp_name)
+    outdir = '../outputs/{}/shocks/raw'.format(exp_name)
+    if not os.path.isdir(outdir1):
+        os.mkdir(outdir1)
     if not os.path.isdir(outdir):
         os.mkdir(outdir)
 
@@ -72,13 +80,13 @@ def run_shock_sims(exp_name, nreps, inp_base, adap_scenarios, shock_mags, shock_
     scenario_results = {}
 
     for scenario, scenario_params in adap_scenarios.items():
-        if save:
-            # load if results already saved
-            savename = '{}/{}_reps_{}.csv'.format(outdir, nreps, scenario)
-            if os.path.exists(savename):
-                ixs = [0,1,2] if flat_reps else [0,1,2,3]
-                scenario_results[scenario] = pd.read_csv(savename, index_col=ixs)
-                continue
+        ext = '_baseline' if baseline_resilience else ''
+        savename = '{}/{}reps_{}{}_{}.csv'.format(outdir, nreps, scenario, ext, outcome)
+        # load if results already saved
+        if load and os.path.exists(savename):
+            ixs = [0,1,2] if flat_reps else [0,1,2,3]
+            scenario_results[scenario] = pd.read_csv(savename, index_col=ixs)
+            continue
 
         # change the params for the scenario
         params = copy.copy(inp_base)
@@ -96,9 +104,11 @@ def run_shock_sims(exp_name, nreps, inp_base, adap_scenarios, shock_mags, shock_
         base = extract_arrays(tmp)
 
         # for resilience assessment: subtract values from the no_intervention scenario?
-        if scenario == 'baseline':
-            print('doing baseline comparison...')
-            no_intervention = base
+        if baseline_resilience:
+            if scenario == 'baseline': # use "baseline" scenario's values as no_shock
+                no_shock = base
+        else:
+            no_shock = base # use this scenario's values as no_shock
 
         ## run each of the shock sims
         land_area = params['agents']['land_area_init']
@@ -108,10 +118,11 @@ def run_shock_sims(exp_name, nreps, inp_base, adap_scenarios, shock_mags, shock_
             idx = pd.MultiIndex.from_product([shock_mags,T_res,shock_times], names=('mag','assess_pd','time'))
         else:
             idx = pd.MultiIndex.from_product([shock_mags,T_res,shock_times,np.arange(nreps)], names=('mag','assess_pd','time','rep'))
-        diffs_pd = pd.DataFrame(index=idx, columns=land_area)
+        diffs_pd = pd.DataFrame(index=idx, columns=land_area, dtype=float).sort_index()
 
         for shock_yr in shock_times:
             for shock_mag in shock_mags:
+                mag_str = str(shock_mag).replace('.','_')
                 # add the shock conditions
                 params_shock = copy.copy(params)
                 params_shock['model']['shock'] = True
@@ -128,10 +139,11 @@ def run_shock_sims(exp_name, nreps, inp_base, adap_scenarios, shock_mags, shock_
 
                 # calculate the resilience factors
                 tmp = extract_arrays(tmp)
-                inc_diffs = no_intervention['wealth'] - tmp['wealth'] # use wealth or income?
+                inc_diffs = no_shock[outcome] - tmp[outcome] # measure of damage: (no_shock) - (shock) --> +ve means there is damage (ie wealth/income higher in no shock)
                 # sum over the required years
                 for T in T_res:
-                    diff_sums = np.mean(inc_diffs[:,(shock_yr+T_burn):(shock_yr+T+T_burn),:], axis=1)
+                    xtra = 1 if outcome == 'wealth' else 0 # wealth is at END of year so one higher index than income
+                    diff_sums = np.mean(inc_diffs[:,(shock_yr+T_burn+xtra):(shock_yr+T+T_burn+xtra),:], axis=1)
                     # loop over the agent types
                     for n, area in enumerate(land_area):
                         ags = tmp['land_area'] == area
@@ -139,13 +151,11 @@ def run_shock_sims(exp_name, nreps, inp_base, adap_scenarios, shock_mags, shock_
                         if flat_reps:
                             diffs_pd.loc[(shock_mag, T, shock_yr), area] = np.mean(diff_sums[ags])
                         else:
-                            # NOTE : THIS IS VERY SLOW FOR SOME REASON!!!!!!
-                            for r in range(nreps):
-                                diffs_pd.loc[(shock_mag, T, shock_yr, r), area] = np.mean(diff_sums[r,ags[r]])
+                            means = [np.mean(diff_sums[r,ags[r]]) for r in range(nreps)]
+                            diffs_pd.loc[(shock_mag, T, shock_yr), area] = means
 
         scenario_results[scenario] = diffs_pd
-        if save:
-            diffs_pd.to_csv(savename)
+        diffs_pd.to_csv(savename) # write to csv
 
     return scenario_results
 
