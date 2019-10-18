@@ -48,8 +48,8 @@ def main():
     }
 
     ## A: resilience as function of T_res, T_shock
-    assess_resilience(exp_name, inp_base, adap_scenarios, load, ncores)
-    sys.exit()
+    # assess_resilience(exp_name, inp_base, adap_scenarios, load, ncores)
+
     ## B: vary shock magnitude
     vary_magnitude(exp_name, inp_base, adap_scenarios, load, ncores)
 
@@ -86,7 +86,8 @@ def vary_magnitude(exp_name, inp_base, adap_scenarios, load, ncores):
 
     #### RUN THE MODELS ####
     t1 = time.time()
-    results, results_baseline = run_shock_sims(exp_name, nreps, inp_base, adap_scenarios, shock_mags, shock_times, ncores, T_res, outcomes, load=load, flat_reps=False)
+    exp_name_mag = exp_name + '/shock_magnitude'
+    results, results_baseline = run_shock_sims(exp_name_mag, nreps, inp_base, adap_scenarios, shock_mags, shock_times, ncores, T_res, outcomes, load=load, flat_reps=False)
     t2 = time.time()
     print('{} seconds'.format(t2-t1))
     #### PLOT ####
@@ -106,7 +107,8 @@ def assess_resilience(exp_name, inp_base, adap_scenarios, load, ncores):
 
     #### RUN THE MODELS ####
     t1 = time.time()
-    results, results_baseline = run_shock_sims(exp_name, nreps, inp_base, adap_scenarios, shock_mags, shock_times, ncores, T_res, outcomes, load=load, flat_reps=False)
+    exp_name_res = exp_name + '/resilience'
+    results, results_baseline = run_shock_sims(exp_name_res, nreps, inp_base, adap_scenarios, shock_mags, shock_times, ncores, T_res, outcomes, load=load, flat_reps=False)
     t2 = time.time()
     print('{} seconds'.format(t2-t1))
     #### PLOT ####
@@ -117,8 +119,8 @@ def run_shock_sims(exp_name, nreps, inp_base, adap_scenarios, shock_mags, shock_
     '''
     loop over the adaptation and shock scenarios
     '''
-    outdir1 = '../outputs/{}/shocks/'.format(exp_name)
-    outdir = '../outputs/{}/shocks/raw'.format(exp_name)
+    outdir1 = '../outputs/{}/'.format(exp_name)
+    outdir = '../outputs/{}/raw'.format(exp_name)
     if not os.path.isdir(outdir1):
         os.mkdir(outdir1)
     if not os.path.isdir(outdir):
