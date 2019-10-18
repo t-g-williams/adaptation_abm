@@ -19,12 +19,35 @@ plt.style.use(styles[plot_type])
 def resilience(results, shock_mags, shock_times, T_res, exp_name, baseline_resilience, outcomes):
     savedir = '../outputs/{}/plots/'.format(exp_name)
     if not os.path.isdir(savedir):
-        os.mkdir(savedir)
+        os.makedirs(savedir)
 
     adap_scenarios = list(results.keys())
     land_area = results[adap_scenarios[0]].columns   
     grid_plot(savedir, adap_scenarios, land_area, results, shock_mags, shock_times, T_res, exp_name, baseline_resilience, outcomes)
     line_plots(savedir, adap_scenarios, land_area, results, shock_mags, shock_times, T_res, exp_name, baseline_resilience, outcomes)
+
+def policy_design(d_cc, d_ins, shock_mags, shock_times, T_res, exp_name):
+    '''
+    plot as a function of policy parameters
+    create one plot with both policies for a selected T_shock and T_res
+    and a grid-plot for each policy with all T_shock and T_res
+    '''
+    mag_str = str(shock_mags[0]).replace('.','_')
+    land_area = res_cc.columns
+
+    #### 1. simple figure ####
+    t_res = 5
+    t_shock = 10
+    fig, axs = plt.subplots(2,3,figsize=(16,10))
+    # cover crop
+    cc = d_cc.query('mag=={} AND assess_pd=={} AND time=={}'.format(mag_str, t_res, t_shock))
+    print('UP TO HERE!!!')
+    code.interact(local=dict(globals(), **locals()))
+    for li, land in enumerate(land_area):
+        ax = axs[li]
+        plt_data = np.array(cc[land].unstack().unstack())
+        hm = ax.imshow(plt_data, cmap='bwr', vmin=0, vmax=1, origin='lower', extent=[min(shock_mags), max(shock_mags), min(T_res), max(T_res)],
+                    aspect='auto')
 
 def shock_mag_grid_plot_old(results, shock_mags, shock_times, T_res, exp_name, baseline_resilience, outcomes):
     '''
@@ -32,7 +55,7 @@ def shock_mag_grid_plot_old(results, shock_mags, shock_times, T_res, exp_name, b
     '''
     savedir = '../outputs/{}/plots/'.format(exp_name)
     if not os.path.isdir(savedir):
-        os.mkdir(savedir)
+        os.makedirs(savedir)
     adap_scenarios = list(results.keys())
     land_area = results[adap_scenarios[0]].columns
     mags_str = np.array([str(si).replace('.','_') for si in shock_mags])
@@ -76,14 +99,13 @@ def shock_mag_grid_plot_old(results, shock_mags, shock_times, T_res, exp_name, b
             code.interact(local=dict(globals(), **locals()))
             plt.close('all')
 
-
 def shock_mag_grid_plot(results, shock_mags, shock_times, T_res, exp_name, baseline_resilience, outcomes):
     '''
     grid plot with x = shock mag, y=T_res and z=T_shock at which P(CC>ins)=0.5
     '''
     savedir = '../outputs/{}/plots/'.format(exp_name)
     if not os.path.isdir(savedir):
-        os.mkdir(savedir)
+        os.makedirs(savedir)
     adap_scenarios = list(results.keys())
     land_area = results[adap_scenarios[0]].columns
     mags_str = np.array([str(si).replace('.','_') for si in shock_mags])

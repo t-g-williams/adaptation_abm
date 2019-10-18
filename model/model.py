@@ -66,7 +66,7 @@ class Model():
                 'type' : 'cover_crop',
                 'cost' : cost * props['cost_factor'],
                 'N_fixation_min' : props['N_fixation_min'],
-                'N_fixation_max' : props['N_fixation_max'],
+                'N_fixation_max' : props['N_fixation_min'], # NOTE: THIS OPTION IS DISABLED FOR NOW
                 'adap' : True,
             }
 

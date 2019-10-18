@@ -51,9 +51,10 @@ def main():
     # assess_resilience(exp_name, inp_base, adap_scenarios, load, ncores)
 
     ## B: vary shock magnitude
-    vary_magnitude(exp_name, inp_base, adap_scenarios, load, ncores)
+    # vary_magnitude(exp_name, inp_base, adap_scenarios, load, ncores)
 
     ## C: effect of policy design
+    policy_design(exp_name, inp_base, adap_scenarios, load, ncores)
 
 def policy_design(exp_name, inp_base, adap_scenarios, load, ncores):
     '''
@@ -65,11 +66,80 @@ def policy_design(exp_name, inp_base, adap_scenarios, load, ncores):
     shock_mags = [0.1]
     shock_times = np.arange(2,31,step=2) # measured after the burn-in period
     T_res = np.arange(1,16) # how many years to calculate effects over
+    outcomes = ['wealth','income']
     inp_base['model']['T'] = shock_times[-1] + T_res[-1] + inp_base['adaptation']['burnin_period'] + 1
     ## parameter settings
     cc_N_fix = np.linspace(40,200,10).astype(int)
     cc_cost_factor = np.round(np.linspace(0.25,4,10), 2)
-    d = 5
+    ins_percentile = np.round(np.linspace(0.01, 0.3,10), 3)
+    ins_cost_factor = np.round(np.linspace(0.25,4,10), 2)
+
+    ## set up outputs
+    res_cc = {}
+    res_ins = {}
+    for o in outcomes:
+        res_cc[o] = []
+        res_ins[o] = []
+
+    #### cover crops ####
+    for cc_N in cc_N_fix:
+        for cc_cost in cc_cost_factor:
+            exp_name_pol = exp_name + '/policy_design/cover_crop/{}N_{}cost'.format(cc_N, str(cc_cost).replace('.','_'))
+
+            # change the inputs
+            inp_tmp = copy.deepcopy(inp_base)
+            inp_tmp['adaptation']['cover_crop']['N_fixation_min'] = cc_N # NOTE: the "max" value is currently inactive
+            inp_tmp['adaptation']['cover_crop']['cost_factor'] = cc_cost
+
+            # run the models
+            results, results_baseline = run_shock_sims(exp_name_pol, nreps, inp_tmp, adap_scenarios, shock_mags, shock_times, ncores, T_res, outcomes, load=load, flat_reps=False)
+            # note: just work with the results_baseline for now
+
+            for o in outcomes:
+                # pre-run P(cc>ins) calculations to reduce size in memory
+                bools = results_baseline['cover_crop'].loc[(o)] < results_baseline['insurance'].loc[(o)]
+                probs = bools.astype(int).groupby(level=[0,1,2]).mean() # take the mean over the replications. use astype(int) in case they are all true or false
+                # add the policy info into the results
+                probs['cc_N_fix'] = cc_N
+                probs['cc_cost'] = cc_cost
+                # add to the master list
+                res_cc[o].append(probs.set_index(['cc_N_fix', 'cc_cost'], append=True))
+        
+    # join all dataframes together
+    for k,v in res_cc.items():
+        res_cc[k] = pd.concat(v)
+
+    #### insurance ####
+    for ins_perc in ins_percentile:
+        for ins_cost in ins_cost_factor:
+            exp_name_pol = exp_name + '/policy_design/insurance/{}perc_{}cost'.format(ins_perc, str(ins_cost).replace('.','_'))
+
+            # change the inputs
+            inp_tmp = copy.deepcopy(inp_base)
+            inp_tmp['adaptation']['insurance']['climate_percentile'] = ins_perc
+            inp_tmp['adaptation']['insurance']['cost_factor'] = ins_cost
+
+            # run the models
+            results, results_baseline = run_shock_sims(exp_name_pol, nreps, inp_tmp, adap_scenarios, shock_mags, shock_times, ncores, T_res, outcomes, load=load, flat_reps=False)
+            # note: just work with the results_baseline for now
+
+            for o in outcomes:
+                # pre-run P(cc>ins) calculations to reduce size in memory
+                bools = results_baseline['cover_crop'].loc[(o)] < results_baseline['insurance'].loc[(o)]
+                probs = bools.astype(int).groupby(level=[0,1,2]).mean() # take the mean over the replications. use astype(int) in case they are all true or false
+                # add the policy info into the results
+                probs['ins_perc'] = ins_perc
+                probs['ins_cost'] = ins_cost
+                # add to the master list
+                res_ins[o].append(probs.set_index(['ins_perc', 'ins_cost'], append=True))
+        
+    # join all dataframes together
+    for k,v in res_ins.items():
+        res_ins[k] = pd.concat(v)
+
+    # plot
+    shock_plot.policy_design(res_cc, res_ins, shock_mags, shock_times, T_res, exp_name)
+    code.interact(local=dict(globals(), **locals()))
 
 def vary_magnitude(exp_name, inp_base, adap_scenarios, load, ncores):
     '''
@@ -119,12 +189,9 @@ def run_shock_sims(exp_name, nreps, inp_base, adap_scenarios, shock_mags, shock_
     '''
     loop over the adaptation and shock scenarios
     '''
-    outdir1 = '../outputs/{}/'.format(exp_name)
     outdir = '../outputs/{}/raw'.format(exp_name)
-    if not os.path.isdir(outdir1):
-        os.mkdir(outdir1)
     if not os.path.isdir(outdir):
-        os.mkdir(outdir)
+        os.makedirs(outdir)
 
     T_burn = inp_base['adaptation']['burnin_period']
     rep_chunks = POM.chunkIt(np.arange(nreps), ncores)
