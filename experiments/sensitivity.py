@@ -9,7 +9,7 @@ import model.model as mod
 import model.base_inputs as inp
 import calibration.POM as POM
 from . import multi_scenario_comparison as msc
-from . import climate_shock_multi as shock
+from . import analysis as shock
 import code
 import tqdm
 import numpy as np
@@ -24,8 +24,8 @@ from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.inspection import partial_dependence
 
 def main():
-    exp_name = '2019_10_10'
-    N_vars = 1000 # number of random variable sets to generate
+    exp_name = '2019_10_15_4'
+    N_vars = 10000 # number of random variable sets to generate
     N_reps = 100 # number of times to repeat model for each variable set
     ncores = 30
 
@@ -40,7 +40,7 @@ def main():
     inp_base['agents']['adap_type'] = 'always'
 
     ### 2. sample: generate random perturbed variable sets
-    perturb_perc = 20
+    perturb_perc = 30
     sens_vars = {
         'agents' : ['wealth_init_mean','cash_req_mean','livestock_cost'],
         'land' : ['organic_N_min_init','max_organic_N','fast_mineralization_rate',
@@ -53,8 +53,8 @@ def main():
     params, keys, names = hypercube_sample(N_vars, sens_vars, inp_base, perturb_perc)
 
     ### 3. run the policy analysis
-    T_shock = [30] # measured after the burn-in
-    T_res = [10]
+    T_shock = [10] # measured after the burn-in
+    T_res = [5]
     shock_mag = [0.1]
     inp_base['model']['T'] = T_shock[0] + T_res[0] + inp_base['adaptation']['burnin_period']
     Ys = calculate_QoI(exp_name, params, keys, names, inp_base, N_reps, ncores, T_shock, T_res, shock_mag)
@@ -99,7 +99,7 @@ def calculate_QoI(exp_name, params, keys, names, inp_base, N_reps, ncores, T_sho
     if not os.path.isdir(outdir):
         os.mkdir(outdir)
     adap_scenarios = {
-        # 'baseline' : {'model' : {'adaptation_option' : 'none'}},
+        'baseline' : {'model' : {'adaptation_option' : 'none'}},
         'insurance' : {'model' : {'adaptation_option' : 'insurance'}},
         'cover_crop' : {'model' : {'adaptation_option' : 'cover_crop'}},
     }
@@ -123,10 +123,11 @@ def chunk_QoI(chunk, exp_name, N_reps, params, keys, names, inp_base, adap_scena
         # set the inputs
         inputs = array_to_dict(params[c], keys, names, inp_base)
         # run the sims
-        results = shock.run_shock_sims(exp_name, N_reps, inputs, adap_scenarios, shock_mag, T_shock, ncores, T_res,
-            save=False, flat_reps=False)
+        outcomes = ['income'] # NOTE: SHOULD PUT THIS INPUT HIGHER UP
+        results, results_baseline = shock.run_shock_sims(exp_name, N_reps, inputs, adap_scenarios, shock_mag, T_shock, ncores, T_res,
+            outcomes, load=False, flat_reps=False)
         # calculate the QOIs
-        bools = results['cover_crop'] > results['insurance']
+        bools = results_baseline['cover_crop'].loc[('income')] > results_baseline['insurance'].loc[('income')]
         probs = np.array(bools.mean(axis=0))
         QoIs.append(probs)
 
@@ -176,7 +177,7 @@ def plot_rf_results(var_imp, pdp_data, fit, mean_val, exp_name):
     ax.set_yticks(xs)
     ax.set_yticklabels(np.array(var_imp['variable']))
     ax.set_xlabel('Variable importance')
-    fig.savefig('../outputs/{}/sensitivity/variable_importance.png'.format(exp_name))
+    fig.savefig('../outputs/{}/plots/variable_importance.png'.format(exp_name))
         
 ## B. partial dependence plots
 # land
@@ -217,7 +218,7 @@ def plot_rf_results(var_imp, pdp_data, fit, mean_val, exp_name):
     axs[6].set_title('AGENTS')
     axs[9].set_title('CLIMATE')
 
-    fig.savefig('../outputs/{}/sensitivity/partial_dependence.png'.format(exp_name))
+    fig.savefig('../outputs/{}/plots/partial_dependence.png'.format(exp_name))
 
     # code.interact(local=dict(globals(), **locals()))
 

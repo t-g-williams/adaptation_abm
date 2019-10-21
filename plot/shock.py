@@ -7,8 +7,10 @@ import code
 import brewer2mpl
 import os
 import copy
+plt.rc('text', usetex=True)
 import sys
 import xarray
+from mpl_toolkits.axes_grid1 import ImageGrid
 import logging
 logger = logging.getLogger('sLogger')
 from . import plot_style
@@ -28,7 +30,7 @@ def resilience(results, shock_mags, shock_times, T_res, exp_name, baseline_resil
     grid_plot(savedir, adap_scenarios, land_area, results, shock_mags, shock_times, T_res, exp_name, baseline_resilience, outcomes)
     line_plots(savedir, adap_scenarios, land_area, results, shock_mags, shock_times, T_res, exp_name, baseline_resilience, outcomes)
 
-def policy_design(d_cc, d_ins, shock_mags, shock_times, T_res, exp_name):
+def policy_design_single(d_cc, d_ins, shock_mags, shock_times, T_res, exp_name):
     '''
     plot as a function of policy parameters
     create one plot with both policies for a selected T_shock and T_res
@@ -93,6 +95,66 @@ def policy_design(d_cc, d_ins, shock_mags, shock_times, T_res, exp_name):
             bbox_inches='tight') 
         # code.interact(local=dict(globals(), **locals()))
         plt.close('all')
+
+def policy_design_all(d_cc, d_ins, shock_mags, shock_times, T_res, exp_name):
+    '''
+    create a separate figure for each land size and each outcome and each policy
+    in each figure, include all the T_res and T_shock values
+    '''
+    savedir = '../outputs/{}/plots/'.format(exp_name)
+    mag_str = str(shock_mags[0]).replace('.','_')
+    code.interact(local=dict(globals(), **locals()))
+    
+    policies = ['insurance','cover_crop']
+    labels = ['fraction insured','N fixation']
+    T_res_plot = [1,2,5,10]
+    T_shock_plot = [2,5,10,15]
+
+    for p, d in enumerate([d_ins,d_cc]):
+        for outcome in d_cc.keys():
+            land_area = d_cc[outcome].columns
+            for li, land in enumerate(land_area):
+                #### create figure ####
+                fig = plt.figure(figsize=(4*len(T_res_plot),4*len(T_shock_plot)))
+                axs = ImageGrid(fig, 111, nrows_ncols=(len(T_res_plot),len(T_shock_plot)), 
+                    axes_pad=0.05, add_all=True, label_mode='L',
+                    cbar_mode='single',cbar_location='bottom', aspect=False,
+                    cbar_pad='5%')
+
+                i=0
+                # loop over the plots
+                for ts, t_shock in enumerate(T_shock_plot):
+                    for tr, t_res in enumerate(T_res_plot):
+                        ax = axs[i]
+                        
+                        query_str = 'mag=="{}" & assess_pd=={} & time=={}'.format(mag_str, t_res, t_shock)
+                        d_subs = d[outcome].query(query_str)
+                        d_plot = np.array(d_subs[land].unstack())
+                        xs = d[outcome].index.levels[4]
+                        ys = d[outcome].index.levels[3]
+                        hm2 = ax.imshow(d_plot, cmap='bwr', vmin=0, vmax=1, origin='lower', extent=[min(xs), max(xs), min(ys), max(ys)],
+                                    aspect='auto')
+                        i += 1
+                        
+                        # labels
+                        if ts == 0:
+                            ax.set_title('T_res={}'.format(t_res), fontsize=16)
+                        if tr == 0:
+                            ax.set_ylabel('T_shock={}\n\n{}'.format(t_shock, labels[p]), fontsize=16)
+                        if t_shock == max(T_shock_plot):
+                            ax.set_xlabel('Cost factor')
+                            
+                        # formatting
+                        ax.grid(False)
+
+                # colorbar
+                cax = axs.cbar_axes[0]
+                cbar = cax.colorbar(hm)
+                axis = cax.axis[cax.orientation]
+                axis.label.set_text("P(CC>ins)")
+                fig.savefig(savedir + 'all_policy_{}_{}_{}ha_{}_mag_{}.png'.format(outcome, policies[p], land, mag_str),
+                    bbox_inches='tight') 
+                plt.close('all')
 
 def shock_mag_grid_plot_old(results, shock_mags, shock_times, T_res, exp_name, baseline_resilience, outcomes):
     '''
@@ -167,7 +229,6 @@ def shock_mag_grid_plot(results, shock_mags, shock_times, T_res, exp_name, basel
             probs_t = probs.query('time=={}'.format(shock_time))
 
             fig = plt.figure(figsize=(6*len(land_area), 5))
-            from mpl_toolkits.axes_grid1 import ImageGrid
             axs = ImageGrid(fig, 111, nrows_ncols=(1,len(land_area)), axes_pad=0.5, add_all=True, label_mode='L',
                 cbar_mode='single',cbar_location='right', aspect=False)
 
