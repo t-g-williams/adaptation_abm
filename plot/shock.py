@@ -7,7 +7,6 @@ import code
 import brewer2mpl
 import os
 import copy
-plt.rc('text', usetex=True)
 import sys
 import xarray
 from mpl_toolkits.axes_grid1 import ImageGrid
@@ -55,18 +54,20 @@ def policy_design_single(d_cc, d_ins, shock_mags, shock_times, T_res, exp_name):
             ## cover crop
             ax = axs[0,li]
             plt_data = np.array(cc[land].unstack())
-            xs = cc.index.levels[4]
-            ys = cc.index.levels[3]
+            xs = cc.index.levels[4] # cost
+            ys = cc.index.levels[3] # n fixed
             hm = ax.imshow(plt_data, cmap='bwr', vmin=0, vmax=1, origin='lower', extent=[min(xs), max(xs), min(ys), max(ys)],
                         aspect='auto')
+            ax.scatter([1], [80], color='k') # default value
 
             ## insurance
             ax2 = axs[1,li]
             plt_data2 = np.array(ins[land].unstack())
-            x2s = ins.index.levels[4]
+            x2s = ins.index.levels[4] # cost
             y2s = ins.index.levels[3] * 100 # convert to %age
             hm2 = ax2.imshow(plt_data2, cmap='bwr', vmin=0, vmax=1, origin='lower', extent=[min(x2s), max(x2s), min(y2s), max(y2s)],
                         aspect='auto')
+            ax.scatter([1], [10], color='k') # default value
             
             # formatting
             if li > 0:
@@ -103,12 +104,12 @@ def policy_design_all(d_cc, d_ins, shock_mags, shock_times, T_res, exp_name):
     '''
     savedir = '../outputs/{}/plots/'.format(exp_name)
     mag_str = str(shock_mags[0]).replace('.','_')
-    code.interact(local=dict(globals(), **locals()))
     
     policies = ['insurance','cover_crop']
     labels = ['fraction insured','N fixation']
-    T_res_plot = [1,2,5,10]
-    T_shock_plot = [2,5,10,15]
+    defaults = [0.1, 80]
+    T_res_plot = [1,3,5,7,9]
+    T_shock_plot = [2,6,10,16]
 
     for p, d in enumerate([d_ins,d_cc]):
         for outcome in d_cc.keys():
@@ -116,10 +117,10 @@ def policy_design_all(d_cc, d_ins, shock_mags, shock_times, T_res, exp_name):
             for li, land in enumerate(land_area):
                 #### create figure ####
                 fig = plt.figure(figsize=(4*len(T_res_plot),4*len(T_shock_plot)))
-                axs = ImageGrid(fig, 111, nrows_ncols=(len(T_res_plot),len(T_shock_plot)), 
-                    axes_pad=0.05, add_all=True, label_mode='L',
+                axs = ImageGrid(fig, 111, nrows_ncols=(len(T_shock_plot), len(T_res_plot)), 
+                    axes_pad=0.15, add_all=True, label_mode='L',
                     cbar_mode='single',cbar_location='bottom', aspect=False,
-                    cbar_pad='5%')
+                    cbar_pad='5%', direction='row')
 
                 i=0
                 # loop over the plots
@@ -132,8 +133,11 @@ def policy_design_all(d_cc, d_ins, shock_mags, shock_times, T_res, exp_name):
                         d_plot = np.array(d_subs[land].unstack())
                         xs = d[outcome].index.levels[4]
                         ys = d[outcome].index.levels[3]
-                        hm2 = ax.imshow(d_plot, cmap='bwr', vmin=0, vmax=1, origin='lower', extent=[min(xs), max(xs), min(ys), max(ys)],
+                        hm = ax.imshow(d_plot, cmap='bwr', vmin=0, vmax=1, origin='lower', extent=[min(xs), max(xs), min(ys), max(ys)],
                                     aspect='auto')
+                        # add point for default
+                        print(defaults[p])
+                        ax.scatter([1], [defaults[p]], color='k')
                         i += 1
                         
                         # labels
@@ -152,7 +156,7 @@ def policy_design_all(d_cc, d_ins, shock_mags, shock_times, T_res, exp_name):
                 cbar = cax.colorbar(hm)
                 axis = cax.axis[cax.orientation]
                 axis.label.set_text("P(CC>ins)")
-                fig.savefig(savedir + 'all_policy_{}_{}_{}ha_{}_mag_{}.png'.format(outcome, policies[p], land, mag_str),
+                fig.savefig(savedir + 'all_policy_{}_{}_{}ha_mag_{}.png'.format(outcome, policies[p], land, mag_str),
                     bbox_inches='tight') 
                 plt.close('all')
 
