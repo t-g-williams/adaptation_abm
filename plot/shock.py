@@ -9,6 +9,8 @@ import os
 import copy
 import sys
 import xarray
+import logging
+logger = logging.getLogger('sLogger')
 from . import plot_style
 plot_type = 'paper'#'presentation_black_bg'
 styles = plot_style.create() # get the plotting styles
@@ -32,22 +34,65 @@ def policy_design(d_cc, d_ins, shock_mags, shock_times, T_res, exp_name):
     create one plot with both policies for a selected T_shock and T_res
     and a grid-plot for each policy with all T_shock and T_res
     '''
+    savedir = '../outputs/{}/plots/'.format(exp_name)
     mag_str = str(shock_mags[0]).replace('.','_')
-    land_area = res_cc.columns
+    
+    for outcome in d_cc.keys():
+        cc = d_cc[outcome]
+        ins = d_ins[outcome]
+        land_area = cc.columns
 
-    #### 1. simple figure ####
-    t_res = 5
-    t_shock = 10
-    fig, axs = plt.subplots(2,3,figsize=(16,10))
-    # cover crop
-    cc = d_cc.query('mag=={} AND assess_pd=={} AND time=={}'.format(mag_str, t_res, t_shock))
-    print('UP TO HERE!!!')
-    code.interact(local=dict(globals(), **locals()))
-    for li, land in enumerate(land_area):
-        ax = axs[li]
-        plt_data = np.array(cc[land].unstack().unstack())
-        hm = ax.imshow(plt_data, cmap='bwr', vmin=0, vmax=1, origin='lower', extent=[min(shock_mags), max(shock_mags), min(T_res), max(T_res)],
-                    aspect='auto')
+        #### 1. simple figure ####
+        t_res = 5
+        t_shock = 10
+        fig, axs = plt.subplots(2,3,figsize=(16,10))
+        query_str = 'mag=="{}" & assess_pd=={} & time=={}'.format(mag_str, t_res, t_shock)
+        cc = cc.query(query_str)
+        ins = ins.query(query_str)
+        for li, land in enumerate(land_area):
+            ## cover crop
+            ax = axs[0,li]
+            plt_data = np.array(cc[land].unstack())
+            xs = cc.index.levels[4]
+            ys = cc.index.levels[3]
+            hm = ax.imshow(plt_data, cmap='bwr', vmin=0, vmax=1, origin='lower', extent=[min(xs), max(xs), min(ys), max(ys)],
+                        aspect='auto')
+
+            ## insurance
+            ax2 = axs[1,li]
+            plt_data2 = np.array(ins[land].unstack())
+            x2s = ins.index.levels[4]
+            y2s = ins.index.levels[3] * 100 # convert to %age
+            hm2 = ax2.imshow(plt_data2, cmap='bwr', vmin=0, vmax=1, origin='lower', extent=[min(x2s), max(x2s), min(y2s), max(y2s)],
+                        aspect='auto')
+            
+            # formatting
+            if li > 0:
+                for axx in [ax, ax2]:
+                    axx.set_ylabel('')
+                    axx.set_yticklabels([])
+            else:
+                ax.set_ylabel('Nitrogen fixation (kg N/ha)')
+                ax2.set_ylabel('Insurance climate %ile')
+            for axx in [ax, ax2]:
+                axx.set_xlabel('Cost factor')
+            for axx in [ax, ax2]:
+                axx.set_title('{} ha'.format(land))
+                axx.grid(False)
+
+        # color bar
+        cb_ax = fig.add_axes([0.34, -0.03, 0.37, 0.03])
+        cbar = fig.colorbar(hm2, orientation='horizontal', cax=cb_ax)
+        cbar.set_label('P(CC>ins)')
+
+        # labels
+        axs[0,0].text(-0.2, 1.1, 'A: Legume cover', fontsize=28, transform=axs[0,0].transAxes)
+        axs[1,0].text(-0.2, 1.1, 'B: Insurance', fontsize=28, transform=axs[1,0].transAxes)
+
+        fig.savefig(savedir + 'policy_{}_shockyr_{}_assess_{}_mag_{}.png'.format(outcome, t_shock, t_res, mag_str),
+            bbox_inches='tight') 
+        # code.interact(local=dict(globals(), **locals()))
+        plt.close('all')
 
 def shock_mag_grid_plot_old(results, shock_mags, shock_times, T_res, exp_name, baseline_resilience, outcomes):
     '''
