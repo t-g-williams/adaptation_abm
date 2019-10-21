@@ -73,10 +73,10 @@ def policy_design(exp_name, inp_base, adap_scenarios, load, ncores):
     outcomes = ['wealth','income']
     inp_base['model']['T'] = shock_times[-1] + T_res[-1] + inp_base['adaptation']['burnin_period'] + 1
     ## parameter settings
-    cc_N_fix = np.linspace(40,200,10).astype(int)
-    cc_cost_factor = np.round(np.linspace(0.25,4,10), 2)
-    ins_percentile = np.round(np.linspace(0.01, 0.3,10), 3)
-    ins_cost_factor = np.round(np.linspace(0.25,4,10), 2)
+    cc_N_fix = np.linspace(40,200,20).astype(int)
+    cc_cost_factor = np.round(np.linspace(0.1,4,20), 2)
+    ins_percentile = np.round(np.linspace(0.01, 0.3,20), 3)
+    ins_cost_factor = np.round(np.linspace(0.1,4,20), 2)
 
     ## set up outputs
     res_cc = {}
@@ -162,8 +162,9 @@ def policy_design(exp_name, inp_base, adap_scenarios, load, ncores):
             pickle.dump(res_ins, f, pickle.HIGHEST_PROTOCOL)
 
     # plot
-    shock_plot.policy_design(res_cc, res_ins, shock_mags, shock_times, T_res, exp_name)
-    code.interact(local=dict(globals(), **locals()))
+    shock_plot.policy_design_all(res_cc, res_ins, shock_mags, shock_times, T_res, exp_name)
+    shock_plot.policy_design_single(res_cc, res_ins, shock_mags, shock_times, T_res, exp_name)
+    # code.interact(local=dict(globals(), **locals()))
 
 def vary_magnitude(exp_name, inp_base, adap_scenarios, load, ncores):
     '''
