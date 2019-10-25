@@ -29,11 +29,11 @@ def main(mods, nreps, inp_base, scenarios, exp_name, T, shock_years=[]):
         poverty_trap(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
         sys.exit()
         combined_wealth_income(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
-        neg_wealth_probabilities(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
-        agent_trajectories(mods, nreps, inp_base, scenarios, exp_name, T, savedir, 'wealth')
-        agent_trajectories(mods, nreps, inp_base, scenarios, exp_name, T, savedir, 'income')
+        # neg_wealth_probabilities(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
+        # agent_trajectories(mods, nreps, inp_base, scenarios, exp_name, T, savedir, 'wealth')
+        # agent_trajectories(mods, nreps, inp_base, scenarios, exp_name, T, savedir, 'income')
     
-    first_round_plots(mods, nreps, inp_base, scenarios, exp_name, T, savedir, shock_years)
+    # first_round_plots(mods, nreps, inp_base, scenarios, exp_name, T, savedir, shock_years)
 
 def poverty_trap_combined(mods, nreps, inp_base, scenarios, exp_name, T, savedir):
     '''
@@ -70,7 +70,8 @@ def poverty_trap_combined(mods, nreps, inp_base, scenarios, exp_name, T, savedir
                 ys[i-1] = np.array([np.nan,np.nan,np.nan])
         
         # plot
-        ax.plot(xs[:-1], ys[:,1], color=cols[sc], lw=1.5, label=scenario) # median
+        ax.plot(np.sqrt(xs[:-1]), np.sqrt(ys[:,1]), color=cols[sc], lw=1.5, label=scenario) # median
+        # ax.plot(xs[:-1], ys[:,1], color=cols[sc], lw=1.5, label=scenario) # median
 
     # formatting
     mx = max(ax.get_xlim()[1], ax.get_ylim()[1])

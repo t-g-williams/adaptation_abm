@@ -19,24 +19,26 @@ from tqdm import tqdm
 import multiprocessing
 
 def main():
-    nreps = 100
-    exp_name = '2019_10_8'
+    nreps = 10
+    exp_name = '2019_10_15_4'
     ncores = 40
 
     # load default params
     inp_base = inp.compile()
     #### OR ####
     # load from POM experiment
-    pom_nvars = 10000
+    pom_nvars = 100000
     pom_nreps = 10
     f = '../outputs/{}/POM/{}_{}reps/input_params_0.pkl'.format(exp_name, pom_nvars, pom_nreps)
     inp_base = pickle.load(open(f, 'rb'))
     # manually specify some variables (common to all scenarios)
     T = 100
     inp_base['model']['T'] = T
-    inp_base['model']['n_agents'] = 200
+    inp_base['model']['n_agents'] = 2000
     inp_base['model']['exp_name'] = exp_name
     inp_base['agents']['adap_type'] = 'always'
+
+    inp_base['agents']['land_area_init'] = np.linspace(1,2,100)
 
     #### adaptation scenarios
     scenarios = {
