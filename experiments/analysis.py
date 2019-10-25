@@ -25,40 +25,43 @@ logging.config.fileConfig('logger.conf', defaults={'logfilename' : 'logs/{}.log'
 logger = logging.getLogger('sLogger')
 
 def main():
-    exp_name = '2019_10_15_4'
+    exp_name_base = '2019_10_15_4'
+    solution_numbers = [0,1,2]
     ncores = 40
     load = True
     # load = False
 
-    # load default params
-    inp_base = inp.compile()
-    #### OR ####
-    # load from POM experiment
-    pom_nvars = 100000
-    pom_nreps = 10
-    f = '../outputs/{}/POM/{}_{}reps/input_params_0.pkl'.format(exp_name, pom_nvars, pom_nreps)
-    inp_base = pickle.load(open(f, 'rb'))
-    # manually specify some variables (common to all scenarios)
-    inp_base['model']['n_agents'] = 200
-    inp_base['model']['exp_name'] = exp_name
-    inp_base['agents']['adap_type'] = 'always'
-    inp_base['model']['shock'] = False
+    for solution_number in solution_numbers:
+        exp_name = '{}/model_{}'.format(exp_name_base, solution_number)
+        # load default params
+        inp_base = inp.compile()
+        #### OR ####
+        # load from POM experiment
+        pom_nvars = 100000
+        pom_nreps = 10
+        f = '../outputs/{}/POM/{}_{}reps/input_params_{}.pkl'.format(exp_name_base, pom_nvars, pom_nreps, solution_number)
+        inp_base = pickle.load(open(f, 'rb'))
+        # manually specify some variables (common to all scenarios)
+        inp_base['model']['n_agents'] = 200
+        inp_base['model']['exp_name'] = exp_name
+        inp_base['agents']['adap_type'] = 'always'
+        inp_base['model']['shock'] = False
 
-    #### adaptation scenarios
-    adap_scenarios = {
-        'baseline' : {'model' : {'adaptation_option' : 'none'}},
-        'insurance' : {'model' : {'adaptation_option' : 'insurance'}},
-        'cover_crop' : {'model' : {'adaptation_option' : 'cover_crop'}},
-    }
+        #### adaptation scenarios
+        adap_scenarios = {
+            'baseline' : {'model' : {'adaptation_option' : 'none'}},
+            'insurance' : {'model' : {'adaptation_option' : 'insurance'}},
+            'cover_crop' : {'model' : {'adaptation_option' : 'cover_crop'}},
+        }
 
-    ## A: resilience as function of T_res, T_shock
-    # assess_resilience(exp_name, inp_base, adap_scenarios, load, ncores)
+        ## A: resilience as function of T_res, T_shock
+        assess_resilience(exp_name, inp_base, adap_scenarios, load, ncores)
 
-    ## B: vary shock magnitude
-    # vary_magnitude(exp_name, inp_base, adap_scenarios, load, ncores)
+        ## B: vary shock magnitude
+        vary_magnitude(exp_name, inp_base, adap_scenarios, load, ncores)
 
-    ## C: effect of policy design
-    policy_design(exp_name, inp_base, adap_scenarios, load, ncores)
+        ## C: effect of policy design
+        policy_design(exp_name, inp_base, adap_scenarios, load, ncores)
 
 def policy_design(exp_name, inp_base, adap_scenarios, load, ncores):
     '''
@@ -67,7 +70,7 @@ def policy_design(exp_name, inp_base, adap_scenarios, load, ncores):
     '''
     ## shock settings
     nreps = 100
-    shock_mags = [0.1]
+    shock_mags = [0.2] # code only designed to have one value in this list
     shock_times = np.arange(2,31,step=2) # measured after the burn-in period
     T_res = np.arange(1,16) # how many years to calculate effects over
     outcomes = ['wealth','income']
@@ -87,7 +90,7 @@ def policy_design(exp_name, inp_base, adap_scenarios, load, ncores):
 
     #### cover crops ####
     logger.info('LEGUME COVER ......')
-    all_cc_outname = '../outputs/'+exp_name+'/policy_design/cover_crop/combined.csv'
+    all_cc_outname = '../outputs/'+exp_name+'/policy_design/cover_crop/{}/combined.pkl'.format(shock_mags[0])
     if os.path.isfile(all_cc_outname):
         res_cc = pickle.load(open(all_cc_outname, 'rb'))
     else:
@@ -95,7 +98,7 @@ def policy_design(exp_name, inp_base, adap_scenarios, load, ncores):
             logger.info('  N = {} / {}'.format(ci+1,len(cc_N_fix)))
             for cc, cc_cost in enumerate(cc_cost_factor):
                 # logger.info('    cost = {} / {}'.format(cc+1,len(cc_cost_factor)))
-                exp_name_pol = exp_name + '/policy_design/cover_crop/{}N_{}cost'.format(cc_N, str(cc_cost).replace('.','_'))
+                exp_name_pol = exp_name + '/policy_design/cover_crop/{}/{}N_{}cost'.format(shock_mags[0], cc_N, str(cc_cost).replace('.','_'))
 
                 # change the inputs
                 inp_tmp = copy.deepcopy(inp_base)
@@ -113,6 +116,7 @@ def policy_design(exp_name, inp_base, adap_scenarios, load, ncores):
                     # add the policy info into the results
                     probs['cc_N_fix'] = cc_N
                     probs['cc_cost'] = cc_cost
+                    probs.columns = probs.columns.astype(str) # some issues with area not being saved as a string
                     # add to the master list
                     res_cc[o].append(probs.set_index(['cc_N_fix', 'cc_cost'], append=True))
             
@@ -125,7 +129,7 @@ def policy_design(exp_name, inp_base, adap_scenarios, load, ncores):
 
     #### insurance ####
     logger.info('INSURANCE ......')
-    all_ins_outname = '../outputs/'+exp_name+'/policy_design/insurance/combined.csv'
+    all_ins_outname = '../outputs/'+exp_name+'/policy_design/insurance/{}/combined.pkl'.format(shock_mags[0])
     if os.path.isfile(all_ins_outname):
         res_ins = pickle.load(open(all_ins_outname, 'rb'))
     else:
@@ -133,7 +137,7 @@ def policy_design(exp_name, inp_base, adap_scenarios, load, ncores):
             logger.info('  perc = {} / {}'.format(i+1, len(ins_percentile)))
             for j, ins_cost in enumerate(ins_cost_factor):
                 # logger.info('    cost = {} / {}'.format(j+1, len(ins_cost_factor)))
-                exp_name_pol = exp_name + '/policy_design/insurance/{}perc_{}cost'.format(ins_perc, str(ins_cost).replace('.','_'))
+                exp_name_pol = exp_name + '/policy_design/insurance/{}/{}perc_{}cost'.format(shock_mags[0], ins_perc, str(ins_cost).replace('.','_'))
 
                 # change the inputs
                 inp_tmp = copy.deepcopy(inp_base)
@@ -151,6 +155,7 @@ def policy_design(exp_name, inp_base, adap_scenarios, load, ncores):
                     # add the policy info into the results
                     probs['ins_perc'] = ins_perc
                     probs['ins_cost'] = ins_cost
+                    probs.columns = probs.columns.astype(str) # some issues with area not being saved as a string
                     # add to the master list
                     res_ins[o].append(probs.set_index(['ins_perc', 'ins_cost'], append=True))
             
@@ -162,8 +167,9 @@ def policy_design(exp_name, inp_base, adap_scenarios, load, ncores):
             pickle.dump(res_ins, f, pickle.HIGHEST_PROTOCOL)
 
     # plot
-    shock_plot.policy_design_all(res_cc, res_ins, shock_mags, shock_times, T_res, exp_name)
+    shock_plot.policy_design_all_combined(res_cc, res_ins, shock_mags, shock_times, T_res, exp_name)
     shock_plot.policy_design_single(res_cc, res_ins, shock_mags, shock_times, T_res, exp_name)
+    shock_plot.policy_design_all(res_cc, res_ins, shock_mags, shock_times, T_res, exp_name)
     # code.interact(local=dict(globals(), **locals()))
 
 def vary_magnitude(exp_name, inp_base, adap_scenarios, load, ncores):
@@ -214,7 +220,7 @@ def run_shock_sims(exp_name, nreps, inp_base, adap_scenarios, shock_mags, shock_
     '''
     loop over the adaptation and shock scenarios
     '''
-    outdir = '../outputs/{}/raw'.format(exp_name)
+    outdir = '../outputs/{}'.format(exp_name)
     if not os.path.isdir(outdir):
         os.makedirs(outdir)
 

@@ -20,7 +20,7 @@ plt.style.use('fivethirtyeight')
 plt.style.use(styles[plot_type])
 
 def resilience(results, shock_mags, shock_times, T_res, exp_name, baseline_resilience, outcomes):
-    savedir = '../outputs/{}/plots/'.format(exp_name)
+    savedir = '../outputs/{}/plots/resilience/'.format(exp_name)
     if not os.path.isdir(savedir):
         os.makedirs(savedir)
 
@@ -35,7 +35,9 @@ def policy_design_single(d_cc, d_ins, shock_mags, shock_times, T_res, exp_name):
     create one plot with both policies for a selected T_shock and T_res
     and a grid-plot for each policy with all T_shock and T_res
     '''
-    savedir = '../outputs/{}/plots/'.format(exp_name)
+    savedir = '../outputs/{}/plots/policy_design/{}/'.format(exp_name, shock_mags[0])
+    if not os.path.isdir(savedir):
+        os.makedirs(savedir)
     mag_str = str(shock_mags[0]).replace('.','_')
     
     for outcome in d_cc.keys():
@@ -52,7 +54,10 @@ def policy_design_single(d_cc, d_ins, shock_mags, shock_times, T_res, exp_name):
         ins = ins.query(query_str)
         for li, land in enumerate(land_area):
             ## cover crop
-            ax = axs[0,li]
+            try:
+                ax = axs[0,li]
+            except:
+                code.interact(local=dict(globals(), **locals()))
             plt_data = np.array(cc[land].unstack())
             xs = cc.index.levels[4] # cost
             ys = cc.index.levels[3] # n fixed
@@ -67,7 +72,7 @@ def policy_design_single(d_cc, d_ins, shock_mags, shock_times, T_res, exp_name):
             y2s = ins.index.levels[3] * 100 # convert to %age
             hm2 = ax2.imshow(plt_data2, cmap='bwr', vmin=0, vmax=1, origin='lower', extent=[min(x2s), max(x2s), min(y2s), max(y2s)],
                         aspect='auto')
-            ax.scatter([1], [10], color='k') # default value
+            ax2.scatter([1], [10], color='k') # default value
             
             # formatting
             if li > 0:
@@ -102,7 +107,9 @@ def policy_design_all(d_cc, d_ins, shock_mags, shock_times, T_res, exp_name):
     create a separate figure for each land size and each outcome and each policy
     in each figure, include all the T_res and T_shock values
     '''
-    savedir = '../outputs/{}/plots/'.format(exp_name)
+    savedir = '../outputs/{}/plots/policy_design/{}/'.format(exp_name, shock_mags[0])
+    if not os.path.isdir(savedir):
+        os.makedirs(savedir)
     mag_str = str(shock_mags[0]).replace('.','_')
     
     policies = ['insurance','cover_crop']
@@ -136,7 +143,6 @@ def policy_design_all(d_cc, d_ins, shock_mags, shock_times, T_res, exp_name):
                         hm = ax.imshow(d_plot, cmap='bwr', vmin=0, vmax=1, origin='lower', extent=[min(xs), max(xs), min(ys), max(ys)],
                                     aspect='auto')
                         # add point for default
-                        print(defaults[p])
                         ax.scatter([1], [defaults[p]], color='k')
                         i += 1
                         
@@ -160,61 +166,78 @@ def policy_design_all(d_cc, d_ins, shock_mags, shock_times, T_res, exp_name):
                     bbox_inches='tight') 
                 plt.close('all')
 
-def shock_mag_grid_plot_old(results, shock_mags, shock_times, T_res, exp_name, baseline_resilience, outcomes):
+def policy_design_all_combined(d_cc, d_ins, shock_mags, shock_times, T_res, exp_name):
     '''
-    grid plot with x = shock mag, y=T_res and z=T_shock at which P(CC>ins)=0.5
+    average over all land sizes
+    single shock year
+    columns represent different t_res
+    one row for CC and one for insurance
+    create a separate figure for each land size and each outcome and each policy
+    in each figure, include all the T_res and T_shock values
     '''
-    savedir = '../outputs/{}/plots/'.format(exp_name)
+    savedir = '../outputs/{}/plots/policy_design/{}/'.format(exp_name, shock_mags[0])
     if not os.path.isdir(savedir):
         os.makedirs(savedir)
-    adap_scenarios = list(results.keys())
-    land_area = results[adap_scenarios[0]].columns
-    mags_str = np.array([str(si).replace('.','_') for si in shock_mags])
+    mag_str = str(shock_mags[0]).replace('.','_')
+    
+    policies = ['insurance','cover_crop']
+    names = ['A: Insurance', 'B: Legume cover']
+    ds = [d_ins, d_cc]
+    ylabels = ['fraction insured','N fixation']
+    defaults = [0.1, 80]
+    T_res_plot = [1,3,5,7,9]
+    t_shock = 10
 
-    for outcome in outcomes:
-        # calculate the probability that CC > insurance
-        # these are measures of DAMAGE
-        # so for cover_crop to be better, damage should be lower
-        bools = results['cover_crop'].loc[(outcome)] < results['insurance'].loc[(outcome)]
-        probs = bools.groupby(level=[0,1,2]).mean() # take the mean over the replications
-        
-        ## different plot for each shock time
-        for t, shock_time in enumerate(shock_times):
-            probs_t = probs.query('time=={}'.format(shock_time))
+    for outcome in d_cc.keys():
+        for i in range(len(policies)):
+            fig = plt.figure(figsize=(4*len(T_res_plot),5))
+            axs = ImageGrid(fig, 111, nrows_ncols=(1, len(T_res_plot)), 
+                axes_pad=0.15, add_all=True, label_mode='L',
+                cbar_mode='single',cbar_location='right', aspect=False,
+                cbar_pad='5%', direction='column')
 
-            fig, axs = plt.subplots(1, len(land_area), figsize=(6*len(land_area), 5))
-
-            for li, land in enumerate(land_area):
-                ax = axs[li]
-                plt_data = np.array(probs_t[land].unstack().unstack()).transpose()
-                hm = ax.imshow(plt_data, cmap='bwr', vmin=0, vmax=1, origin='lower', extent=[min(shock_mags), max(shock_mags), min(T_res), max(T_res)],
-                    aspect='auto')
-
-                # if li==(len(land_area)-1): # include color bar
-                if li==1: # include color bar
-                    cbar = fig.colorbar(hm, orientation='horizontal', pad=0.2)
-                    cbar.set_label('P(CC>ins)')
+            for t, t_res in enumerate(T_res_plot):
+                ax = axs[t]
+            
+                query_str = 'mag=="{}" & assess_pd=={} & time=={}'.format(mag_str, t_res, t_shock)
+                d_subs = ds[i][outcome].query(query_str)
+                # code.interact(local=dict(globals(), **locals()))
+                d_plot = []
+                for land in d_subs.columns:
+                    d_plot.append(np.array(d_subs[land].unstack()))
+                d_plot = np.mean(np.array(d_plot), axis=0)
+                xs = ds[i][outcome].index.levels[4]
+                ys = ds[i][outcome].index.levels[3]
+                hm = ax.imshow(d_plot, cmap='bwr', vmin=0, vmax=1, origin='lower', extent=[min(xs), max(xs), min(ys), max(ys)],
+                            aspect='auto')
+                # add point for default
+                ax.scatter([1], [defaults[i]], color='k')
                 
+                # labels
+                ax.set_title('T_res={}'.format(t_res), fontsize=16)
+                ax.set_xlabel('Cost factor')
+                if t == 0:
+                    ax.set_ylabel(ylabels[i])
+                    ax.text(-0.2, 1.15, names[i], fontsize=28, transform=ax.transAxes)
+                    
                 # formatting
-                if li > 0:
-                    ax.set_ylabel('')
-                    ax.set_yticklabels([])
-                else:
-                    ax.set_ylabel('Assessment period (T_res)')
-                ax.set_title('{} ha'.format(land))
-                ax.set_xlabel('Shock magnitude')
                 ax.grid(False)
 
-            ext = '_baseline' if baseline_resilience else ''
-            fig.savefig(savedir + '{}_shock_magnitude_grid{}_shockyr_{}.png'.format(outcome, ext, shock_time)) 
-            code.interact(local=dict(globals(), **locals()))
+
+            # colorbar
+            cax = axs.cbar_axes[0]
+            cbar = cax.colorbar(hm)
+            axis = cax.axis[cax.orientation]
+            axis.label.set_text("P(CC>ins)")
+            fig.savefig(savedir + 'combined_policy_{}_{}_mag_{}_shockyr{}.png'.format(outcome, policies[i], mag_str, t_shock),
+                bbox_inches='tight') 
             plt.close('all')
 
 def shock_mag_grid_plot(results, shock_mags, shock_times, T_res, exp_name, baseline_resilience, outcomes):
     '''
     grid plot with x = shock mag, y=T_res and z=T_shock at which P(CC>ins)=0.5
     '''
-    savedir = '../outputs/{}/plots/'.format(exp_name)
+    savedir = '../outputs/{}/plots/shock_mag/'.format(exp_name)
     if not os.path.isdir(savedir):
         os.makedirs(savedir)
     adap_scenarios = list(results.keys())
@@ -275,27 +298,34 @@ def grid_plot(savedir, adap_scenarios, land_area, results, shock_mags, shock_tim
 
         # create a separate figure for each shock magnitude
         for m, mag in enumerate(mags_str):
-            fig, axs = plt.subplots(1, len(land_area), figsize=(6*len(land_area), 5))
+            fig = plt.figure(figsize=(6*len(land_area), 5))
+            axs = ImageGrid(fig, 111, nrows_ncols=(1,len(land_area)), axes_pad=0.5, add_all=True, label_mode='L',
+                cbar_mode='single',cbar_location='right', aspect=False)
 
             for li, land in enumerate(land_area):
                 ax = axs[li]
                 vals = probs.loc[[mag], land].to_xarray()
 
                 # create imshow plot (using xarray imshow wrapper)
-                if li==(len(land_area)-1): # include color bar
-                    vals[m].plot(ax=ax, cmap='bwr',vmin=0,vmax=1, 
-                        cbar_kwargs={'label' : 'P(CC>ins)'})
-                else:
-                    vals[m].plot(ax=ax, cmap='bwr',vmin=0,vmax=1, add_colorbar=False)
+                hm = vals[m].plot(ax=ax, cmap='bwr',vmin=0,vmax=1, add_colorbar=False)
                 
                 # formatting
                 if li > 0:
                     ax.set_ylabel('')
-                    ax.set_yticklabels([])
+                    # ax.set_yticklabels([])
+                else:
+                    ax.set_ylabel('Assessment period (T_res)')
                 ax.set_title('{} ha'.format(land))
+                ax.set_xlabel('Time of shock (T_shock)')
+
+            # color bar
+            cax = axs.cbar_axes[0]
+            cbar = cax.colorbar(hm)
+            axis = cax.axis[cax.orientation]
+            axis.label.set_text("P(CC>ins)")
 
             ext = '_baseline' if baseline_resilience else ''
-            fig.savefig(savedir + '{}_shock_grid_{}{}.png'.format(outcome, mag, ext))
+            fig.savefig(savedir + '{}_shock_grid_{}{}.png'.format(outcome, mag, ext), bbox_inches='tight')
             plt.close('all')
 
 def line_plots(savedir, adap_scenarios, land_area, results, shock_mags, shock_times, T_res, exp_name, baseline_resilience, outcomes):
