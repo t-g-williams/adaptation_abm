@@ -25,6 +25,7 @@ def main(mod, save=True):
     inputs(mod, savedir)
 
     # plotting by agent type
+    type_combined(mod, save)
     type_wealth(mod, savedir)
     type_coping(mod, savedir)
     type_nutrients(mod, savedir)
@@ -35,7 +36,7 @@ def main(mod, save=True):
     # yields(mod, qs, savedir)
     # coping(mod, qs, savedir)
     adaptation(mod, savedir)
-    plt.close('all')    
+    # plt.close('all')    
 
 def inputs(mod, savedir):
     '''
@@ -192,6 +193,20 @@ def adaptation(mod, savedir):
         return fig
     else:
         fig.savefig(savedir + 'adaptation.png')
+
+def type_combined(mod, savedir):
+    # combined wealth and SOM
+    fig, axs = plt.subplots(1,2,figsize=(15,5))
+
+    type_timeseries(mod.agents.wealth, mod.agents.land_area, axs[0], 'Wealth', 'Wealth')
+    type_timeseries(mod.land.organic, mod.agents.land_area, axs[1], 'kg/ha', 'Organic N')#, plt_mean=True)
+    # type_timeseries(mod.land.inorganic, mod.agents.land_area, axs[2], 'kg/ha', 'Inorganic N')#, plt_mean=True)
+    axs[0].axhline(y=0, color='k')
+    fig.tight_layout()
+    if isinstance(savedir, bool):
+        return fig
+    else:
+        fig.savefig(savedir + 'single_combined.png')
 
 def type_wealth(mod, savedir):
     fig = plt.figure(figsize=(12,6))
