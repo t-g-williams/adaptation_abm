@@ -79,6 +79,22 @@ class Model():
         # set burn-in period
         self.adap_properties['burnin_period'] = self.all_inputs['adaptation']['burnin_period']
 
+    def calc_insurance_cost_new(self):
+        '''
+        calculate the annual cost for insurance, assuming fair payouts
+        and the given coverage (related to crop yields / income)
+        NOTE : this doesn't incorporate soil quality reductions! so it's not fair if you don't have good soil quality
+        calculate expected crop yield
+        '''
+        props = self.all_inputs['adaptation']['insurance']
+        payout = props['payout_magnitude'] * self.all_inputs['agents']['cash_req_mean']
+        cost = payout * props['climate_percentile'] # birr/ha
+
+        rains = np.random.normal(self.climate.rain_mu, self.climate.rain_sd, 1000)
+        magnitude = np.percentile(rains, props['climate_percentile']*100)
+
+        return cost, payout, magnitude
+    
     def calc_insurance_cost(self):
         '''
         calculate the annual cost for insurance, assuming fair payouts
