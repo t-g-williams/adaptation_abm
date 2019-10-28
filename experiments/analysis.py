@@ -7,6 +7,7 @@ import model.base_inputs as inp
 import plot.shock as shock_plot
 import plot.single_run as plt
 import calibration.POM as POM
+from experiments import convergence
 import copy
 import sys
 import code
@@ -53,6 +54,9 @@ def main():
             'insurance' : {'model' : {'adaptation_option' : 'insurance'}},
             'cover_crop' : {'model' : {'adaptation_option' : 'cover_crop'}},
         }
+
+        ## 0: convergence analysis
+        nreps_req = convergence.convergence_analysis(exp_name, inp_base, adap_scenarios, ncores)
 
         ## A: resilience as function of T_res, T_shock
         assess_resilience(exp_name, inp_base, adap_scenarios, load, ncores)
