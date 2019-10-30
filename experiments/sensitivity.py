@@ -22,25 +22,22 @@ from tqdm import tqdm
 import multiprocessing
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.inspection import partial_dependence
+import logging
+import logging.config
+logging.config.fileConfig('logger.conf', defaults={'logfilename' : 'logs/{}.log'.format(os.path.basename(__file__)[:-3])})
+logger = logging.getLogger('sLogger')
 
 def main():
     exp_name = '2019_10_15_4'
-    N_vars = 10000 # number of random variable sets to generate
+    N_vars = 1000 # number of random variable sets to generate
     N_reps = 100 # number of times to repeat model for each variable set
-    ncores = 30
-
-    ### 1. load the POM variables
+    ncores = 40
     pom_nvars = 100000
     pom_nreps = 10
-    f = '../outputs/{}/POM/{}_{}reps/input_params_0.pkl'.format(exp_name, pom_nvars, pom_nreps)
-    inp_base = pickle.load(open(f, 'rb'))
-    # manually specify some variables (common to all scenarios)
-    inp_base['model']['n_agents'] = 200
-    inp_base['model']['exp_name'] = exp_name
-    inp_base['agents']['adap_type'] = 'always'
-
-    ### 2. sample: generate random perturbed variable sets
+    n_mods = 3 # number of successful POM models
     perturb_perc = 30
+    load = True
+    nboot_rf = 100
     sens_vars = {
         'agents' : ['wealth_init_mean','cash_req_mean','livestock_cost'],
         'land' : ['organic_N_min_init','max_organic_N','fast_mineralization_rate',
@@ -50,20 +47,32 @@ def main():
             'wealth_N_conversion','livestock_frac_crops','livestock_residue_factor'],
         'climate' : ['rain_mu','rain_sd']
     }
-    params, keys, names = hypercube_sample(N_vars, sens_vars, inp_base, perturb_perc)
 
-    ### 3. run the policy analysis
-    T_shock = [10] # measured after the burn-in
-    T_res = [5]
-    shock_mag = [0.1]
-    inp_base['model']['T'] = T_shock[0] + T_res[0] + inp_base['adaptation']['burnin_period']
-    Ys = calculate_QoI(exp_name, params, keys, names, inp_base, N_reps, ncores, T_shock, T_res, shock_mag)
+    for m in range(n_mods):
+        logger.info('model {}........'.format(m))
+        ### 1. load the POM variables
+        f = '../outputs/{}/POM/{}_{}reps/input_params_{}.pkl'.format(exp_name, pom_nvars, pom_nreps, m)
+        inp_base = pickle.load(open(f, 'rb'))
+        # manually specify some variables (common to all scenarios)
+        inp_base['model']['n_agents'] = 200
+        inp_base['model']['exp_name'] = exp_name
+        inp_base['agents']['adap_type'] = 'always'
 
-    ### 4. run the random forest
-    var_imp, pdp_data, fit = random_forest(Ys, params, names, keys)
+        ### 2. sample: generate random perturbed variable sets
+        params, keys, names = hypercube_sample(N_vars, sens_vars, inp_base, perturb_perc)
 
-    ### 5. plot results
-    plot_rf_results(var_imp, pdp_data, fit, Ys.mean(), exp_name)
+        ### 3. run the policy analysis
+        T_shock = [10] # measured after the burn-in
+        T_res = [5]
+        shock_mag = [0.1]
+        inp_base['model']['T'] = T_shock[0] + T_res[0] + inp_base['adaptation']['burnin_period']
+        Ys = calculate_QoI(exp_name, params, keys, names, inp_base, N_reps, ncores, T_shock, T_res, shock_mag, m, load)
+
+        ### 4. run the random forest
+        var_imp_df, var_imp_list, pdp_data = bootstrap_random_forest(Ys, params, names, keys, nboot_rf)
+
+        ### 5. plot results
+        plot_rf_results(var_imp_df, var_imp_list, pdp_data, Ys.mean(), exp_name, m)
 
 def hypercube_sample(N, sens_vars, inp_base, perturb_perc):
     '''
@@ -88,14 +97,14 @@ def hypercube_sample(N, sens_vars, inp_base, perturb_perc):
 
     return rvs, keys, val_names
 
-def calculate_QoI(exp_name, params, keys, names, inp_base, N_reps, ncores, T_shock, T_res, shock_mag):
+def calculate_QoI(exp_name, params, keys, names, inp_base, N_reps, ncores, T_shock, T_res, shock_mag, mod_number, load):
     '''
     for each set of parameters, run the model and calculate the quantity of interest (qoi)
     the QoI is the probability that cover crops is preferable to insurance
     with respect to the effects on wealth of a shock at T_shock, assessed over T_res years
     '''
-    exp_name = exp_name + '/sensitivity'
-    outdir = '../outputs/{}'.format(exp_name)
+    exp_name_sens = exp_name + '/model_' + str(mod_number) + '/sensitivity'
+    outdir = '../outputs/{}'.format(exp_name_sens)
     if not os.path.isdir(outdir):
         os.mkdir(outdir)
     adap_scenarios = {
@@ -105,15 +114,15 @@ def calculate_QoI(exp_name, params, keys, names, inp_base, N_reps, ncores, T_sho
     }
 
     param_chunks = POM.chunkIt(np.arange(params.shape[0]), ncores)
-    results = Parallel(n_jobs=ncores)(delayed(chunk_QoI)(chunk, exp_name, N_reps, params, keys, names,
-        inp_base, adap_scenarios, shock_mag, T_shock, T_res) for chunk in param_chunks)
+    results = Parallel(n_jobs=ncores)(delayed(chunk_QoI)(chunk, exp_name_sens, N_reps, params, keys, names,
+        inp_base, adap_scenarios, shock_mag, T_shock, T_res, load) for chunk in param_chunks)
 
     # calculate mean over agent types for simplicity
     tmp = np.array(np.concatenate(results))
     QoIs = np.mean(tmp, axis=1)
     return QoIs
 
-def chunk_QoI(chunk, exp_name, N_reps, params, keys, names, inp_base, adap_scenarios, shock_mag, T_shock, T_res):
+def chunk_QoI(chunk, exp_name, N_reps, params, keys, names, inp_base, adap_scenarios, shock_mag, T_shock, T_res, load):
     '''
     Calculate the QoI for a chunk of parameter sets
     '''
@@ -124,8 +133,9 @@ def chunk_QoI(chunk, exp_name, N_reps, params, keys, names, inp_base, adap_scena
         inputs = array_to_dict(params[c], keys, names, inp_base)
         # run the sims
         outcomes = ['income'] # NOTE: SHOULD PUT THIS INPUT HIGHER UP
-        results, results_baseline = shock.run_shock_sims(exp_name, N_reps, inputs, adap_scenarios, shock_mag, T_shock, ncores, T_res,
-            outcomes, load=False, flat_reps=False)
+        exp_name_c = exp_name + '/' + str(c)
+        results, results_baseline = shock.run_shock_sims(exp_name_c, N_reps, inputs, adap_scenarios, shock_mag, T_shock, ncores, T_res,
+            outcomes, load=load, flat_reps=False)
         # calculate the QOIs
         bools = results_baseline['cover_crop'].loc[('income')] > results_baseline['insurance'].loc[('income')]
         probs = np.array(bools.mean(axis=0))
@@ -138,6 +148,38 @@ def array_to_dict(params, keys, names, inp_base):
     for i, k in enumerate(keys):
         d[k][names[i]] = params[i]
     return d
+
+def bootstrap_random_forest(y, X, varz, keys, nboot):
+    '''
+    bootstrap the data and fit random forest to each
+    then calculate variable importance for each
+    '''
+
+    var_imps = {}
+    pdp_datas = {}
+    for v in varz:
+        pdp_datas[v] = {'x' : [], 'y' : []}
+        var_imps[v] = []
+
+    for b in range(nboot):
+        # generate bootstrap and run
+        boot_ix = np.random.choice(X.shape[0], size=X.shape[0], replace=True)
+        var_imp, pdp_data, fit = random_forest(y[boot_ix], X[boot_ix], varz, keys)
+        # append to overall lists
+        if b == 0:
+            var_imps_df = var_imp
+        else:
+            # take mean importance
+            var_imps_df['importance'] = pd.merge(var_imps_df, var_imp['importance'], left_index=True, right_index=True, how='outer').sum(axis=1)
+        for v in varz:
+            pdp_datas[v]['x'].append(pdp_data[v][1][0])
+            pdp_datas[v]['y'].append(pdp_data[v][0][0])
+            var_imps[v].append(var_imp['importance'][var_imp['variable']==v].values[0])
+
+    # combine results
+    var_imps_df['importance'] /= nboot
+
+    return var_imps_df, var_imps, pdp_datas
 
 def random_forest(y, X, varz, keys):
     # fit gradient boosted forest
@@ -160,16 +202,25 @@ def random_forest(y, X, varz, keys):
 
     return var_imp, pdp_data, fit
 
-def plot_rf_results(var_imp, pdp_data, fit, mean_val, exp_name):
+def plot_rf_results(var_imp_df, var_imp_list, pdp_data, mean_val, exp_name, mod_number):
     ## have the plot function here for now
-
+    plot_dir = '../outputs/{}/model_{}/plots/'.format(exp_name, mod_number)
     ## A. variable importance
     # format the data for plotting
-    var_imp['ix'] = np.arange(var_imp.shape[0])
+    var_imp_df = var_imp_df.sort_values(['key','importance'], ascending=False)
+    var_imp_df['ix'] = np.arange(var_imp_df.shape[0])
     colors = {'land' : 'b', 'climate' : 'r', 'agents' : 'k'}
-    var_imp['color'] = np.nan
-    for index, row in var_imp.iterrows():
-        var_imp.loc[index, 'color'] = colors[row.key]
+    var_imp_df['color'] = np.nan
+    for index, row in var_imp_df.iterrows():
+        var_imp_df.loc[index, 'color'] = colors[row.key]
+    # format the error bars
+    var_imp_df = var_imp_df.assign(upr=np.nan, lwr=np.nan)
+    for k, v in var_imp_list.items():
+        var_imp_df.loc[var_imp_df['variable']==k, 'upr'] = np.percentile(v, q=[95])
+        var_imp_df.loc[var_imp_df['variable']==k, 'lwr'] = np.percentile(v, q=[5])
+    print('up to here!!')
+    code.interact(local=dict(globals(), **locals()))
+
     # create the figure
     fig, ax = plt.subplots(figsize=(5,9))
     xs = np.array(var_imp['ix'])
@@ -177,10 +228,10 @@ def plot_rf_results(var_imp, pdp_data, fit, mean_val, exp_name):
     ax.set_yticks(xs)
     ax.set_yticklabels(np.array(var_imp['variable']))
     ax.set_xlabel('Variable importance')
-    fig.savefig('../outputs/{}/plots/variable_importance.png'.format(exp_name))
+    fig.savefig(plot_dir + 'variable_importance.png')
         
-## B. partial dependence plots
-# land
+    ## B. partial dependence plots
+    # land
     fig = plt.figure(figsize=(15,12))
     N = 11
     axs = []
@@ -218,7 +269,7 @@ def plot_rf_results(var_imp, pdp_data, fit, mean_val, exp_name):
     axs[6].set_title('AGENTS')
     axs[9].set_title('CLIMATE')
 
-    fig.savefig('../outputs/{}/plots/partial_dependence.png'.format(exp_name))
+    fig.savefig(plot_dir + 'partial_dependence.png')
 
     # code.interact(local=dict(globals(), **locals()))
 
