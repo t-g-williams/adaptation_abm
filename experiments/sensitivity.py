@@ -29,14 +29,14 @@ logger = logging.getLogger('sLogger')
 
 def main():
     exp_name = '2019_10_15_4'
-    N_vars = 1000 # number of random variable sets to generate
+    N_vars = 10000 # number of random variable sets to generate
     N_reps = 100 # number of times to repeat model for each variable set
     ncores = 40
     pom_nvars = 100000
     pom_nreps = 10
     n_mods = 3 # number of successful POM models
     perturb_perc = 30
-    load = True
+    load = False
     nboot_rf = 100
     sens_vars = {
         'agents' : ['wealth_init_mean','cash_req_mean','livestock_cost'],
@@ -218,59 +218,78 @@ def plot_rf_results(var_imp_df, var_imp_list, pdp_data, mean_val, exp_name, mod_
     for k, v in var_imp_list.items():
         var_imp_df.loc[var_imp_df['variable']==k, 'upr'] = np.percentile(v, q=[95])
         var_imp_df.loc[var_imp_df['variable']==k, 'lwr'] = np.percentile(v, q=[5])
-    print('up to here!!')
-    code.interact(local=dict(globals(), **locals()))
 
-    # create the figure
+    # create the figure -- boxplot
+    y_box = []
+    for v in var_imp_df['variable']:
+        y_box.append(var_imp_list[v])
+    y_box = np.array(y_box).transpose()
     fig, ax = plt.subplots(figsize=(5,9))
-    xs = np.array(var_imp['ix'])
-    ax.barh(xs, np.array(var_imp.importance), color=var_imp.color)
+    xs = np.array(var_imp_df['ix'])+1
+    bp = ax.boxplot(y_box, vert=False, patch_artist=True, showfliers=False)#color=var_imp_df.color)
     ax.set_yticks(xs)
-    ax.set_yticklabels(np.array(var_imp['variable']))
+    ax.set_yticklabels(np.array(var_imp_df['variable']))
     ax.set_xlabel('Variable importance')
-    fig.savefig(plot_dir + 'variable_importance.png')
-        
+    ax.grid(False)
+    # fill with colors
+    colors = ['pink', 'lightblue', 'lightgreen']
+    for patch, color in zip(bp['boxes'], var_imp_df['color']):
+        patch.set_facecolor(color)
+    for element in ['whiskers', 'fliers', 'means', 'medians', 'caps']:
+        plt.setp(bp[element], color='k')
+    fig.savefig(plot_dir + 'variable_importance_boxplot.png')
+    
     ## B. partial dependence plots
     # land
-    fig = plt.figure(figsize=(15,12))
-    N = 11
-    axs = []
-    for n in range(N):
-        axs.append(fig.add_subplot(4,3,n+1))
+    fig, axs = plt.subplots(4,3, figsize=(15,12), sharey=True)
+    axs[-1][-1].remove()
+    axs = [el for sublist in axs for el in sublist]
+    # fig.delaxes(axs[-1])
+    # N = 11
+    # axs = []
+    # for n in range(N):
+    #     axs.append(fig.add_subplot(4,3,n+1))
 
     ## land
+    line_clr = 'k'
+    fill_clr = '0.6'
     n_land = 6
     for i in range(n_land):
-        var = var_imp[var_imp.key=='land'].iloc[i]['variable']
-        axs[i].plot(pdp_data[var][1][0], pdp_data[var][0][0]+mean_val)
+        var = var_imp_df[var_imp_df.key=='land'].iloc[i]['variable']
+        xs = np.array(pdp_data[var]['x']).mean(axis=0)
+        ys = np.percentile(np.array(pdp_data[var]['y']), q=[2.5,50,97.5], axis=0)
+        axs[i].fill_between(xs, ys[0]+mean_val, ys[2]+mean_val, color=fill_clr)
+        axs[i].plot(xs, ys[1]+mean_val, color=line_clr)
         axs[i].set_xlabel(var)
 
     # agents
     for j in range(3):
-        var = var_imp[var_imp.key=='agents'].iloc[j]['variable']
-        axs[i+j+1].plot(pdp_data[var][1][0], pdp_data[var][0][0]+mean_val)
+        var = var_imp_df[var_imp_df.key=='agents'].iloc[j]['variable']
+        xs = np.array(pdp_data[var]['x']).mean(axis=0)
+        ys = np.percentile(np.array(pdp_data[var]['y']), q=[2.5,50,97.5], axis=0)
+        axs[i+j+1].fill_between(xs, ys[0]+mean_val, ys[2]+mean_val, color=fill_clr)
+        axs[i+j+1].plot(xs, ys[1]+mean_val, color=line_clr)
         axs[i+j+1].set_xlabel(var)
 
     # climate
     for k in range(2):
-        var = var_imp[var_imp.key=='climate'].iloc[k]['variable']
-        axs[i+j+k+2].plot(pdp_data[var][1][0], pdp_data[var][0][0]+mean_val)
+        var = var_imp_df[var_imp_df.key=='climate'].iloc[k]['variable']
+        xs = np.array(pdp_data[var]['x']).mean(axis=0)
+        ys = np.percentile(np.array(pdp_data[var]['y']), q=[2.5,50,97.5], axis=0)
+        axs[i+j+k+2].fill_between(xs, ys[0]+mean_val, ys[2]+mean_val, color=fill_clr)
+        axs[i+j+k+2].plot(xs, ys[1]+mean_val, color=line_clr)
         axs[i+j+k+2].set_xlabel(var)
 
     for a, ax in enumerate(axs):
         ax.grid(False)
-        ax.set_ylim([0,1])
         if a % 3 == 0:
             ax.set_ylabel('P(CC>ins)')
-        else:
-            ax.set_yticklabels([])
 
-    axs[0].set_title('LAND')
-    axs[6].set_title('AGENTS')
-    axs[9].set_title('CLIMATE')
+    axs[0].text(-0.1, 1.1, 'LAND', transform=axs[0].transAxes, fontsize=22)
+    axs[6].text(-0.1, 1.1, 'AGENTS', transform=axs[6].transAxes, fontsize=22)
+    axs[9].text(-0.1, 1.1, 'CLIMATE', transform=axs[9].transAxes, fontsize=22)
 
     fig.savefig(plot_dir + 'partial_dependence.png')
-
     # code.interact(local=dict(globals(), **locals()))
 
 if __name__ == '__main__':
