@@ -36,7 +36,7 @@ def main():
     pom_nreps = 10
     n_mods = 3 # number of successful POM models
     perturb_perc = 30
-    load = False
+    load = True
     nboot_rf = 100
     sens_vars = {
         'agents' : ['wealth_init_mean','cash_req_mean','livestock_cost'],
@@ -69,7 +69,7 @@ def main():
         Ys = calculate_QoI(exp_name, params, keys, names, inp_base, N_reps, ncores, T_shock, T_res, shock_mag, m, load)
 
         ### 4. run the random forest
-        var_imp_df, var_imp_list, pdp_data = bootstrap_random_forest(Ys, params, names, keys, nboot_rf)
+        var_imp_df, var_imp_list, pdp_data = bootstrap_random_forest(Ys, params, names, keys, nboot_rf, load, exp_name, m)
 
         ### 5. plot results
         plot_rf_results(var_imp_df, var_imp_list, pdp_data, Ys.mean(), exp_name, m)
@@ -137,7 +137,8 @@ def chunk_QoI(chunk, exp_name, N_reps, params, keys, names, inp_base, adap_scena
         results, results_baseline = shock.run_shock_sims(exp_name_c, N_reps, inputs, adap_scenarios, shock_mag, T_shock, ncores, T_res,
             outcomes, load=load, flat_reps=False)
         # calculate the QOIs
-        bools = results_baseline['cover_crop'].loc[('income')] > results_baseline['insurance'].loc[('income')]
+        # note that for P(CC>ins) we want to measure cc<ins because these are income LOSSES!!
+        bools = results_baseline['cover_crop'].loc[('income')] < results_baseline['insurance'].loc[('income')]
         probs = np.array(bools.mean(axis=0))
         QoIs.append(probs)
 
@@ -149,11 +150,15 @@ def array_to_dict(params, keys, names, inp_base):
         d[k][names[i]] = params[i]
     return d
 
-def bootstrap_random_forest(y, X, varz, keys, nboot):
+def bootstrap_random_forest(y, X, varz, keys, nboot, load, exp_name, mod_number):
     '''
     bootstrap the data and fit random forest to each
     then calculate variable importance for each
     '''
+    outname = '../outputs/{}/model_{}/sensitivity/bootstrap_random_forest.pkl'.format(exp_name, mod_number)
+    if load and os.path.isfile(outname):
+        tmp = pickle.load(open(outname, 'rb'))
+        return tmp['var_imps_df'], tmp['var_imps'], tmp['pdp_datas']
 
     var_imps = {}
     pdp_datas = {}
@@ -178,6 +183,10 @@ def bootstrap_random_forest(y, X, varz, keys, nboot):
 
     # combine results
     var_imps_df['importance'] /= nboot
+    # write
+    combined = {'var_imps_df' : var_imps_df, 'var_imps' : var_imps, 'pdp_datas' : pdp_datas}
+    with open(outname, 'wb') as f:
+        pickle.dump(combined, f, pickle.HIGHEST_PROTOCOL)
 
     return var_imps_df, var_imps, pdp_datas
 

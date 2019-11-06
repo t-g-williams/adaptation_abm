@@ -24,6 +24,9 @@ def main(mod, save=True):
     qs = [1,5,50,95,99]
     inputs(mod, savedir)
 
+    # separate plots
+    separate(mod)
+
     # plotting by agent type
     type_combined(mod, save)
     type_wealth(mod, savedir)
@@ -37,6 +40,37 @@ def main(mod, save=True):
     # coping(mod, qs, savedir)
     adaptation(mod, savedir)
     # plt.close('all')    
+
+def separate(mod):
+    '''
+    plot each agent type separately
+    '''
+    fig, axs = plt.subplots(2,3,figsize=(15,6), sharex=True, sharey='row')
+    ax_flat = axs.flatten()
+
+    colors = ['k','b','r']
+    titles = ['Land-poor','Middle','Land-rich']
+    land_area = mod.agents.land_area
+    uniqs = np.unique(land_area)   
+    for ui, u in enumerate(uniqs):
+        ixs = land_area==u
+        axs[0,ui].plot(mod.agents.wealth[:,ixs], lw=0.7) #  color='k', 
+        axs[1,ui].plot(mod.land.organic[:,ixs], lw=0.7)
+        for a in axs[:,ui]:
+            a.axhline(y=0, color='k', ls=':')
+
+    for a, ax in enumerate(axs[0]):
+        ax.set_title(titles[a])
+    for ax in axs[1]:
+        ax.set_xlabel('Year')
+    for ax in ax_flat:
+        ax.grid(False)
+        # ax.legend(loc='upper right')
+
+    axs[0,0].set_ylabel('Wealth')
+    axs[1,0].set_ylabel('SOM')
+    axs[0,1].text(0.5,1.2, 'A: Baseline', 
+                  transform=axs[0,1].transAxes, fontsize=23, ha='center')
 
 def inputs(mod, savedir):
     '''
