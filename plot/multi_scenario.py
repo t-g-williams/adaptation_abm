@@ -27,9 +27,9 @@ def main(mods, nreps, inp_base, scenarios, exp_name, T, shock_years=[]):
         # only run these for the adaptation scenarios -- this assumes the length of shock years here is zero
         poverty_trap_combined(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
         poverty_trap(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
-        sys.exit()
+        # sys.exit()
+        neg_wealth_probabilities(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
         combined_wealth_income(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
-        # neg_wealth_probabilities(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
         # agent_trajectories(mods, nreps, inp_base, scenarios, exp_name, T, savedir, 'wealth')
         # agent_trajectories(mods, nreps, inp_base, scenarios, exp_name, T, savedir, 'income')
     
@@ -157,31 +157,37 @@ def neg_wealth_probabilities(mods, nreps, inp_base, scenarios, exp_name, T, save
     '''
     plot the probability that each agents' wealth is below zero over time
     '''
-    for n, land_area in enumerate(inp_base['agents']['land_area_init']):
-        fig, ax = plt.subplots(figsize=(8,8))
+    lands = inp_base['agents']['land_area_init']
+    titles = ['Land poor','Middle','Land rich']
+    lss = ['-','--',':']
+    fig, axs = plt.subplots(1,len(lands), figsize=(5*len(lands), 4), sharey=True)
+    for n, land_area in enumerate(lands):
+        ss = 0
         for scenario, mods_sc in mods.items():
             ## calculate the wealth mean and std dev over time
             # extract and format the wealth info
             w = mods_sc['wealth']
             all_wealth = []
             for r in range(nreps):
-                agents = mods_sc['land_area'][r] == nplot
+                agents = mods_sc['land_area'][r] == land_area
                 all_wealth.append(list(w[r,:,agents]))
             all_wealth = np.array([item for sublist in all_wealth for item in sublist])
             # ^ this is (agents, time) shape
             # extract mean and variance
-            probs_t = np.mean(all_wealth<=0, axis=0)
+            probs_t = np.mean(all_wealth>0, axis=0)
 
-            ax.plot(np.arange(T+1), probs_t, label=scenario)#, marker='o')
+            axs[n].plot(np.arange(T+1), probs_t, label=scenario, lw=2.5, ls=lss[ss])#, marker='o')
+            ss += 1
 
-        ax.legend(loc='center left')
+    for a, ax in enumerate(axs):
         ax.grid(False)
-        ax.set_xlabel('Time (years)')
-        ax.set_ylabel('P(wealth < 0)')
-        ax.set_title('Agent wealth')
-        fig.tight_layout()
-        fig.savefig(savedir + 'neg_wealth_prob_{}_ha.png'.format(str(land_area.replace('.','_'))))
-        plt.close('all')
+        ax.set_xlabel('Year')
+        ax.set_title(titles[a])
+    axs[0].set_ylabel('P(wealth > 0)')
+    axs[1].legend(loc=10, bbox_to_anchor=(0.5, -0.3), ncol=3, frameon=False)
+    fig.tight_layout()
+    fig.savefig(savedir + 'pos_wealth_prob_combined.png')
+    plt.close('all')
 
 def combined_wealth_income(mods, nreps, inp_base, scenarios, exp_name, T, savedir):
     '''

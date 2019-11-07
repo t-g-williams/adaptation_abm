@@ -19,7 +19,7 @@ from tqdm import tqdm
 import multiprocessing
 
 def main():
-    nreps = 10
+    nreps = 300
     exp_name = '2019_10_15_4'
     ncores = 40
 
@@ -38,7 +38,8 @@ def main():
     inp_base['model']['exp_name'] = exp_name
     inp_base['agents']['adap_type'] = 'always'
 
-    inp_base['agents']['land_area_init'] = np.linspace(1,2,100)
+    # inp_base['agents']['land_area_init'] = np.linspace(1,2,100)
+    # inp_base['adaptation']['insurance']['climate_percentile'] = 0.3
 
     #### adaptation scenarios
     scenarios = {

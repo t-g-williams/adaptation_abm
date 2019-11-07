@@ -54,10 +54,9 @@ def separate(mod):
     uniqs = np.unique(land_area)   
     for ui, u in enumerate(uniqs):
         ixs = land_area==u
-        axs[0,ui].plot(mod.agents.wealth[:,ixs], lw=0.7) #  color='k', 
-        axs[1,ui].plot(mod.land.organic[:,ixs], lw=0.7)
-        for a in axs[:,ui]:
-            a.axhline(y=0, color='k', ls=':')
+        axs[0,ui].plot(mod.agents.wealth[:,ixs], lw=1) #  color='k', 
+        axs[1,ui].plot(mod.land.organic[:,ixs], lw=1)
+        axs[0,ui].axhline(y=0, color='k', ls=':')
 
     for a, ax in enumerate(axs[0]):
         ax.set_title(titles[a])

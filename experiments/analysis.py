@@ -22,8 +22,6 @@ from tqdm import tqdm
 import multiprocessing
 import logging
 import logging.config
-logging.config.fileConfig('logger.conf', defaults={'logfilename' : 'logs/{}.log'.format(os.path.basename(__file__)[:-3])})
-logger = logging.getLogger('sLogger')
 
 def main():
     exp_name_base = '2019_10_15_4'
@@ -56,13 +54,13 @@ def main():
         }
 
         ## 0: convergence analysis
-        nreps_req = convergence.convergence_analysis(exp_name, inp_base, adap_scenarios, ncores)
+        # nreps_req = convergence.convergence_analysis(exp_name, inp_base, adap_scenarios, ncores)
 
-        ## A: resilience as function of T_res, T_shock
-        assess_resilience(exp_name, inp_base, adap_scenarios, load, ncores)
+        # ## A: resilience as function of T_res, T_shock
+        # assess_resilience(exp_name, inp_base, adap_scenarios, load, ncores)
 
-        ## B: vary shock magnitude
-        vary_magnitude(exp_name, inp_base, adap_scenarios, load, ncores)
+        # ## B: vary shock magnitude
+        # vary_magnitude(exp_name, inp_base, adap_scenarios, load, ncores)
 
         ## C: effect of policy design
         policy_design(exp_name, inp_base, adap_scenarios, load, ncores)
@@ -344,6 +342,8 @@ def run_chunk_reps(reps, params):
         m = mod.Model(params)
         for t in range(m.T):
             m.step()
+        # change the land area back to the std values
+        m.agents.land_area = np.round(m.agents.land_area / m.agents.land_area_multiplier, 1)
         # append to list
         ms['land_area'].append(m.agents.land_area)
         ms['income'].append(m.agents.income.astype(int))
@@ -353,4 +353,6 @@ def run_chunk_reps(reps, params):
     return ms
 
 if __name__ == '__main__':
+    logging.config.fileConfig('logger.conf', defaults={'logfilename' : 'logs/{}.log'.format(os.path.basename(__file__)[:-3])})
+    logger = logging.getLogger('sLogger')
     main()

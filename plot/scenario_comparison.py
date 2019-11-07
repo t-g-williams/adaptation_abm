@@ -29,41 +29,59 @@ def main(mods, save=True):
 def combined_plots(mods):
     has_shock = True if 'shock' in mods.keys() else False
     # plot wealth for an agent of type 2 only
-    fig, ax = plt.subplots(figsize=(7,4))
+    fig, axs = plt.subplots(2,1,figsize=(7,6))
+    ax = axs[0]
+    ax2 = axs[1]
     for m, mod in mods.items():
         lands = mod.agents.land_area
         uniq_land = np.unique(lands)
-        if has_shock:
-            ax.plot(mod.agents.wealth[:,lands==uniq_land[1]][:,0], label=m)
-        else:
-            ax.plot(mod.agents.income[:,lands==uniq_land[1]][:,0], label=m)
         burnin = mod.adap_properties['burnin_period']
+        if has_shock:
+            T = 8
+            yr = mods['shock'].climate.shock_years[0]
+            xs = np.arange(yr-2,yr+T)
+            ax.plot(xs, mod.agents.wealth[:,lands==uniq_land[1]][xs,0], label=m)
+        else:
+            T = 21
+            xs = np.arange(burnin, burnin+T)
+            ax.plot(xs, mod.agents.income[:,lands==uniq_land[1]][xs,0], label=m)
+        ax2.plot(xs, mod.land.organic[:,lands==uniq_land[1]][xs+1,0], label=m)
         if mod.shock:
             for yr in mod.climate.shock_years:
-                ax.axvline(x=yr, color='k', ls=':')
-                ax.text(yr, ax.get_ylim()[0]+(ax.get_ylim()[1]-ax.get_ylim()[0])*0.1, 'SHOCK', ha='center', va='bottom', rotation=90)
+                for axi in axs:
+                    axi.axvline(x=yr, color='k', ls=':')
+                    axi.text(yr, axi.get_ylim()[0]+(axi.get_ylim()[1]-axi.get_ylim()[0])*0.1, 'SHOCK', ha='center', va='bottom', rotation=90)
                 
         if m == 'insurance':
             shock_yrs = np.where(mod.climate.rain <= mod.adap_properties['magnitude'])[0]
             for yr in shock_yrs:
-                ax.axvline(x=yr, color='r', lw=1, ls=':')
+                if yr <= max(xs):
+                    for axi in axs:
+                        axi.axvline(x=yr, color='r', lw=1, ls=':')
             
     if has_shock:
         T = 8
-        ax.set_xlim([yr-3, yr+T])
-        ax.set_xticks(np.arange(yr-2,yr+T+1,2))
-        ax.set_xticklabels(np.arange(yr-2,yr+T+1,2))
+        # for axi in axs:
+        #     axi.set_xlim([yr-3, yr+T])
+        #     axi.set_xticks(np.arange(yr-2,yr+T+1,2))
+        ax.set_xticklabels([])
+        # ax2.set_xticklabels(np.arange(yr-2,yr+T+1,2))
     else:
         T = 21
-        ax.set_xlim([burnin, burnin+T])
-        ax.set_xticks(np.arange(burnin+1, burnin+T+1,2))
-        ax.set_xticklabels(np.arange(0,T,2))
-    ax.axhline(y=0, color='k', ls=':')
+        for axi in axs:
+            axi.set_xlim([burnin, burnin+T])
+            axi.set_xticks(np.arange(burnin+1, burnin+T+1,2))
+        ax.set_xticklabels([])
+        ax2.set_xticklabels(np.arange(0,T,2))
+    
+    for axi in axs:
+        axi.grid(False)
             
-    ax.legend()
-    ax.set_xlabel('Year')
+    ax.axhline(y=0, color='k', ls=':')
+    ax2.legend()
+    ax2.set_xlabel('Year')
     ax.set_ylabel('Wealth' if has_shock else 'Income')
-    ax.grid(False)
+    ax2.set_ylabel('SOM')
     text = 'B: Effect of shock' if has_shock else 'C: Resilience strategies'
     # ax.text(-0.2,1.1, text, transform=ax.transAxes, fontsize=22)
     ax.set_title(text, fontsize=22)

@@ -81,7 +81,7 @@ def policy_design_single(d_cc, d_ins, shock_mags, shock_times, T_res, exp_name):
                     axx.set_yticklabels([])
             else:
                 ax.set_ylabel('Nitrogen fixation (kg N/ha)')
-                ax2.set_ylabel('Insurance climate %ile')
+                ax2.set_ylabel('Insured climate %ile')
             for axx in [ax, ax2]:
                 axx.set_xlabel('Cost factor')
             for axx in [ax, ax2]:
@@ -183,14 +183,14 @@ def policy_design_all_combined(d_cc, d_ins, shock_mags, shock_times, T_res, exp_
     policies = ['insurance','cover_crop']
     names = ['A: Insurance', 'B: Legume cover']
     ds = [d_ins, d_cc]
-    ylabels = ['fraction insured','N fixation']
+    ylabels = ['Insured climate %ile','N fixation (kg N/ha)']
     defaults = [0.1, 80]
     T_res_plot = [1,3,5,7,9]
     t_shock = 10
 
     for outcome in d_cc.keys():
         for i in range(len(policies)):
-            fig = plt.figure(figsize=(4*len(T_res_plot),5))
+            fig = plt.figure(figsize=(0.7*4*len(T_res_plot),0.7*5))
             axs = ImageGrid(fig, 111, nrows_ncols=(1, len(T_res_plot)), 
                 axes_pad=0.15, add_all=True, label_mode='L',
                 cbar_mode='single',cbar_location='right', aspect=False,
@@ -200,8 +200,8 @@ def policy_design_all_combined(d_cc, d_ins, shock_mags, shock_times, T_res, exp_
                 ax = axs[t]
             
                 query_str = 'mag=="{}" & assess_pd=={} & time=={}'.format(mag_str, t_res, t_shock)
-                d_subs = ds[i][outcome].query(query_str)
                 # code.interact(local=dict(globals(), **locals()))
+                d_subs = ds[i][outcome].query(query_str)
                 d_plot = []
                 for land in d_subs.columns:
                     d_plot.append(np.array(d_subs[land].unstack()))
@@ -214,11 +214,11 @@ def policy_design_all_combined(d_cc, d_ins, shock_mags, shock_times, T_res, exp_
                 ax.scatter([1], [defaults[i]], color='k')
                 
                 # labels
-                ax.set_title('T_res={}'.format(t_res), fontsize=16)
+                ax.set_title('{} yr assess pd.'.format(t_res), fontsize=16)
                 ax.set_xlabel('Cost factor')
                 if t == 0:
                     ax.set_ylabel(ylabels[i])
-                    ax.text(-0.2, 1.15, names[i], fontsize=28, transform=ax.transAxes)
+                    ax.text(-0.2, 1.2, names[i], fontsize=28, transform=ax.transAxes)
                     
                 # formatting
                 ax.grid(False)
@@ -232,6 +232,7 @@ def policy_design_all_combined(d_cc, d_ins, shock_mags, shock_times, T_res, exp_
             fig.savefig(savedir + 'combined_policy_{}_{}_mag_{}_shockyr{}.png'.format(outcome, policies[i], mag_str, t_shock),
                 bbox_inches='tight') 
             plt.close('all')
+            # sys.exit()
 
 def shock_mag_grid_plot(results, shock_mags, shock_times, T_res, exp_name, baseline_resilience, outcomes):
     '''
