@@ -16,7 +16,7 @@ class Agents():
         self.id = np.arange(self.N)
 
         # generate land ownership
-        self.land_area = self.init_farm_size()
+        self.land_area = self.init_farm_size()      
         self.crop_production = np.full([self.T, self.N], -9999)
 
         # wealth (cash holdings)
@@ -37,13 +37,14 @@ class Agents():
         '''
         initialize agent-level farm size (ha)
         '''
+        mult = self.land_area_multiplier
         if self.N == len(self.land_area_init):
-            return np.array(self.land_area_init)
+            return np.array(self.land_area_init) * mult
         elif self.N % len(self.land_area_init) == 0:
             # equal number of each
-            return np.repeat(self.land_area_init, self.N / len(self.land_area_init))
+            return np.repeat(self.land_area_init, self.N / len(self.land_area_init)) * mult
         else:
-            return np.random.choice(self.land_area_init, size=self.N)
+            return np.random.choice(self.land_area_init, size=self.N) * mult
         
     def calculate_income(self, land, climate, adap_properties):
         '''

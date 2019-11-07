@@ -24,22 +24,21 @@ from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.inspection import partial_dependence
 import logging
 import logging.config
-logging.config.fileConfig('logger.conf', defaults={'logfilename' : 'logs/{}.log'.format(os.path.basename(__file__)[:-3])})
-logger = logging.getLogger('sLogger')
+
 
 def main():
     exp_name = '2019_10_15_4'
-    N_vars = 10000 # number of random variable sets to generate
+    N_vars = 1000 # number of random variable sets to generate
     N_reps = 100 # number of times to repeat model for each variable set
     ncores = 40
     pom_nvars = 100000
     pom_nreps = 10
-    n_mods = 3 # number of successful POM models
+    n_mods = 1 # number of successful POM models
     perturb_perc = 30
-    load = True
+    load = False
     nboot_rf = 100
     sens_vars = {
-        'agents' : ['wealth_init_mean','cash_req_mean','livestock_cost'],
+        'agents' : ['wealth_init_mean','cash_req_mean','livestock_cost'],#,'land_area_multiplier'],
         'land' : ['organic_N_min_init','max_organic_N','fast_mineralization_rate',
             'slow_mineralization_rate','loss_max','loss_min','max_yield',
             'rain_crit','rain_cropfail_low_SOM','random_effect_sd',
@@ -54,9 +53,10 @@ def main():
         f = '../outputs/{}/POM/{}_{}reps/input_params_{}.pkl'.format(exp_name, pom_nvars, pom_nreps, m)
         inp_base = pickle.load(open(f, 'rb'))
         # manually specify some variables (common to all scenarios)
-        inp_base['model']['n_agents'] = 200
+        inp_base['model']['n_agents'] = 201
         inp_base['model']['exp_name'] = exp_name
         inp_base['agents']['adap_type'] = 'always'
+        inp_base['agents']['land_area_multiplier'] = 1 # not in POM experiment
 
         ### 2. sample: generate random perturbed variable sets
         params, keys, names = hypercube_sample(N_vars, sens_vars, inp_base, perturb_perc)
@@ -120,6 +120,7 @@ def calculate_QoI(exp_name, params, keys, names, inp_base, N_reps, ncores, T_sho
     # calculate mean over agent types for simplicity
     tmp = np.array(np.concatenate(results))
     QoIs = np.mean(tmp, axis=1)
+
     return QoIs
 
 def chunk_QoI(chunk, exp_name, N_reps, params, keys, names, inp_base, adap_scenarios, shock_mag, T_shock, T_res, load):
@@ -233,7 +234,7 @@ def plot_rf_results(var_imp_df, var_imp_list, pdp_data, mean_val, exp_name, mod_
     for v in var_imp_df['variable']:
         y_box.append(var_imp_list[v])
     y_box = np.array(y_box).transpose()
-    fig, ax = plt.subplots(figsize=(5,9))
+    fig, ax = plt.subplots(figsize=(9,9))
     xs = np.array(var_imp_df['ix'])+1
     bp = ax.boxplot(y_box, vert=False, patch_artist=True, showfliers=False)#color=var_imp_df.color)
     ax.set_yticks(xs)
@@ -264,8 +265,8 @@ def plot_rf_results(var_imp_df, var_imp_list, pdp_data, mean_val, exp_name, mod_
     fill_clr = '0.6'
     n_land = 6
     for i in range(n_land):
-        var = var_imp_df[var_imp_df.key=='land'].iloc[i]['variable']
-        xs = np.array(pdp_data[var]['x']).mean(axis=0)
+        var = var_imp_df[var_imp_df.key=='land'].iloc[i]['variable']                
+        xs = np.array(pdp_data[var]['x']).mean(axis=0) # note: this might fail if low Nreps since the PDP has < 100 values
         ys = np.percentile(np.array(pdp_data[var]['y']), q=[2.5,50,97.5], axis=0)
         axs[i].fill_between(xs, ys[0]+mean_val, ys[2]+mean_val, color=fill_clr)
         axs[i].plot(xs, ys[1]+mean_val, color=line_clr)
@@ -302,4 +303,6 @@ def plot_rf_results(var_imp_df, var_imp_list, pdp_data, mean_val, exp_name, mod_
     # code.interact(local=dict(globals(), **locals()))
 
 if __name__ == '__main__':
+    logging.config.fileConfig('logger.conf', defaults={'logfilename' : 'logs/{}.log'.format(os.path.basename(__file__)[:-3])})
+    logger = logging.getLogger('sLogger')
     main()

@@ -49,6 +49,7 @@ def agents():
 
         # plot ownership
         'land_area_init' : [1, 1.5, 2], # ha. uniformly sample from each
+        'land_area_multiplier' : 1, # for sensitivity analysis
 
         ##### cash + wealth #####
         # initial (normal distribution)
