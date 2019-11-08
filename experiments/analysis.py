@@ -186,7 +186,8 @@ def policy_design(exp_name, inp_base, adap_scenarios, load, ncores):
             dict_out['dev_ins'] = dev_ins
             pickle.dump(dict_out, f, pickle.HIGHEST_PROTOCOL)
 
-    # plot
+    # plot  
+    shock_plot.policy_design_both_res_types(dev_cc, dev_ins, res_cc, res_ins, shock_mags, shock_times, T_res, exp_name)
     shock_plot.policy_design_dev_res(dev_cc, dev_ins, shock_mags, exp_name)
     shock_plot.policy_design_all_combined(res_cc, res_ins, shock_mags, shock_times, T_res, exp_name)
     shock_plot.policy_design_single(res_cc, res_ins, shock_mags, shock_times, T_res, exp_name)

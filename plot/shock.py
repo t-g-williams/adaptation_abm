@@ -29,6 +29,97 @@ def resilience(results, shock_mags, shock_times, T_res, exp_name, baseline_resil
     grid_plot(savedir, adap_scenarios, land_area, results, shock_mags, shock_times, T_res, exp_name, baseline_resilience, outcomes)
     line_plots(savedir, adap_scenarios, land_area, results, shock_mags, shock_times, T_res, exp_name, baseline_resilience, outcomes)
 
+def policy_design_both_res_types(dev_cc, dev_ins, res_cc, res_ins, shock_mags, shock_times, T_res, exp_name):
+    '''
+    plot a selected plot of both of the resilience types together
+    '''
+    savedir = '../outputs/{}/plots/policy_design/{}/'.format(exp_name, shock_mags[0])
+    T_res = 5
+    T_shock = shock_times[0]
+    mag_str = str(shock_mags[0]).replace('.','_')
+    land_area = 1.5
+    outcome = 'income'
+
+    fig, axs = plt.subplots(2,2, figsize=(12,7))
+    ax_flat = axs.flatten()
+
+    #### DEVELOPMENT RESILIENCE ####
+    ## cover crop
+    ax = axs[0,0]
+    plt_data = np.array(dev_cc[land_area].unstack())
+    xs = dev_cc.index.levels[1] # cost
+    ys = dev_cc.index.levels[0] # n fixed
+    hm = ax.imshow(plt_data.astype(float), cmap='bwr', vmin=0, vmax=1, origin='lower', extent=[min(xs), max(xs), min(ys), max(ys)],
+                aspect='auto')
+    ax.scatter([1], [80], color='k') # default value
+    ## insurance
+    ax = axs[1,0]
+    plt_data = np.array(dev_ins[land_area].unstack())
+    x2s = dev_ins.index.levels[1] # cost
+    y2s = dev_ins.index.levels[0] * 100 # convert to %age
+    hm2 = ax.imshow(plt_data.astype(float), cmap='bwr', vmin=0, vmax=1, origin='lower', extent=[min(x2s), max(x2s), min(y2s), max(y2s)],
+                aspect='auto')
+    ax.scatter([1], [10], color='k') # default value
+
+    #### CLIMATE RESILIENCE ####
+    ## cover crop
+    query_str = 'mag=="{}" & assess_pd=={} & time=={}'.format(mag_str, T_res, T_shock)
+    d_subs = res_cc[outcome].query(query_str)
+    d_plot = []
+    for land in d_subs.columns:
+        d_plot.append(np.array(d_subs[land].unstack()))
+    d_plot = np.mean(np.array(d_plot), axis=0)
+    hm = axs[0,1].imshow(d_plot, cmap='bwr', vmin=0, vmax=1, origin='lower', extent=[min(xs), max(xs), min(ys), max(ys)],
+                aspect='auto')
+    # add points for default
+    axs[0,1].scatter([1], [80], color='k')
+    ## insurance
+    d_subs = res_ins[outcome].query(query_str)
+    d_plot = []
+    for land in d_subs.columns:
+        d_plot.append(np.array(d_subs[land].unstack()))
+    d_plot = np.mean(np.array(d_plot), axis=0)
+    hm = axs[1,1].imshow(d_plot, cmap='bwr', vmin=0, vmax=1, origin='lower', extent=[min(x2s), max(x2s), min(y2s), max(y2s)],
+                aspect='auto')
+    # add points for default
+    axs[1,1].scatter([1], [10], color='k')
+
+    ## labels
+    fs = 20
+    # axs[0,0].set_title('Development resilience: cover crop', fontsize=fs)
+    # axs[1,0].set_title('Development resilience: insurance', fontsize=fs)
+    # axs[0,1].set_title('Climate resilience: cover crop', fontsize=fs)
+    # axs[1,1].set_title('Climate resilience: insurance', fontsize=fs)
+    axs[0,0].set_ylabel('N fixation (kg N/ha)')
+    axs[1,0].set_ylabel('Insured climate %ile')
+    axs[1,0].set_xlabel('Cost factor')
+    axs[1,1].set_xlabel('Cost factor')
+
+    for ax in axs[0]:
+        ax.set_xticklabels([])
+    for ax in axs[:,-1]:
+        ax.set_yticklabels([])
+
+
+    axs[0,0].text(0.5, 1.11, 'Development resilience', fontsize=fs, ha='center',va='bottom', transform=axs[0,0].transAxes)
+    axs[0,1].text(0.5, 1.11, 'Climate resilience', fontsize=fs, ha='center',va='bottom', transform=axs[0,1].transAxes)
+    axs[0,0].text(-0.2, 0.5, 'Cover crop', fontsize=fs, ha='right', va='center', transform=axs[0,0].transAxes)
+    axs[1,0].text(-0.2, 0.5, 'Insurance', fontsize=fs, ha='right', va='center', transform=axs[1,0].transAxes)
+
+    # cb_ax = fig.add_axes([0.34, -0.03, 0.37, 0.03])
+    # cb_ax = fig.add_axes([0.5, -0.03, 0.5, 0.02])
+    cb_ax = fig.add_axes([1, 0.22, 0.02, 0.5])
+    cbar = fig.colorbar(hm, orientation='vertical', cax=cb_ax)
+    cbar.set_label('P(CC>ins)')
+
+    labels = ['(A)','(B)','(C)','(D)']
+    for a, ax in enumerate(ax_flat):
+        ax.grid(False)
+        ax.text(0.02,0.98,labels[a], fontsize=20, transform=ax.transAxes, ha='left', va='top')
+    fig.savefig(savedir + 'policy_both_resilience.png', bbox_inches='tight')
+    sys.exit()
+    code.interact(local=dict(globals(), **locals()))
+
 def policy_design_dev_res(d_cc, d_ins, shock_mags, exp_name):
     '''
     plot as a function of policy parameters
@@ -250,7 +341,7 @@ def policy_design_all_combined(d_cc, d_ins, shock_mags, shock_times, T_res, exp_
 
     for outcome in d_cc.keys():
         for i in range(len(policies)):
-            fig = plt.figure(figsize=(0.7*4*len(T_res_plot),0.7*5))
+            fig = plt.figure(figsize=(0.7*4*len(T_res_plot),0.7*5), sharey='row', sharex='col')
             axs = ImageGrid(fig, 111, nrows_ncols=(1, len(T_res_plot)), 
                 axes_pad=0.15, add_all=True, label_mode='L',
                 cbar_mode='single',cbar_location='right', aspect=False,
