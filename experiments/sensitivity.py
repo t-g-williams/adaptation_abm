@@ -28,7 +28,7 @@ import logging.config
 
 def main():
     exp_name = '2019_10_15_4'
-    N_vars = 1000 # number of random variable sets to generate
+    N_vars = 10000 # number of random variable sets to generate
     N_reps = 100 # number of times to repeat model for each variable set
     ncores = 40
     pom_nvars = 100000
