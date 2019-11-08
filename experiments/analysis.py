@@ -45,6 +45,7 @@ def main():
         inp_base['model']['exp_name'] = exp_name
         inp_base['agents']['adap_type'] = 'always'
         inp_base['model']['shock'] = False
+        inp_base['agents']['land_area_multiplier'] = 1
 
         #### adaptation scenarios
         adap_scenarios = {
@@ -73,28 +74,34 @@ def policy_design(exp_name, inp_base, adap_scenarios, load, ncores):
     ## shock settings
     nreps = 100
     shock_mags = [0.2] # code only designed to have one value in this list
-    shock_times = np.arange(2,31,step=2) # measured after the burn-in period
-    T_res = np.arange(1,16) # how many years to calculate effects over
+    shock_times = [10] # np.arange(2,31,step=2) # measured after the burn-in period
+    T_res = [1,3,5,7,9]# np.arange(1,16) # how many years to calculate effects over
+    T_dev = 50 # time period for development resilience simulations
     outcomes = ['wealth','income']
     inp_base['model']['T'] = shock_times[-1] + T_res[-1] + inp_base['adaptation']['burnin_period'] + 1
     ## parameter settings
-    cc_N_fix = np.linspace(40,200,20).astype(int)
-    cc_cost_factor = np.round(np.linspace(0.1,4,20), 2)
-    ins_percentile = np.round(np.linspace(0.01, 0.3,20), 3)
-    ins_cost_factor = np.round(np.linspace(0.1,4,20), 2)
+    res = 20 # resolution
+    cc_N_fix = np.linspace(40,200,res).astype(int)
+    cc_cost_factor = np.round(np.linspace(0.1,4,res), 2)
+    ins_percentile = np.round(np.linspace(0.01, 0.3,res), 3)
+    ins_cost_factor = np.round(np.linspace(0.1,4,res), 2)
 
     ## set up outputs
     res_cc = {}
     res_ins = {}
     for o in outcomes:
-        res_cc[o] = []
-        res_ins[o] = []
+        for obj in [res_cc, res_ins]:
+            obj[o] = []
+    dev_cc = pd.DataFrame(index=pd.MultiIndex.from_product([cc_N_fix, cc_cost_factor], names=('N_fix','cost_factor')), columns=inp_base['agents']['land_area_init'])
+    dev_ins = pd.DataFrame(index=pd.MultiIndex.from_product([ins_percentile, ins_cost_factor], names=('percentile','cost_factor')), columns=inp_base['agents']['land_area_init'])
 
     #### cover crops ####
     logger.info('LEGUME COVER ......')
-    all_cc_outname = '../outputs/'+exp_name+'/policy_design/cover_crop/{}/combined.pkl'.format(shock_mags[0])
+    all_cc_outname = '../outputs/'+exp_name+'/policy_design/cover_crop/{}/combined_{}res.pkl'.format(shock_mags[0], res)
     if os.path.isfile(all_cc_outname):
-        res_cc = pickle.load(open(all_cc_outname, 'rb'))
+        tmp = pickle.load(open(all_cc_outname, 'rb'))
+        res_cc = tmp['res_cc']
+        dev_cc = tmp['dev_cc']
     else:
         for ci, cc_N in enumerate(cc_N_fix):
             logger.info('  N = {} / {}'.format(ci+1,len(cc_N_fix)))
@@ -108,6 +115,8 @@ def policy_design(exp_name, inp_base, adap_scenarios, load, ncores):
                 inp_tmp['adaptation']['cover_crop']['cost_factor'] = cc_cost
 
                 # run the models
+
+                dev_cc.loc[(cc_N, cc_cost)] = run_dev_res_sims(exp_name_pol, nreps, inp_tmp, adap_scenarios, ncores, T_dev, load=load)
                 results, results_baseline = run_shock_sims(exp_name_pol, nreps, inp_tmp, adap_scenarios, shock_mags, shock_times, ncores, T_res, outcomes, load=load, flat_reps=False)
                 # note: just work with the results_baseline for now
 
@@ -127,13 +136,18 @@ def policy_design(exp_name, inp_base, adap_scenarios, load, ncores):
             res_cc[k] = pd.concat(v)
         # write
         with open(all_cc_outname, 'wb') as f:
-            pickle.dump(res_cc, f, pickle.HIGHEST_PROTOCOL)
+            dict_out = {}
+            dict_out['res_cc'] = res_cc
+            dict_out['dev_cc'] = dev_cc
+            pickle.dump(dict_out, f, pickle.HIGHEST_PROTOCOL)
 
     #### insurance ####
     logger.info('INSURANCE ......')
-    all_ins_outname = '../outputs/'+exp_name+'/policy_design/insurance/{}/combined.pkl'.format(shock_mags[0])
+    all_ins_outname = '../outputs/'+exp_name+'/policy_design/insurance/{}/combined_{}res.pkl'.format(shock_mags[0], res)
     if os.path.isfile(all_ins_outname):
-        res_ins = pickle.load(open(all_ins_outname, 'rb'))
+        tmp = pickle.load(open(all_ins_outname, 'rb'))
+        res_ins = tmp['res_ins']
+        dev_ins = tmp['dev_ins']
     else:
         for i, ins_perc in enumerate(ins_percentile):
             logger.info('  perc = {} / {}'.format(i+1, len(ins_percentile)))
@@ -147,6 +161,7 @@ def policy_design(exp_name, inp_base, adap_scenarios, load, ncores):
                 inp_tmp['adaptation']['insurance']['cost_factor'] = ins_cost
 
                 # run the models
+                dev_ins.loc[(ins_perc, ins_cost)] = run_dev_res_sims(exp_name_pol, nreps, inp_tmp, adap_scenarios, ncores, T_dev, load=load)
                 results, results_baseline = run_shock_sims(exp_name_pol, nreps, inp_tmp, adap_scenarios, shock_mags, shock_times, ncores, T_res, outcomes, load=load, flat_reps=False)
                 # note: just work with the results_baseline for now
 
@@ -166,9 +181,13 @@ def policy_design(exp_name, inp_base, adap_scenarios, load, ncores):
             res_ins[k] = pd.concat(v)
         # write
         with open(all_ins_outname,'wb') as f:
-            pickle.dump(res_ins, f, pickle.HIGHEST_PROTOCOL)
+            dict_out = {}
+            dict_out['res_ins'] = res_ins
+            dict_out['dev_ins'] = dev_ins
+            pickle.dump(dict_out, f, pickle.HIGHEST_PROTOCOL)
 
     # plot
+    shock_plot.policy_design_dev_res(dev_cc, dev_ins, shock_mags, exp_name)
     shock_plot.policy_design_all_combined(res_cc, res_ins, shock_mags, shock_times, T_res, exp_name)
     shock_plot.policy_design_single(res_cc, res_ins, shock_mags, shock_times, T_res, exp_name)
     shock_plot.policy_design_all(res_cc, res_ins, shock_mags, shock_times, T_res, exp_name)
@@ -218,6 +237,53 @@ def assess_resilience(exp_name, inp_base, adap_scenarios, load, ncores):
     shock_plot.resilience(results, shock_mags, shock_times, T_res, exp_name, False, outcomes)
     shock_plot.resilience(results_baseline, shock_mags, shock_times, T_res, exp_name, True, outcomes)
 
+def run_dev_res_sims(exp_name, nreps, inp_base, adap_scenarios, ncores, T_dev, load=True):
+    '''
+    loop over the adaptation and shock scenarios
+    '''
+    outdir = '../outputs/{}'.format(exp_name)
+    if not os.path.isdir(outdir):
+        os.makedirs(outdir)
+
+    T_burn = inp_base['adaptation']['burnin_period']
+    rep_chunks = POM.chunkIt(np.arange(nreps), ncores)
+    results = {}
+
+    savename = '{}/{}reps_dev.csv'.format(outdir, nreps)
+    # load if results already saved
+    if load and os.path.exists(savename):
+        results = pickle.load(open(savename, 'rb'))
+        return np.mean(results['cover_crop'] > results['insurance'], axis=1)
+    
+    for scenario, scenario_params in adap_scenarios.items():
+        # different savename for the baseline and non-baseline
+
+        # change the params for the scenario
+        params = copy.deepcopy(inp_base)
+        params['model']['T'] = T_dev
+        for k, v in scenario_params.items():
+            for k2, v2 in v.items():
+                params[k][k2] = v2
+        
+        # run baseline sims
+        tmp = Parallel(n_jobs=ncores)(delayed(run_chunk_reps)(rep_chunks[i], params) for i in range(len(rep_chunks)))
+        arrays = extract_arrays(tmp)
+
+        # calculate the relevant output metric
+        # probability that wealth > 0  at the end for each agent type
+        res = []
+        for land in inp_base['agents']['land_area_init']:
+            vals = arrays['wealth'][:,-1,:]
+            masked = np.ma.masked_array(vals, mask=~(arrays['land_area']==land))
+            res.append(np.array(np.mean(masked>0, axis=1)))
+        results[scenario] = np.array(res)
+        
+    with open(savename, 'wb') as f:
+        pickle.dump(results, f)
+    
+    output = np.mean(results['cover_crop'] > results['insurance'], axis=1)
+    return output
+
 def run_shock_sims(exp_name, nreps, inp_base, adap_scenarios, shock_mags, shock_times, ncores, T_res, outcomes, load=True, flat_reps=True):
     '''
     loop over the adaptation and shock scenarios
@@ -243,7 +309,7 @@ def run_shock_sims(exp_name, nreps, inp_base, adap_scenarios, shock_mags, shock_
             continue
 
         # change the params for the scenario
-        params = copy.copy(inp_base)
+        params = copy.deepcopy(inp_base)
         for k, v in scenario_params.items():
             for k2, v2 in v.items():
                 params[k][k2] = v2

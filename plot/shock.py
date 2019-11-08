@@ -29,6 +29,66 @@ def resilience(results, shock_mags, shock_times, T_res, exp_name, baseline_resil
     grid_plot(savedir, adap_scenarios, land_area, results, shock_mags, shock_times, T_res, exp_name, baseline_resilience, outcomes)
     line_plots(savedir, adap_scenarios, land_area, results, shock_mags, shock_times, T_res, exp_name, baseline_resilience, outcomes)
 
+def policy_design_dev_res(d_cc, d_ins, shock_mags, exp_name):
+    '''
+    plot as a function of policy parameters
+    create one plot with both policies for a selected T_shock and T_res
+    and a grid-plot for each policy with all T_shock and T_res
+    '''
+    savedir = '../outputs/{}/plots/policy_design/{}/'.format(exp_name, shock_mags[0])
+    if not os.path.isdir(savedir):
+        os.makedirs(savedir)
+    mag_str = str(shock_mags[0]).replace('.','_')
+    land_area = d_cc.columns
+
+    fig, axs = plt.subplots(2,3,figsize=(16,10))
+    for li, land in enumerate(land_area):
+        ## cover crop
+        ax = axs[1,li]
+        plt_data = np.array(d_cc[land].unstack())
+        xs = d_cc.index.levels[1] # cost
+        ys = d_cc.index.levels[0] # n fixed
+        
+        hm = ax.imshow(plt_data.astype(float), cmap='bwr', vmin=0, vmax=1, origin='lower', extent=[min(xs), max(xs), min(ys), max(ys)],
+                    aspect='auto')
+        ax.scatter([1], [80], color='k') # default value
+
+        ## insurance
+        ax2 = axs[0,li]
+        plt_data2 = np.array(d_ins[land].unstack())
+        x2s = d_ins.index.levels[1] # cost
+        y2s = d_ins.index.levels[0] * 100 # convert to %age
+        hm2 = ax2.imshow(plt_data2.astype(float), cmap='bwr', vmin=0, vmax=1, origin='lower', extent=[min(x2s), max(x2s), min(y2s), max(y2s)],
+                    aspect='auto')
+        ax2.scatter([1], [10], color='k') # default value
+        
+        # formatting
+        if li > 0:
+            for axx in [ax, ax2]:
+                axx.set_ylabel('')
+                axx.set_yticklabels([])
+        else:
+            ax.set_ylabel('Nitrogen fixation (kg N/ha)')
+            ax2.set_ylabel('Insured climate %ile')
+        for axx in [ax, ax2]:
+            axx.set_xlabel('Cost factor')
+        for axx in [ax, ax2]:
+            axx.set_title('{} ha'.format(land))
+            axx.grid(False)
+
+    # color bar
+    cb_ax = fig.add_axes([0.34, -0.03, 0.37, 0.03])
+    cbar = fig.colorbar(hm2, orientation='horizontal', cax=cb_ax)
+    cbar.set_label('P(CC>ins)')
+
+    # labels
+    axs[0,0].text(-0.2, 1.1, 'A: Insurance', fontsize=28, transform=axs[0,0].transAxes)
+    axs[1,0].text(-0.2, 1.1, 'B: Legume cover', fontsize=28, transform=axs[1,0].transAxes)
+
+    fig.savefig(savedir + 'policy_development_mag_{}.png'.format(mag_str),
+        bbox_inches='tight') 
+    plt.close('all')
+
 def policy_design_single(d_cc, d_ins, shock_mags, shock_times, T_res, exp_name):
     '''
     plot as a function of policy parameters
