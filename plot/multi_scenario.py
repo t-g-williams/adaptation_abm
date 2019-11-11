@@ -160,7 +160,11 @@ def neg_wealth_probabilities(mods, nreps, inp_base, scenarios, exp_name, T, save
     lands = inp_base['agents']['land_area_init']
     titles = ['Land poor','Middle','Land rich']
     lss = ['-','--',':']
-    fig, axs = plt.subplots(1,len(lands), figsize=(5*len(lands), 4), sharey=True)
+    burnin = inp_base['adaptation']['burnin_period']
+    fig, ax_all = plt.subplots(2,len(lands), figsize=(5*len(lands), 4), sharey=True, gridspec_kw={'height_ratios':[1,0.05]})
+    axs = ax_all[0]
+    [axi.remove() for axi in ax_all[1,:]]
+
     for n, land_area in enumerate(lands):
         ss = 0
         for scenario, mods_sc in mods.items():
@@ -176,17 +180,23 @@ def neg_wealth_probabilities(mods, nreps, inp_base, scenarios, exp_name, T, save
             # extract mean and variance
             probs_t = np.mean(all_wealth>0, axis=0)
 
-            axs[n].plot(np.arange(T+1), probs_t, label=scenario, lw=2.5, ls=lss[ss])#, marker='o')
+            axs[n].plot(np.arange(T+burnin+1), probs_t, label=scenario, lw=2.5, ls=lss[ss])#, marker='o')
             ss += 1
+
+        l = axs[n].get_ylim()
+        axs[n].fill_between([0,burnin], [l[0],l[0]], [l[1],l[1]], color='0.5', alpha=0.3, label='burn-in')
+        axs[n].set_ylim(l)
 
     for a, ax in enumerate(axs):
         ax.grid(False)
         ax.set_xlabel('Year')
         ax.set_title(titles[a])
     axs[0].set_ylabel('P(wealth > 0)')
-    axs[1].legend(loc=10, bbox_to_anchor=(0.5, -0.3), ncol=3, frameon=False)
+    # axs[1].legend(loc=10, bbox_to_anchor=(0.5, -0.3), ncol=3, frameon=False)
+    lg = fig.legend(list(mods.keys()) + ['burn-in'], loc=10, bbox_to_anchor=(0.5, 0.1), ncol=4, frameon=False)
     fig.tight_layout()
-    fig.savefig(savedir + 'pos_wealth_prob_combined.png')
+    fig.savefig(savedir + 'pos_wealth_prob_combined.png', bbox_extra_artists=(lg,))
+    # code.interact(local=dict(globals(), **locals()))
     plt.close('all')
 
 def combined_wealth_income(mods, nreps, inp_base, scenarios, exp_name, T, savedir):

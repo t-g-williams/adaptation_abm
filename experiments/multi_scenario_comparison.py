@@ -32,11 +32,12 @@ def main():
     f = '../outputs/{}/POM/{}_{}reps/input_params_0.pkl'.format(exp_name, pom_nvars, pom_nreps)
     inp_base = pickle.load(open(f, 'rb'))
     # manually specify some variables (common to all scenarios)
-    T = 100
-    inp_base['model']['T'] = T
+    T = 50
+    inp_base['model']['T'] = T + inp_base['adaptation']['burnin_period']
     inp_base['model']['n_agents'] = 2000
     inp_base['model']['exp_name'] = exp_name
     inp_base['agents']['adap_type'] = 'always'
+    inp_base['agents']['land_area_multiplier'] = 1
 
     # inp_base['agents']['land_area_init'] = np.linspace(1,2,100)
     # inp_base['adaptation']['insurance']['climate_percentile'] = 0.3

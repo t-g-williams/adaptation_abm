@@ -15,6 +15,7 @@ import tqdm
 import numpy as np
 import pyDOE
 import pickle
+import string
 import pandas as pd
 import copy
 from joblib import Parallel, delayed
@@ -77,7 +78,7 @@ def main():
         ### 5. plot results
         # plot_rf_results(boot_climate, Ys_climate.mean(), exp_name, m, 'climate')
         # plot_rf_results(boot_dev, Ys_dev.mean(), exp_name, m, 'development')
-        plot_rf_results(boot_climate, boot_dev, [Ys_climate.mean(), Ys_dev.mean()], ['climate resilience', 'development resilience'], exp_name, m)
+        plot_rf_results(boot_climate, boot_dev, [Ys_climate.mean(), Ys_dev.mean()], ['climate resilience', 'development resilience'], exp_name, m, inp_base)
 
 def hypercube_sample(N, sens_vars, inp_base, perturb_perc):
     '''
@@ -240,7 +241,7 @@ def random_forest(y, X, varz, keys):
 
     return var_imp, pdp_data, fit
 
-def plot_rf_results(d_climate, d_dev, mean_vals, res_types, exp_name, mod_number):
+def plot_rf_results(d_climate, d_dev, mean_vals, res_types, exp_name, mod_number, inp_base):
     plot_dir = '../outputs/{}/model_{}/plots/sensitivity/'.format(exp_name, mod_number)
     if not os.path.isdir(plot_dir):
         os.makedirs(plot_dir)
@@ -310,57 +311,74 @@ def plot_rf_results(d_climate, d_dev, mean_vals, res_types, exp_name, mod_number
               bbox_to_anchor=[0.5,-0.1], ncol=2, frameon=False)
     fig.savefig(plot_dir + 'variable_importance_boxplot_combined.png')
 
-    ## PDPs
-    fig, axs = plt.subplots(3,6, figsize=(15,10), sharey=True, gridspec_kw={'height_ratios':[1,1,0.05]})
-    axs[1,3].remove()
+    ####### PDPs #######
+    fig, axs = plt.subplots(3,5, figsize=(15,10), sharey=True, gridspec_kw={'height_ratios':[1,1,0.05]})
+    axs[1,4].remove()
     [axi.remove() for axi in axs[2,:]]
-    axs_flat = axs.flatten()
+    axs_flat = list(axs.flatten())
+    del axs_flat[9]
 
     clrs = ['red','blue']
     alpha=0.3
 
     ## land
-    n_land = 6
+    n_land = 4
     for i in range(n_land):
         var = var_imp_df[var_imp_df.key=='land'].iloc[i]['variable']   
         for o, obj in enumerate([d_climate,d_dev]):
+            ax = axs[1,i]
             pdp_data = obj['pdp_datas']
             xs = np.array(pdp_data[var]['x']).mean(axis=0) # note: this might fail if low Nreps since the PDP has < 100 values
             ys = np.percentile(np.array(pdp_data[var]['y']), q=[2.5,50,97.5], axis=0)
-            axs[0,i].fill_between(xs, ys[0]+mean_vals[o], ys[2]+mean_vals[o], color=clrs[o], alpha=alpha)
-            axs[0,i].plot(xs, ys[1]+mean_vals[o], color=clrs[o], label=res_types[o])
-            axs[0,i].set_xlabel(var)
+            ax.fill_between(xs, ys[0]+mean_vals[o], ys[2]+mean_vals[o], color=clrs[o], alpha=alpha)
+            ax.plot(xs, ys[1]+mean_vals[o], color=clrs[o], label=res_types[o])
+            ax.set_xlabel(var)
+            # plot the default value
+            ax.text(0.5,0,'x',transform=ax.transAxes, va='center', ha='center')
 
     # agents
     for j in range(3):
         var = var_imp_df[var_imp_df.key=='agents'].iloc[j]['variable']
         for o, obj in enumerate([d_climate,d_dev]):
+            ax = axs[0,j]
             pdp_data = obj['pdp_datas']
             xs = np.array(pdp_data[var]['x']).mean(axis=0)
             ys = np.percentile(np.array(pdp_data[var]['y']), q=[2.5,50,97.5], axis=0)
-            axs[1,j].fill_between(xs, ys[0]+mean_vals[o], ys[2]+mean_vals[o], color=clrs[o], alpha=alpha)
-            axs[1,j].plot(xs, ys[1]+mean_vals[o], color=clrs[o], label=res_types[o])
-            axs[1,j].set_xlabel(var)
+            ax.fill_between(xs, ys[0]+mean_vals[o], ys[2]+mean_vals[o], color=clrs[o], alpha=alpha)
+            ax.plot(xs, ys[1]+mean_vals[o], color=clrs[o], label=res_types[o])
+            ax.set_xlabel(var)
+            # plot the default value
+            ax.text(0.5,0,'x',transform=ax.transAxes, va='center', ha='center')
 
     # climate
     for k in range(2):
         var = var_imp_df[var_imp_df.key=='climate'].iloc[k]['variable']
         for o, obj in enumerate([d_climate,d_dev]):
+            ax = axs[0,k+3]
             pdp_data = obj['pdp_datas']
             xs = np.array(pdp_data[var]['x']).mean(axis=0)
             ys = np.percentile(np.array(pdp_data[var]['y']), q=[2.5,50,97.5], axis=0)
-            axs[1,k+4].fill_between(xs, ys[0]+mean_vals[o], ys[2]+mean_vals[o], color=clrs[o], alpha=alpha)
-            axs[1,k+4].plot(xs, ys[1]+mean_vals[o], color=clrs[o])
-            axs[1,k+4].set_xlabel(var)
+            ax.fill_between(xs, ys[0]+mean_vals[o], ys[2]+mean_vals[o], color=clrs[o], alpha=alpha)
+            ax.plot(xs, ys[1]+mean_vals[o], color=clrs[o])
+            ax.set_xlabel(var)
+            # plot the default value
+            ax.text(0.5,0,'x',transform=ax.transAxes, va='center', ha='center')
 
+    labs = 5
     for a, ax in enumerate(axs_flat):
         ax.grid(False)
-        if a % 6 == 0:
+        ax.text(0.01, 0.99, string.ascii_uppercase[a], fontsize=16, transform=ax.transAxes, ha='left', va='top')
+        # code.interact(local=dict(globals(), **locals()))
+        try:
+            ax.tick_params(axis='x', which='major', pad=10)
+        except:
+            pass
+        if a % 5 == 0:
             ax.set_ylabel('P(CC>ins)')
 
-    axs[0,0].text(0, 1.1, 'LAND', transform=axs[0,0].transAxes, fontsize=22)
-    axs[1,0].text(0, 1.1, '\nAGENTS', transform=axs[1,0].transAxes, fontsize=22)
-    axs[1,4].text(0, 1.1, 'CLIMATE', transform=axs[1,4].transAxes, fontsize=22)
+    axs[0,0].text(0, 1.1, '\nAGENTS', transform=axs[0,0].transAxes, fontsize=22)
+    axs[0,3].text(0, 1.1, 'CLIMATE', transform=axs[0,3].transAxes, fontsize=22)
+    axs[1,0].text(0, 1.1, 'LAND', transform=axs[1,0].transAxes, fontsize=22)
 
     lg = fig.legend(res_types, bbox_to_anchor=[0.5,0.1], ncol=2, loc='center', frameon=False)
     fig.savefig(plot_dir + 'partial_dependence_combined.png', bbox_extra_artists =(lg,)) #  bbox_inches='tight', 

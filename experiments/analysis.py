@@ -261,7 +261,7 @@ def run_dev_res_sims(exp_name, nreps, inp_base, adap_scenarios, ncores, T_dev, l
 
         # change the params for the scenario
         params = copy.deepcopy(inp_base)
-        params['model']['T'] = T_dev
+        params['model']['T'] = T_dev + T_burn
         for k, v in scenario_params.items():
             for k2, v2 in v.items():
                 params[k][k2] = v2
