@@ -30,7 +30,7 @@ def main():
     N_samples = 100000
     ncores = 40
     nreps = 10
-    exp_name = '2019_10_15_4/POM'
+    exp_name = '2019_11_12_3/POM'
     inputs = {
         'model' : {'n_agents' : 200, 'T' : 100, 'exp_name' : exp_name,
                     'adaptation_option' : 'none'}
@@ -79,6 +79,7 @@ def fitting_metrics(mod):
     p2 = True if (v2 >= 0.1) and (v2 <= 0.9) else False
     p3 = True if np.mean(mod.agents.cant_cope[-1, ag3]) == 0 else False
     fit1 = bool(p1 * p2 * p3)
+    # fit1 = bool(p1 * p3)
 
     ## 2a. yield nutrient effects -- no "dead" soil for any agent at any time
     vals = mod.land.nutrient_factors[-n_yrs:]

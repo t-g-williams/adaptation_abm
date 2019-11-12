@@ -24,8 +24,8 @@ import logging
 import logging.config
 
 def main():
-    exp_name_base = '2019_10_15_4'
-    solution_numbers = [0,1,2]
+    exp_name_base = '2019_11_12_2'
+    solution_numbers = [0]#,1,2]
     ncores = 40
     load = True
     # load = False
@@ -58,13 +58,13 @@ def main():
         # nreps_req = convergence.convergence_analysis(exp_name, inp_base, adap_scenarios, ncores)
 
         # ## A: resilience as function of T_res, T_shock
-        # assess_resilience(exp_name, inp_base, adap_scenarios, load, ncores)
+        assess_resilience(exp_name, inp_base, adap_scenarios, load, ncores)
 
         # ## B: vary shock magnitude
         # vary_magnitude(exp_name, inp_base, adap_scenarios, load, ncores)
 
         ## C: effect of policy design
-        policy_design(exp_name, inp_base, adap_scenarios, load, ncores)
+        # policy_design(exp_name, inp_base, adap_scenarios, load, ncores)
 
 def policy_design(exp_name, inp_base, adap_scenarios, load, ncores):
     '''
@@ -222,7 +222,7 @@ def assess_resilience(exp_name, inp_base, adap_scenarios, load, ncores):
     compare the strategies over the dimensions of shock (t_shock, t_res)
     '''
     nreps = 100
-    shock_mags = [0.1,0.2,0.3]
+    shock_mags = [0.1]#,0.2,0.3]
     shock_times = np.arange(2,51,step=2) # measured after the burn-in period
     T_res = np.arange(1,15) # how many years to calculate effects over
     inp_base['model']['T'] = shock_times[-1] + T_res[-1] + inp_base['adaptation']['burnin_period'] + 1

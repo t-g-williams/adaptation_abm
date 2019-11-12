@@ -20,7 +20,7 @@ import multiprocessing
 
 def main():
     nreps = 300
-    exp_name = '2019_10_15_4'
+    exp_name = '2019_11_12_2'
     ncores = 40
 
     # load default params
