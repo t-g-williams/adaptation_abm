@@ -78,10 +78,10 @@ def multi_mod_run(nreps, inp_base, scenarios, ncores):
         # format the outputs
         mods[name] = {
             'wealth' : np.array([oi for tmp_i in tmp for oi in tmp_i['wealth']]).astype(int),
-            'organic' : [oi.astype(int) for tmp_i in tmp for oi in tmp_i['organic']], # each rep is different length
+            'organic' : np.array([oi.astype(int) for tmp_i in tmp for oi in tmp_i['organic']]), # each rep is different length
             'land_area' : np.array([oi for tmp_i in tmp for oi in tmp_i['land_area']]),
             'coping' : np.array([oi for tmp_i in tmp for oi in tmp_i['coping']]),
-            'owners' : [oi for tmp_i in tmp for oi in tmp_i['owners']],
+            'owners' : np.array([oi for tmp_i in tmp for oi in tmp_i['owners']]),
             'income' : np.array([oi for tmp_i in tmp for oi in tmp_i['income']]).astype(int),
         }
 
