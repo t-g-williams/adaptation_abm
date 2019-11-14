@@ -83,6 +83,8 @@ def multi_mod_run(nreps, inp_base, scenarios, ncores):
             'coping' : np.array([oi for tmp_i in tmp for oi in tmp_i['coping']]),
             'owners' : np.array([oi for tmp_i in tmp for oi in tmp_i['owners']]),
             'income' : np.array([oi for tmp_i in tmp for oi in tmp_i['income']]).astype(int),
+            'yields' : np.array([oi for tmp_i in tmp for oi in tmp_i['yields']]).astype(int),
+            'climate' : np.array([oi for tmp_i in tmp for oi in tmp_i['climate']]), # cant be int
         }
 
     return mods
@@ -93,7 +95,7 @@ def run_chunk_reps(reps, params):
     '''
     params = copy.copy(params)
     ms = {'wealth' : [], 'organic' : [], 'coping' : [], 'land_area' : [], 'owners' : [],
-        'income' : []}
+        'income' : [], 'yields' : [], 'climate' : []}
     # with tqdm(reps, disable = not True) as pbar:
     for r in reps:
         params['model']['seed'] = r # set the seed
@@ -109,6 +111,8 @@ def run_chunk_reps(reps, params):
         ms['coping'].append(m.agents.coping_rqd)
         ms['owners'].append(m.land.owner)
         ms['income'].append(m.agents.income)
+        ms['yields'].append(m.land.yields)
+        ms['climate'].append(m.climate.rain)
         # pbar.update()
 
     return ms
