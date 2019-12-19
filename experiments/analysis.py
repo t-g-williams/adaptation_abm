@@ -24,7 +24,7 @@ import logging
 import logging.config
 
 def main():
-    exp_name_base = '2019_11_12_2'
+    exp_name_base = '2019_10_15_4'#'2019_11_12_2'
     solution_numbers = [0]#,1,2]
     ncores = 40
     load = True
@@ -58,13 +58,13 @@ def main():
         # nreps_req = convergence.convergence_analysis(exp_name, inp_base, adap_scenarios, ncores)
 
         # ## A: resilience as function of T_res, T_shock
-        assess_resilience(exp_name, inp_base, adap_scenarios, load, ncores)
+        # assess_resilience(exp_name, inp_base, adap_scenarios, load, ncores)
 
         # ## B: vary shock magnitude
         # vary_magnitude(exp_name, inp_base, adap_scenarios, load, ncores)
 
         ## C: effect of policy design
-        # policy_design(exp_name, inp_base, adap_scenarios, load, ncores)
+        policy_design(exp_name, inp_base, adap_scenarios, load, ncores)
 
 def policy_design(exp_name, inp_base, adap_scenarios, load, ncores):
     '''
@@ -187,7 +187,7 @@ def policy_design(exp_name, inp_base, adap_scenarios, load, ncores):
             pickle.dump(dict_out, f, pickle.HIGHEST_PROTOCOL)
 
     # plot  
-    shock_plot.policy_design_both_res_types(dev_cc, dev_ins, res_cc, res_ins, shock_mags, shock_times, T_res, exp_name)
+    shock_plot.policy_design_both_res_types(dev_cc, dev_ins, res_cc, res_ins, shock_mags, shock_times, T_res, T_dev, exp_name)
     shock_plot.policy_design_dev_res(dev_cc, dev_ins, shock_mags, exp_name)
     shock_plot.policy_design_all_combined(res_cc, res_ins, shock_mags, shock_times, T_res, exp_name)
     shock_plot.policy_design_single(res_cc, res_ins, shock_mags, shock_times, T_res, exp_name)
