@@ -99,7 +99,7 @@ def policy_design_both_res_types(dev_cc, dev_ins, res_cc, res_ins, shock_mags, s
 
 
     axs[0,0].text(0.5, 1.05, 'Development resilience\n'+r'$T_{dev}=$'+str(T_dev), fontsize=fs, ha='center',va='bottom', transform=axs[0,0].transAxes)
-    axs[0,1].text(0.5, 1.05, 'Climate resilience\n'+r'$T_{shock}=$'+str(T_shock)+r', $T_{assess}=$'+str(T_res), fontsize=fs, ha='center',va='bottom', transform=axs[0,1].transAxes)
+    axs[0,1].text(0.5, 1.05, 'Shock resilience\n'+r'$T_{shock}=$'+str(T_shock)+r', $T_{assess}=$'+str(T_res), fontsize=fs, ha='center',va='bottom', transform=axs[0,1].transAxes)
     # axs[0,0].text(-0.2, 0.5, 'Cover crop', fontsize=fs, ha='right', va='center', transform=axs[0,0].transAxes)
     # axs[1,0].text(-0.2, 0.5, 'Insurance', fontsize=fs, ha='right', va='center', transform=axs[1,0].transAxes)
 

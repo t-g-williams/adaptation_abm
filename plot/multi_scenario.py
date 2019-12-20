@@ -25,8 +25,8 @@ def main(mods, nreps, inp_base, scenarios, exp_name, T, shock_years=[]):
 
     if len(shock_years) == 0:
         # only run these for the adaptation scenarios -- this assumes the length of shock years here is zero
-        poverty_trap_combined(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
-        poverty_trap(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
+        # poverty_trap_combined(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
+        # poverty_trap(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
         # sys.exit()
         neg_wealth_probabilities(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
         combined_wealth_income(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
@@ -159,7 +159,7 @@ def neg_wealth_probabilities(mods, nreps, inp_base, scenarios, exp_name, T, save
     '''
     lands = inp_base['agents']['land_area_init']
     titles = ['Land poor','Middle','Land rich']
-    lss = ['-','--',':']
+    # lss = ['-','--',':']
     burnin = inp_base['adaptation']['burnin_period']
     fig, ax_all = plt.subplots(2,len(lands), figsize=(5*len(lands), 4), sharey=True, gridspec_kw={'height_ratios':[1,0.05]})
     axs = ax_all[0]
@@ -168,6 +168,7 @@ def neg_wealth_probabilities(mods, nreps, inp_base, scenarios, exp_name, T, save
     for n, land_area in enumerate(lands):
         ss = 0
         for scenario, mods_sc in mods.items():
+            m = scenario
             ## calculate the wealth mean and std dev over time
             # extract and format the wealth info
             w = mods_sc['wealth']
@@ -179,8 +180,9 @@ def neg_wealth_probabilities(mods, nreps, inp_base, scenarios, exp_name, T, save
             # ^ this is (agents, time) shape
             # extract mean and variance
             probs_t = np.mean(all_wealth>0, axis=0)
-
-            axs[n].plot(np.arange(T+burnin+1), probs_t, label=scenario, lw=2.5, ls=lss[ss])#, marker='o')
+            col = 'k' if m == 'baseline' else 'r' if m == 'cover_crop' else 'b'
+            ls = '-' if m=='baseline' else '--' if m=='cover_crop' else '-.'
+            axs[n].plot(np.arange(T+burnin+1), probs_t, label=scenario, lw=1.5, ls=ls, color=col)#, marker='o')
             ss += 1
 
         l = axs[n].get_ylim()

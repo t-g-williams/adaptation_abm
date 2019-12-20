@@ -20,7 +20,7 @@ import multiprocessing
 
 def main():
     nreps = 300
-    exp_name = '2019_11_12_2'
+    exp_name = '2019_10_15_4'
     ncores = 40
 
     # load default params
@@ -34,7 +34,7 @@ def main():
     # manually specify some variables (common to all scenarios)
     T = 50
     inp_base['model']['T'] = T + inp_base['adaptation']['burnin_period']
-    inp_base['model']['n_agents'] = 2000
+    inp_base['model']['n_agents'] = 300
     inp_base['model']['exp_name'] = exp_name
     inp_base['agents']['adap_type'] = 'always'
     inp_base['agents']['land_area_multiplier'] = 1

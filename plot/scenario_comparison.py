@@ -40,24 +40,28 @@ def combined_plots(mods):
             T = 8
             yr = mods['shock'].climate.shock_years[0]
             xs = np.arange(yr-2,yr+T)
-            ax.plot(xs, mod.agents.wealth[:,lands==uniq_land[1]][xs,0], label=m)
+            ls = ':' if m == 'shock' else '-'
+            ax.plot(xs, mod.agents.wealth[:,lands==uniq_land[1]][xs,0], label=m, color='k', lw=2, ls=ls)
+            ax2.plot(xs, mod.land.organic[:,lands==uniq_land[1]][xs+1,0], label=m, color='k', lw=2, ls=ls)
         else:
             T = 21
             xs = np.arange(burnin, burnin+T)
-            ax.plot(xs, mod.agents.income[:,lands==uniq_land[1]][xs,0], label=m)
-        ax2.plot(xs, mod.land.organic[:,lands==uniq_land[1]][xs+1,0], label=m)
+            col = 'k' if m == 'baseline' else 'r' if m == 'cover_crop' else 'b'
+            ls = '-' if m=='baseline' else '--' if m=='cover_crop' else '-.'
+            ax.plot(xs, mod.agents.income[:,lands==uniq_land[1]][xs,0], label=m, lw=1.5, color=col, ls=ls)
+            ax2.plot(xs, mod.land.organic[:,lands==uniq_land[1]][xs+1,0], label=m, lw=1.5, color=col, ls=ls)
         if mod.shock:
             for yr in mod.climate.shock_years:
                 for axi in axs:
-                    axi.axvline(x=yr, color='k', ls=':')
-                    axi.text(yr, axi.get_ylim()[0]+(axi.get_ylim()[1]-axi.get_ylim()[0])*0.1, 'SHOCK', ha='center', va='bottom', rotation=90)
+                    axi.axvline(x=yr, color='k', lw=1)#, ls=':')
+                    axi.text(yr, axi.get_ylim()[0]+(axi.get_ylim()[1]-axi.get_ylim()[0])*0.1, 'SHOCK', ha='right', va='bottom', rotation=90)
                 
         if m == 'insurance':
             shock_yrs = np.where(mod.climate.rain <= mod.adap_properties['magnitude'])[0]
             for yr in shock_yrs:
                 if yr <= max(xs):
                     for axi in axs:
-                        axi.axvline(x=yr, color='r', lw=1, ls=':')
+                        axi.axvline(x=yr, color='k', lw=1)#, ls=':')
             
     if has_shock:
         T = 8
@@ -77,7 +81,7 @@ def combined_plots(mods):
     for axi in axs:
         axi.grid(False)
             
-    ax.axhline(y=0, color='k', ls=':')
+    ax.axhline(y=0, color='k', lw=1)
     ax2.legend()
     ax2.set_xlabel('Year')
     ax.set_ylabel('Wealth' if has_shock else 'Income')
