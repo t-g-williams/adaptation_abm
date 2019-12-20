@@ -415,7 +415,7 @@ def shock_mag_grid_plot(results, shock_mags, shock_times, T_res, exp_name, basel
                 
                 # formatting
                 if li == 0:
-                    ax.set_ylabel('Assessment period (T_res)')
+                    ax.set_ylabel(r'Assessment period ($T_{assess}$)')
                 ax.set_title('{} ha'.format(land))
                 ax.set_xlabel('Shock magnitude')
                 ax.grid(False)
@@ -462,9 +462,9 @@ def grid_plot(savedir, adap_scenarios, land_area, results, shock_mags, shock_tim
                     ax.set_ylabel('')
                     # ax.set_yticklabels([])
                 else:
-                    ax.set_ylabel('Assessment period (T_res)')
+                    ax.set_ylabel(r'Assessment period ($T_{assess}$)')
                 ax.set_title('{} ha'.format(land))
-                ax.set_xlabel('Time of shock (T_shock)')
+                ax.set_xlabel(r'Time of shock ($T_{shock}$)')
 
             # color bar
             cax = axs.cbar_axes[0]

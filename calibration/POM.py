@@ -30,9 +30,9 @@ def main():
     N_samples = 100000
     ncores = 40
     nreps = 10
-    exp_name = '2019_11_12_3/POM'
+    exp_name = '2019_10_15_4/POM'
     inputs = {
-        'model' : {'n_agents' : 200, 'T' : 100, 'exp_name' : exp_name,
+        'model' : {'n_agents' : 100, 'T' : 100, 'exp_name' : exp_name,
                     'adaptation_option' : 'none'}
     }
     fit_threshold = 0.8
@@ -40,13 +40,13 @@ def main():
     # define the variables for calibration
     calib_vars = pd.DataFrame(
         # id, key1, key2, min, max
-        [[1, 'land', 'rain_cropfail_low_SOM', 0.25, 0.5],
+        [[1, 'land', 'rain_cropfail_low_SOM', 0, 0.5],
         [2, 'land', 'fast_mineralization_rate', 0.05, 0.95],
         [3, 'land', 'wealth_N_conversion', 0.01, 0.05],
         [4, 'land', 'livestock_frac_crops', 0.5, 1],
         [5, 'land', 'residue_CN_conversion', 25, 200],
-        [6, 'agents', 'cash_req_mean', 2000, 20000],
-        [7, 'land', 'loss_max', 0.05, 0.75],
+        [6, 'agents', 'cash_req_mean', 5000, 30000],
+        [7, 'land', 'loss_max', 0.05, 0.95],
         [8, 'agents', 'wealth_init_mean', 5000, 50000]],
         # [9, 'climate', 'rain_mu', 0.2, 0.8],
         # [10, 'land', 'random_effect_sd', 0, 1]],
@@ -55,11 +55,12 @@ def main():
     # generate set of RVs
     rvs = hypercube_sample(N_samples, calib_vars)
 
-    # run the model and calculate fitting metrics
-    fits = run_model(rvs, inputs, calib_vars, ncores, nreps)
+    # # run the model and calculate fitting metrics
+    # fits = run_model(rvs, inputs, calib_vars, ncores, nreps)
     
-    # process the fit data
-    process_fits(fits, rvs, calib_vars, inputs, nreps, exp_name, fit_threshold)
+    # # process the fit data
+    # process_fits(fits, rvs, calib_vars, inputs, nreps, exp_name, fit_threshold)
+    plot_ex_post(exp_name, N_samples, nreps, rvs, calib_vars, fit_threshold)
 
 def fitting_metrics(mod):
     '''
@@ -186,6 +187,43 @@ def run_chunk_sims(ixs, rvs, inp_all, calib_vars):
         fits[ix] = fitting_metrics(m)
 
     return fits
+
+def plot_ex_post(exp_name, N, nreps, rvs, calib_vars, fit_threshold):
+    '''
+    plot the values in the save csv
+    '''
+    # load the fits
+    outdir = '../outputs/{}/{}_{}reps/'.format(exp_name, N, nreps)
+    fit_pd = pd.read_csv(outdir + 'fits.csv', index_col=0)
+
+    # identify the best fitting models
+    max_fit = fit_pd['sum'].iloc[0]
+    max_fit_locs = fit_pd.loc[fit_pd['sum']==max_fit, 'sum'].index
+
+    # plot their parameter values
+    vals_best = rvs[max_fit_locs]
+    vals_sc = (vals_best - np.array(calib_vars['min_val'])[None,:]) / np.array(calib_vars['max_val']-calib_vars['min_val'])[None,:]
+    fig, ax = plt.subplots(figsize=(8,3.5))
+    # plot everything within 10% of this quality
+    ok_fits = fit_pd.loc[fit_pd['sum'] >= fit_threshold*max_fit, 'sum'].index
+    vals_ok = rvs[ok_fits]
+    vals_ok_sc = (vals_ok - np.array(calib_vars['min_val'])[None,:]) / np.array(calib_vars['max_val']-calib_vars['min_val'])[None,:]
+    ax.plot(np.transpose(vals_ok_sc), alpha=0.5, lw=0.5, color='k', label='within 20%')
+    ax.plot(np.transpose(vals_sc), color='b', label='Comparable models')
+    # plot the best one in red
+    ax.plot(np.transpose(vals_sc)[:,0], color='r', label='Selected model')
+
+    ax.set_xticks(np.arange(calib_vars.shape[0]))
+    symbols = [r'$C_{low}^{lower}$', r'$k_{fast}$', r'$WN_{conv}$', r'$c_{residues}$',
+        r'$CN_{residue}$', r'$CR$', r'$l_N^{max}$', r'$W_0$']
+    ax.set_xticklabels(symbols, rotation=90)
+
+    ax.set_ylabel('Value (scaled)')
+    ax.xaxis.grid(True)
+    ax.yaxis.grid(False)
+    # ax.legend(ncol=3)
+    fig.savefig(outdir + 'param_vals_ex_post.png')
+    # code.interact(local=dict(globals(), **locals()))
 
 def process_fits(fits, rvs, calib_vars, inputs, nreps, exp_name, fit_threshold):
     '''

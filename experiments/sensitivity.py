@@ -47,6 +47,28 @@ def main():
             'wealth_N_conversion','livestock_frac_crops','livestock_residue_factor'],
         'climate' : ['rain_mu','rain_sd']
     }
+    sens_vars_clean = {
+        'wealth_init_mean' : 'Initial wealth',
+        'cash_req_mean' : 'Annual cash rqmt.',
+        'livestock_cost' : 'Livestock cost',
+        'organic_N_min_init' : r'$SOM_{init}$',
+        'max_organic_N' : r'$SOM_{max}$',
+        'fast_mineralization_rate' : 'SOM mineralization rate',
+        'slow_mineralization_rate' : 'Added OM mineralization rate',
+        'loss_max' : 'xx',
+        'loss_min' : 'xx',
+        'max_yield' : 'Maximum yield',
+        'rain_crit' : 'xx',
+        'rain_cropfail_low_SOM' : 'xx',
+        'random_effect_sd' : 'xx',
+        'crop_CN_conversion' : 'xx',
+        'residue_CN_conversion' : 'xx',
+        'wealth_N_conversion' : 'xx',
+        'livestock_frac_crops' : 'Livestock % residue rqmt.',
+        'livestock_residue_factor' : 'xx',
+        'rain_mu' : 'Climate mean',
+        'rain_sd' : 'Climate std. dev.'
+    }
 
     for m in range(n_mods):
         logger.info('model {}........'.format(m))
@@ -78,7 +100,8 @@ def main():
         ### 5. plot results
         # plot_rf_results(boot_climate, Ys_climate.mean(), exp_name, m, 'climate')
         # plot_rf_results(boot_dev, Ys_dev.mean(), exp_name, m, 'development')
-        plot_rf_results(boot_climate, boot_dev, [Ys_climate.mean(), Ys_dev.mean()], ['climate resilience', 'development resilience'], exp_name, m, inp_base)
+        plot_rf_results(boot_climate, boot_dev, [Ys_climate.mean(), Ys_dev.mean()], ['shock resilience', 'development resilience'], 
+            exp_name, m, inp_base, sens_vars_clean)
 
 def hypercube_sample(N, sens_vars, inp_base, perturb_perc):
     '''
@@ -241,7 +264,7 @@ def random_forest(y, X, varz, keys):
 
     return var_imp, pdp_data, fit
 
-def plot_rf_results(d_climate, d_dev, mean_vals, res_types, exp_name, mod_number, inp_base):
+def plot_rf_results(d_climate, d_dev, mean_vals, res_types, exp_name, mod_number, inp_base, sens_vars_clean):
     plot_dir = '../outputs/{}/model_{}/plots/sensitivity/'.format(exp_name, mod_number)
     if not os.path.isdir(plot_dir):
         os.makedirs(plot_dir)
@@ -285,7 +308,7 @@ def plot_rf_results(d_climate, d_dev, mean_vals, res_types, exp_name, mod_number
     ax.grid(False, axis='x')
     # fill with colors
     # colors = ['pink', 'lightblue', 'lightgreen']
-    colors = ['red','blue']
+    colors = ['0.5','1']
     for bi, bp in enumerate(bps):
         for patch in bp['boxes']:
             patch.set_facecolor(colors[bi])
@@ -318,7 +341,8 @@ def plot_rf_results(d_climate, d_dev, mean_vals, res_types, exp_name, mod_number
     axs_flat = list(axs.flatten())
     del axs_flat[9]
 
-    clrs = ['red','blue']
+    clrs = ['k','k']
+    lss = ['-','--']
     alpha=0.3
 
     ## land
@@ -331,8 +355,8 @@ def plot_rf_results(d_climate, d_dev, mean_vals, res_types, exp_name, mod_number
             xs = np.array(pdp_data[var]['x']).mean(axis=0) # note: this might fail if low Nreps since the PDP has < 100 values
             ys = np.percentile(np.array(pdp_data[var]['y']), q=[2.5,50,97.5], axis=0)
             ax.fill_between(xs, ys[0]+mean_vals[o], ys[2]+mean_vals[o], color=clrs[o], alpha=alpha)
-            ax.plot(xs, ys[1]+mean_vals[o], color=clrs[o], label=res_types[o])
-            ax.set_xlabel(var)
+            ax.plot(xs, ys[1]+mean_vals[o], color=clrs[o], label=res_types[o], ls=lss[o])
+            ax.set_xlabel(sens_vars_clean[var])
             # plot the default value
             ax.text(0.5,0,'x',transform=ax.transAxes, va='center', ha='center')
 
@@ -345,8 +369,8 @@ def plot_rf_results(d_climate, d_dev, mean_vals, res_types, exp_name, mod_number
             xs = np.array(pdp_data[var]['x']).mean(axis=0)
             ys = np.percentile(np.array(pdp_data[var]['y']), q=[2.5,50,97.5], axis=0)
             ax.fill_between(xs, ys[0]+mean_vals[o], ys[2]+mean_vals[o], color=clrs[o], alpha=alpha)
-            ax.plot(xs, ys[1]+mean_vals[o], color=clrs[o], label=res_types[o])
-            ax.set_xlabel(var)
+            ax.plot(xs, ys[1]+mean_vals[o], color=clrs[o], label=res_types[o], ls=lss[o])
+            ax.set_xlabel(sens_vars_clean[var])
             # plot the default value
             ax.text(0.5,0,'x',transform=ax.transAxes, va='center', ha='center')
 
@@ -359,8 +383,8 @@ def plot_rf_results(d_climate, d_dev, mean_vals, res_types, exp_name, mod_number
             xs = np.array(pdp_data[var]['x']).mean(axis=0)
             ys = np.percentile(np.array(pdp_data[var]['y']), q=[2.5,50,97.5], axis=0)
             ax.fill_between(xs, ys[0]+mean_vals[o], ys[2]+mean_vals[o], color=clrs[o], alpha=alpha)
-            ax.plot(xs, ys[1]+mean_vals[o], color=clrs[o])
-            ax.set_xlabel(var)
+            ax.plot(xs, ys[1]+mean_vals[o], color=clrs[o], ls=lss[o])
+            ax.set_xlabel(sens_vars_clean[var])
             # plot the default value
             ax.text(0.5,0,'x',transform=ax.transAxes, va='center', ha='center')
 
