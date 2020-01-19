@@ -24,7 +24,7 @@ import logging
 import logging.config
 
 def main():
-    exp_name_base = '2019_10_15_4'#'2019_11_12_2'
+    exp_name_base = '2019_10_15_4'#2020_1_19_afford'2019_11_12_2'
     solution_numbers = [0]#,1,2]
     ncores = 40
     load = True
@@ -43,7 +43,7 @@ def main():
         # manually specify some variables (common to all scenarios)
         inp_base['model']['n_agents'] = 200
         inp_base['model']['exp_name'] = exp_name
-        inp_base['agents']['adap_type'] = 'always'
+        inp_base['agents']['adap_type'] = 'always'#'affording'
         inp_base['model']['shock'] = False
         inp_base['agents']['land_area_multiplier'] = 1
 
@@ -58,10 +58,10 @@ def main():
         # nreps_req = convergence.convergence_analysis(exp_name, inp_base, adap_scenarios, ncores)
 
         # ## A: resilience as function of T_res, T_shock
-        assess_resilience(exp_name, inp_base, adap_scenarios, load, ncores)
+        # assess_resilience(exp_name, inp_base, adap_scenarios, load, ncores)
 
         # ## B: vary shock magnitude
-        vary_magnitude(exp_name, inp_base, adap_scenarios, load, ncores)
+        # vary_magnitude(exp_name, inp_base, adap_scenarios, load, ncores)
 
         ## C: effect of policy design
         policy_design(exp_name, inp_base, adap_scenarios, load, ncores)
@@ -76,7 +76,7 @@ def policy_design(exp_name, inp_base, adap_scenarios, load, ncores):
     shock_mags = [0.2] # code only designed to have one value in this list
     shock_times = [10] # np.arange(2,31,step=2) # measured after the burn-in period
     T_res = [1,3,5,7,9]# np.arange(1,16) # how many years to calculate effects over
-    T_dev = 50 # time period for development resilience simulations
+    T_dev = 20 # time period for development resilience simulations
     outcomes = ['wealth','income']
     inp_base['model']['T'] = shock_times[-1] + T_res[-1] + inp_base['adaptation']['burnin_period'] + 1
     ## parameter settings
@@ -97,7 +97,7 @@ def policy_design(exp_name, inp_base, adap_scenarios, load, ncores):
 
     #### cover crops ####
     logger.info('LEGUME COVER ......')
-    all_cc_outname = '../outputs/'+exp_name+'/policy_design/cover_crop/{}/combined_{}res.pkl'.format(shock_mags[0], res)
+    all_cc_outname = '../outputs/'+exp_name+'/policy_design/cover_crop/{}/combined_{}res_dev{}.pkl'.format(shock_mags[0], res, T_dev)
     if os.path.isfile(all_cc_outname):
         tmp = pickle.load(open(all_cc_outname, 'rb'))
         res_cc = tmp['res_cc']
@@ -143,7 +143,7 @@ def policy_design(exp_name, inp_base, adap_scenarios, load, ncores):
 
     #### insurance ####
     logger.info('INSURANCE ......')
-    all_ins_outname = '../outputs/'+exp_name+'/policy_design/insurance/{}/combined_{}res.pkl'.format(shock_mags[0], res)
+    all_ins_outname = '../outputs/'+exp_name+'/policy_design/insurance/{}/combined_{}res_dev{}.pkl'.format(shock_mags[0], res, T_dev)
     if os.path.isfile(all_ins_outname):
         tmp = pickle.load(open(all_ins_outname, 'rb'))
         res_ins = tmp['res_ins']
@@ -250,7 +250,7 @@ def run_dev_res_sims(exp_name, nreps, inp_base, adap_scenarios, ncores, T_dev, l
     rep_chunks = POM.chunkIt(np.arange(nreps), ncores)
     results = {}
 
-    savename = '{}/{}reps_dev.csv'.format(outdir, nreps)
+    savename = '{}/{}reps_dev_{}yrs.csv'.format(outdir, nreps, T_dev)
     # load if results already saved
     if load and os.path.exists(savename):
         results = pickle.load(open(savename, 'rb'))

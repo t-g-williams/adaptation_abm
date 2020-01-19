@@ -49,7 +49,7 @@ def main():
     }
     sens_vars_clean = {
         'wealth_init_mean' : 'Initial wealth',
-        'cash_req_mean' : 'Annual cash rqmt.',
+        'cash_req_mean' : 'Annual living costs',
         'livestock_cost' : 'Livestock cost',
         'organic_N_min_init' : r'$SOM_{init}$',
         'max_organic_N' : r'$SOM_{max}$',
@@ -86,8 +86,8 @@ def main():
 
         ### 3. run the policy analysis
         T_shock = [10] # measured after the burn-in
-        T_res = [5]
-        T_dev = 50 # for development resilience
+        T_res = [3]
+        T_dev = 20 # for development resilience
         shock_mag = [0.1]
         inp_base['model']['T'] = T_shock[0] + T_res[0] + inp_base['adaptation']['burnin_period']
         Ys_dev = calculate_QoI(exp_name, params, keys, names, inp_base, N_reps, ncores, T_shock, T_res, T_dev, shock_mag, m, load, 'development')

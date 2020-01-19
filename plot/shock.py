@@ -27,16 +27,18 @@ def resilience(results, shock_mags, shock_times, T_res, exp_name, baseline_resil
     adap_scenarios = list(results.keys())
     land_area = results[adap_scenarios[0]].columns   
     grid_plot(savedir, adap_scenarios, land_area, results, shock_mags, shock_times, T_res, exp_name, baseline_resilience, outcomes)
-    line_plots(savedir, adap_scenarios, land_area, results, shock_mags, shock_times, T_res, exp_name, baseline_resilience, outcomes)
+    # line_plots(savedir, adap_scenarios, land_area, results, shock_mags, shock_times, T_res, exp_name, baseline_resilience, outcomes)
 
 def policy_design_both_res_types(dev_cc, dev_ins, res_cc, res_ins, shock_mags, shock_times, T_res, T_dev, exp_name):
     '''
     plot a selected plot of both of the resilience types together
     '''
-    savedir = '../outputs/{}/plots/policy_design/{}/'.format(exp_name, shock_mags[0])
-    T_res = 5
+    T_res = 3
     T_shock = shock_times[0]
     mag_str = str(shock_mags[0]).replace('.','_')
+    savedir = '../outputs/{}/plots/policy_design/{}/'.format(exp_name, shock_mags[0])
+    if not os.path.isdir(savedir):
+        os.makedirs(savedir)
     land_area = 1.5
     outcome = 'income'
 
@@ -88,7 +90,7 @@ def policy_design_both_res_types(dev_cc, dev_ins, res_cc, res_ins, shock_mags, s
     # axs[0,1].set_title('Climate resilience: cover crop', fontsize=fs)
     # axs[1,1].set_title('Climate resilience: insurance', fontsize=fs)
     axs[0,0].set_ylabel('Legume cover crop\nN fixation (kg N/ha)')
-    axs[1,0].set_ylabel('Insured climate %ile')
+    axs[1,0].set_ylabel('Insured climate percentile')
     axs[1,0].set_xlabel('Cost factor')
     axs[1,1].set_xlabel('Cost factor')
 
@@ -114,7 +116,7 @@ def policy_design_both_res_types(dev_cc, dev_ins, res_cc, res_ins, shock_mags, s
         ax.grid(False)
         ax.text(0.02,0.98,labels[a], fontsize=20, transform=ax.transAxes, ha='left', va='top')
     fig.savefig(savedir + 'policy_both_resilience_{}ha.png'.format(str(land_area).replace('.','_')), bbox_inches='tight')
-    sys.exit()
+    # sys.exit()
     # code.interact(local=dict(globals(), **locals()))
 
 def policy_design_dev_res(d_cc, d_ins, shock_mags, exp_name):
@@ -157,7 +159,7 @@ def policy_design_dev_res(d_cc, d_ins, shock_mags, exp_name):
                 axx.set_yticklabels([])
         else:
             ax.set_ylabel('Nitrogen fixation (kg N/ha)')
-            ax2.set_ylabel('Insured climate %ile')
+            ax2.set_ylabel('Insured climate percentile')
         for axx in [ax, ax2]:
             axx.set_xlabel('Cost factor')
         for axx in [ax, ax2]:
@@ -229,7 +231,7 @@ def policy_design_single(d_cc, d_ins, shock_mags, shock_times, T_res, exp_name):
                     axx.set_yticklabels([])
             else:
                 ax.set_ylabel('Nitrogen fixation (kg N/ha)')
-                ax2.set_ylabel('Insured climate %ile')
+                ax2.set_ylabel('Insured climate percentile')
             for axx in [ax, ax2]:
                 axx.set_xlabel('Cost factor')
             for axx in [ax, ax2]:
@@ -262,7 +264,7 @@ def policy_design_all(d_cc, d_ins, shock_mags, shock_times, T_res, exp_name):
     
     policies = ['insurance','cover_crop']
     labels = ['fraction insured','N fixation']
-    defaults = [0.1, 80]
+    defaults = [10, 80]
     T_res_plot = [1,3,5,7,9]
     T_shock_plot = [2,6,10,16]
 
@@ -288,6 +290,7 @@ def policy_design_all(d_cc, d_ins, shock_mags, shock_times, T_res, exp_name):
                         d_plot = np.array(d_subs[land].unstack())
                         xs = d[outcome].index.levels[4]
                         ys = d[outcome].index.levels[3]
+                        ys *= 100 if policies[p] == 'insurance' else 1
                         hm = ax.imshow(d_plot, cmap='bwr', vmin=0, vmax=1, origin='lower', extent=[min(xs), max(xs), min(ys), max(ys)],
                                     aspect='auto')
                         # add point for default
@@ -332,7 +335,7 @@ def policy_design_all_combined(d_cc, d_ins, shock_mags, shock_times, T_res, exp_
     names = ['A: Insurance', 'B: Legume cover']
     ds = [d_ins, d_cc]
     ylabels = ['Insured climate %ile','N fixation (kg N/ha)']
-    defaults = [0.1, 80]
+    defaults = [10, 80]
     T_res_plot = [1,3,5,7,9]
     t_shock = 10
 
@@ -356,6 +359,7 @@ def policy_design_all_combined(d_cc, d_ins, shock_mags, shock_times, T_res, exp_
                 d_plot = np.mean(np.array(d_plot), axis=0)
                 xs = ds[i][outcome].index.levels[4]
                 ys = ds[i][outcome].index.levels[3]
+                ys *= 100 if policies[i] == 'insurance' else 1
                 hm = ax.imshow(d_plot, cmap='bwr', vmin=0, vmax=1, origin='lower', extent=[min(xs), max(xs), min(ys), max(ys)],
                             aspect='auto')
                 # add point for default
