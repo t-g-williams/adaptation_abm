@@ -64,7 +64,7 @@ def main():
         'crop_CN_conversion' : 'xx',
         'residue_CN_conversion' : 'xx',
         'wealth_N_conversion' : 'xx',
-        'livestock_frac_crops' : 'Livestock % residue rqmt.',
+        'livestock_frac_crops' : 'Livestock %\nresidue requirement',
         'livestock_residue_factor' : 'xx',
         'rain_mu' : 'Climate mean',
         'rain_sd' : 'Climate std. dev.'
@@ -86,8 +86,8 @@ def main():
 
         ### 3. run the policy analysis
         T_shock = [10] # measured after the burn-in
-        T_res = [3]
-        T_dev = 20 # for development resilience
+        T_res = [5]
+        T_dev = 50 # for development resilience
         shock_mag = [0.1]
         inp_base['model']['T'] = T_shock[0] + T_res[0] + inp_base['adaptation']['burnin_period']
         Ys_dev = calculate_QoI(exp_name, params, keys, names, inp_base, N_reps, ncores, T_shock, T_res, T_dev, shock_mag, m, load, 'development')
