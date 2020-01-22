@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import code
 import brewer2mpl
 import os
+import matplotlib.transforms as transforms
 from . import plot_style
 plot_type = 'paper'#'presentation_black_bg'
 styles = plot_style.create() # get the plotting styles
@@ -29,9 +30,10 @@ def main(mods, save=True):
 def combined_plots(mods):
     has_shock = True if 'shock' in mods.keys() else False
     # plot wealth for an agent of type 2 only
-    fig, axs = plt.subplots(2,1,figsize=(7,6))
+    fig, axs = plt.subplots(3,1,figsize=(7,8), gridspec_kw={'height_ratios':[1,1,0.3]})
     ax = axs[0]
     ax2 = axs[1]
+    ax3 = axs[2]
     for m, mod in mods.items():
         lands = mod.agents.land_area
         uniq_land = np.unique(lands)
@@ -41,8 +43,10 @@ def combined_plots(mods):
             yr = mods['shock'].climate.shock_years[0]
             xs = np.arange(yr-2,yr+T)
             ls = ':' if m == 'shock' else '-'
-            ax.plot(xs, mod.agents.wealth[:,lands==uniq_land[1]][xs,0], label=m, color='k', lw=2, ls=ls)
-            ax2.plot(xs, mod.land.organic[:,lands==uniq_land[1]][xs+1,0], label=m, color='k', lw=2, ls=ls)
+            labl = 'no shock' if m == 'baseline' else m
+            ax.plot(xs, mod.agents.wealth[:,lands==uniq_land[1]][xs,0], label=labl, color='k', lw=2, ls=ls)
+            ax2.plot(xs, mod.land.organic[:,lands==uniq_land[1]][xs+1,0], label=labl, color='k', lw=2, ls=ls)
+            ax3.plot(xs, mod.climate.rain[xs], label=labl, color='k', lw=2, ls=ls)
         else:
             T = 21
             xs = np.arange(burnin, burnin+T)
@@ -50,18 +54,35 @@ def combined_plots(mods):
             ls = '-' if m=='baseline' else '--' if m=='cover_crop' else '-.'
             ax.plot(xs, mod.agents.income[:,lands==uniq_land[1]][xs,0], label=m, lw=1.5, color=col, ls=ls)
             ax2.plot(xs, mod.land.organic[:,lands==uniq_land[1]][xs+1,0], label=m, lw=1.5, color=col, ls=ls)
+            ax3.plot(xs, mod.climate.rain[xs], label=m, color=col, lw=1.5, ls=ls)
         if mod.shock:
             for yr in mod.climate.shock_years:
-                for axi in axs:
-                    axi.axvline(x=yr, color='k', lw=1)#, ls=':')
-                    axi.text(yr, axi.get_ylim()[0]+(axi.get_ylim()[1]-axi.get_ylim()[0])*0.1, 'SHOCK', ha='right', va='bottom', rotation=90)
+                for a, axi in enumerate(axs):
+                    axi.axvline(x=yr, color='k', lw=1, ls=':')
+                    if a==1:
+                        trans = transforms.blended_transform_factory(
+                                axi.transData, axi.transAxes)
+                        axi.text(yr, 0.05, 'SHOCK', ha='right', va='bottom', rotation=90, transform=trans)
                 
         if m == 'insurance':
+            # add the shock years
             shock_yrs = np.where(mod.climate.rain <= mod.adap_properties['magnitude'])[0]
             for yr in shock_yrs:
                 if yr <= max(xs):
-                    for axi in axs:
-                        axi.axvline(x=yr, color='k', lw=1)#, ls=':')
+                    for a, axi in enumerate(axs):
+                        axi.axvline(x=yr, color='k', lw=1, ls=':')
+                        if a==1:
+                            trans = transforms.blended_transform_factory(
+                                    axi.transData, axi.transAxes)
+                            axi.text(yr, 0.05, 'PAYOUT', ha='right', va='bottom', rotation=90, transform=trans)
+
+            # add the climate index
+            idx = mod.adap_properties['magnitude']
+            ax3.axhline(y=idx, color='k', lw=1, ls=':')
+            trans = transforms.blended_transform_factory(
+                                    ax3.transAxes, axi.transData)
+            ax3.text(0.02, idx, 'THRESHOLD', ha='left', va='bottom', transform=trans)
+
             
     if has_shock:
         T = 8
@@ -69,6 +90,8 @@ def combined_plots(mods):
         #     axi.set_xlim([yr-3, yr+T])
         #     axi.set_xticks(np.arange(yr-2,yr+T+1,2))
         ax.set_xticklabels([])
+        ax2.set_xticklabels([])
+        ax.set_ylim([0,ax.get_ylim()[1]])
         # ax2.set_xticklabels(np.arange(yr-2,yr+T+1,2))
     else:
         T = 21
@@ -76,16 +99,20 @@ def combined_plots(mods):
             axi.set_xlim([burnin, burnin+T])
             axi.set_xticks(np.arange(burnin+1, burnin+T+1,2))
         ax.set_xticklabels([])
-        ax2.set_xticklabels(np.arange(0,T,2))
+        ax2.set_xticklabels([])
+        ax3.set_xticklabels(np.arange(0,T,2))
+        ax.axhline(y=0, color='k', lw=1)
     
     for axi in axs:
         axi.grid(False)
             
-    ax.axhline(y=0, color='k', lw=1)
-    ax2.legend()
-    ax2.set_xlabel('Year')
-    ax.set_ylabel('Wealth' if has_shock else 'Income')
-    ax2.set_ylabel('SOM')
+    ax2.set_ylim([0,6000])
+    ax.legend()
+    ax.set_ylabel('Wealth (birr)' if has_shock else 'Income (birr)')
+    ax2.set_ylabel('SOM (kg N/ha)')
+    ax3.set_ylabel('Climate\ncondition')
+    ax3.set_xlabel('Year')
+    ax3.set_ylim([0,1])
     text = 'B: Effect of shock' if has_shock else 'C: Resilience strategies'
     # ax.text(-0.2,1.1, text, transform=ax.transAxes, fontsize=22)
     ax.set_title(text, fontsize=22)

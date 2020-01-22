@@ -22,30 +22,31 @@ def main(mod, save=True):
         savedir = False
 
     qs = [1,5,50,95,99]
-    inputs(mod, savedir)
+    # inputs(mod, savedir)
 
     # separate plots
     separate(mod)
 
     # plotting by agent type
-    type_combined(mod, save)
-    type_wealth(mod, savedir)
-    type_coping(mod, savedir)
-    type_nutrients(mod, savedir)
-    type_yields(mod, savedir)
+    # type_combined(mod, save)
+    # type_wealth(mod, savedir)
+    # type_coping(mod, savedir)
+    # type_nutrients(mod, savedir)
+    # type_yields(mod, savedir)
 
     # band and original plots
-    # soil(mod, qs, savedir)
-    # yields(mod, qs, savedir)
-    # coping(mod, qs, savedir)
-    adaptation(mod, savedir)
-    # plt.close('all')    
+    # adaptation(mod, savedir)
+
+    ## soil(mod, qs, savedir)
+    ## yields(mod, qs, savedir)
+    ## coping(mod, qs, savedir)
+    ## plt.close('all')    
 
 def separate(mod):
     '''
     plot each agent type separately
     '''
-    fig, axs = plt.subplots(2,3,figsize=(15,6), sharex=True, sharey='row')
+    fig, axs = plt.subplots(3,3,figsize=(14,8), sharex=True, sharey='row', gridspec_kw={'height_ratios':[1,1,0.3]})
     ax_flat = axs.flatten()
 
     colors = ['k','b','r']
@@ -60,21 +61,27 @@ def separate(mod):
             for i, ixx in enumerate(ix_plot):
                 axs[0,ui].plot(mod.agents.wealth[:,ixx], lw=1.5, color='k', alpha=alphas[i])
                 axs[1,ui].plot(mod.land.organic[:,ixx], lw=1.5, color='k', alpha=alphas[i])
+                axs[2,ui].plot(mod.climate.rain[:], lw=1.5, color='k', alpha=alphas[i])
         else:
             axs[0,ui].plot(mod.agents.wealth[:,ixs], lw=1.5, color='k')
             axs[1,ui].plot(mod.land.organic[:,ixs], lw=1.5, color='k')
+            axs[2,ui].plot(mod.climate.rain[:], lw=1.5, color='k')
         axs[0,ui].axhline(y=0, color='k', lw=1)#, ls=':')
 
     for a, ax in enumerate(axs[0]):
         ax.set_title(titles[a])
     for ax in axs[1]:
+        ax.set_ylim([0,6000])
+    for ax in axs[2]:
         ax.set_xlabel('Year')
+        ax.set_ylim([0,1])
     for ax in ax_flat:
         ax.grid(False)
         # ax.legend(loc='upper right')
 
-    axs[0,0].set_ylabel('Wealth')
-    axs[1,0].set_ylabel('SOM')
+    axs[0,0].set_ylabel('Wealth (birr)')
+    axs[1,0].set_ylabel('SOM (kg N/ha)')
+    axs[2,0].set_ylabel('Climate\ncondition')
     axs[0,1].text(0.5,1.2, 'A: Baseline', 
                   transform=axs[0,1].transAxes, fontsize=23, ha='center')
 
