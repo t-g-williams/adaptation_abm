@@ -28,7 +28,7 @@ import logging.config
 
 
 def main():
-    exp_name = '2019_10_15_4'
+    exp_name = '2020_1_27_savings' # '2019_10_15_4'
     N_vars = 10000 # number of random variable sets to generate
     N_reps = 100 # number of times to repeat model for each variable set
     ncores = 40
@@ -39,16 +39,17 @@ def main():
     load = True
     nboot_rf = 100
     sens_vars = {
-        'agents' : ['wealth_init_mean','cash_req_mean','livestock_cost'],#,'land_area_multiplier'],
+        'agents' : ['savings_init_mean','cash_req_mean'],#,'livestock_cost'],#,'land_area_multiplier'],
         'land' : ['organic_N_min_init','max_organic_N','fast_mineralization_rate',
             'slow_mineralization_rate','loss_max','loss_min','max_yield',
             'rain_crit','rain_cropfail_low_SOM','random_effect_sd',
-            'crop_CN_conversion','residue_CN_conversion',
-            'wealth_N_conversion','livestock_frac_crops','livestock_residue_factor'],
+            'crop_CN_conversion','residue_CN_conversion'],#,
+            # 'wealth_N_conversion','livestock_frac_crops','livestock_residue_factor'],
         'climate' : ['rain_mu','rain_sd']
     }
     sens_vars_clean = {
         'wealth_init_mean' : 'Initial wealth',
+        'savings_init_mean' : 'Initial wealth',
         'cash_req_mean' : 'Annual living costs',
         'livestock_cost' : 'Livestock cost',
         'organic_N_min_init' : r'$SOM_{init}$',
@@ -80,6 +81,7 @@ def main():
         inp_base['model']['exp_name'] = exp_name
         inp_base['agents']['adap_type'] = 'always'
         inp_base['agents']['land_area_multiplier'] = 1 # not in POM experiment
+        inp_base['rangeland']['R0_frac'] = 0.5
 
         ### 2. sample: generate random perturbed variable sets
         params, keys, names = hypercube_sample(N_vars, sens_vars, inp_base, perturb_perc)
@@ -362,17 +364,20 @@ def plot_rf_results(d_climate, d_dev, mean_vals, res_types, exp_name, mod_number
 
     # agents
     for j in range(3):
-        var = var_imp_df[var_imp_df.key=='agents'].iloc[j]['variable']
-        for o, obj in enumerate([d_climate,d_dev]):
-            ax = axs[0,j]
-            pdp_data = obj['pdp_datas']
-            xs = np.array(pdp_data[var]['x']).mean(axis=0)
-            ys = np.percentile(np.array(pdp_data[var]['y']), q=[2.5,50,97.5], axis=0)
-            ax.fill_between(xs, ys[0]+mean_vals[o], ys[2]+mean_vals[o], color=clrs[o], alpha=alpha)
-            ax.plot(xs, ys[1]+mean_vals[o], color=clrs[o], label=res_types[o], ls=lss[o])
-            ax.set_xlabel(sens_vars_clean[var])
-            # plot the default value
-            ax.text(0.5,0,'x',transform=ax.transAxes, va='center', ha='center')
+        try:
+            var = var_imp_df[var_imp_df.key=='agents'].iloc[j]['variable']
+            for o, obj in enumerate([d_climate,d_dev]):
+                ax = axs[0,j]
+                pdp_data = obj['pdp_datas']
+                xs = np.array(pdp_data[var]['x']).mean(axis=0)
+                ys = np.percentile(np.array(pdp_data[var]['y']), q=[2.5,50,97.5], axis=0)
+                ax.fill_between(xs, ys[0]+mean_vals[o], ys[2]+mean_vals[o], color=clrs[o], alpha=alpha)
+                ax.plot(xs, ys[1]+mean_vals[o], color=clrs[o], label=res_types[o], ls=lss[o])
+                ax.set_xlabel(sens_vars_clean[var])
+                # plot the default value
+                ax.text(0.5,0,'x',transform=ax.transAxes, va='center', ha='center')
+        except:
+            pass
 
     # climate
     for k in range(2):

@@ -1,6 +1,7 @@
 import numpy as np
 import scipy.stats as stat
 import code
+import copy
 import sys
 
 class Agents():
@@ -19,16 +20,22 @@ class Agents():
         self.land_area = self.init_farm_size()      
         self.crop_production = np.full([self.T, self.N], -9999)
 
-        # wealth (cash holdings)
+        # savings and livestock
         # this represents the START of the year
-        self.wealth = np.full([self.T+1, self.N], -9999)
-        self.wealth[0] = np.random.normal(self.wealth_init_mean, self.wealth_init_sd, self.N)
-        self.wealth[0][self.wealth[0]<0] = 0 # fix any -ve values
+        self.savings = np.full([self.T+1, self.N], -9999)
+        self.savings[0] = np.random.normal(self.savings_init_mean, self.savings_init_sd, self.N)
+        self.savings[0][self.savings[0]<0] = 0 # fix any -ve values
+        self.livestock = np.full([self.T+1, self.N], -9999)
+        self.livestock[0] = self.livestock_init_mean # constant amount for each agent (same as savings)
+        self.wealth = np.full([self.T+1, self.N], -9999) # sum of livestock + savings
+        self.wealth[0] = self.savings[0] + self.livestock[0]
         # money
         self.income = np.full([self.T, self.N], -9999)
         self.cash_req = np.random.normal(self.cash_req_mean, self.cash_req_sd, self.N)
         # coping measures
-        self.coping_rqd = np.full([self.T, self.N], False)
+        self.neg_income = np.full([self.T, self.N], False)
+        self.destocking_rqd = np.full([self.T, self.N], False)
+        self.stress_ls_sell_rqd = np.full([self.T, self.N], False)
         self.cant_cope = np.full([self.T, self.N], False)
         # adaptation option decisions
         self.adapt = np.full([self.T+1, self.N], False)
@@ -65,8 +72,11 @@ class Agents():
         elif adap_properties['type'] == 'cover_crop':
             adap_costs[self.adapt[t]] = adap_properties['cost'] * self.land_area[self.adapt[t]]
 
-        # income = crop_sales - cash_req - adap_costs
-        self.income[t] = self.crop_sell_price*self.crop_production[t] - self.cash_req - adap_costs
+        ## livestock milk production
+        ls_milk_money = self.livestock[self.t[0]] * self.all_inputs['livestock']['income']
+
+        # income = crop_sales - cash_req - adap_costs + livestock_milk
+        self.income[t] = self.crop_sell_price*self.crop_production[t] - self.cash_req - adap_costs + ls_milk_money
         
         if self.insurance_payout_year:
             # assume that agents first use their payout to neutralize their income
@@ -74,46 +84,63 @@ class Agents():
             # which will increase their maximum wealth capacity
             self.remaining_payout = np.minimum(np.maximum(payouts+self.income[t], 0), payouts) # outer "minimum" is in case their income is +ve --> they can only use the payout for fodder
             self.income[t] += payouts.astype(int)
-            # code.interact(local=dict(globals(), **locals()))
 
-    def coping_measures(self, land):
+    def wealth_and_coping_measures(self, land):
         '''
         calculate end-of-year income balance
         and simulate coping measures
         '''
+        ## 0. calculate livestock limits
+        ls_inp = self.all_inputs['livestock']
         t = self.t[0]
-        # assume those with -ve income are required to engage in coping measure
-        self.coping_rqd[t, self.income[t] < 0] = True
-        # add (or subtract) agent income to their wealth
-        # this proxies the effect of buying (+ve income) or selling (-ve income) livestock
-        self.wealth[t+1] = self.wealth[t] + self.income[t]
-        # record agents with -ve wealth (not able to cope)
-        self.cant_cope[t, self.wealth[t+1] < 0] = True
+        ls_obj = copy.deepcopy(self.livestock[t])
         # wealth (/livestock) constraints: can't carry more than your crop residues allows
         # if 80% of livestock must be grazed on fodder, then the maximum wealth you can carry
         # is 20% of your current livestock herds + whatever you can sustain from your crop residues
         # i.e. it's assumed that some fraction of your livestock are fully independent of crop residue
         # rather than all livestock requiring this fraction of feed from fodder
-        buffer_yrs = 1
-        # crop_prod = np.mean(self.crop_production[max(0,t-buffer_yrs):t], axis=0)
-        # print(crop_prod)
-        max_ls_fodder = self.crop_production[t] * land.residue_multiplier * land.residue_loss_factor / \
-                (land.livestock_residue_factor) # TLU = kgCrop * kgDM/kgCrop / kgDM/TLU
-        max_wealth = max_ls_fodder*self.livestock_cost + (1-land.livestock_frac_crops) * self.wealth[t]
-        # code.interact(local=dict(globals(), **locals()))
-
+        max_ls_residue = self.crop_production[t] * land.residue_multiplier * land.residue_loss_factor / \
+                (ls_inp['consumption']) # TLU = kgCrop * kgDM/kgCrop / kgDM/TLU
+        max_ls_fodder = max_ls_residue + (1-ls_inp['frac_crops']) * ls_obj
         if self.insurance_payout_year:
-            # assume that any leftover income from the insurance payout is converted to livestock/wealth
-            max_wealth += self.remaining_payout
+            # assume that any leftover income from the insurance payout can be put towards livestock
+            max_ls_fodder += (self.remaining_payout / ls_inp['cost'])        
+
+
+        ## 1. ADD INCOME TO SAVINGS
+        # this proxies using savings to counteract -ve income
+        self.savings[t+1] = self.savings[t] + self.income[t]
+        self.neg_income[t, self.income[t] < 0] = True # record those with -ve income
+
+        ## 2. STRESS DESTOCKING
+        sell_rqmt = np.maximum(np.ceil(-self.savings[t+1]/ls_inp['cost']), 0).astype(int) # calculate amt rqd
+        sell_amt = np.minimum(ls_obj, sell_rqmt) # restricted by available livestock
+        ls_obj -= sell_amt # reduce the herdsize
+        self.savings[t+1] += sell_amt * ls_inp['cost'] # add to income
+        self.stress_ls_sell_rqd[t, sell_rqmt>0] = True # record
+
+        ## 3. CONSUMPTION SMOOTHING
+        # if agents are still in negative wealth we assume they can smooth their consumption
+        self.savings[t+1][self.savings[t+1]<0] = 0
+        self.cant_cope[t, self.savings[t+1]==0] = True # record
+
+        ## 4. LIVESTOCK PURCHASE / DESTOCKING
+        max_purchase = np.floor(self.savings[t+1] / ls_inp['cost'])
+        ls_change = np.floor(np.minimum(max_purchase, max_ls_fodder - ls_obj)).astype(int) # critical value (money or fodder availability)
+        # ^^ if this is +ve this represents purchase. 
+        # ^^ if it's -ve this represents rqd destocking due to fodder availability
+        ls_obj += ls_change # attribute to livestock
+        self.savings[t+1] -= ls_change * ls_inp['cost'] # attribute to savings
+        self.destocking_rqd[t,ls_change<0] = True # record
         
-        too_much = self.wealth[t+1] > max_wealth
-        # too_much[too_much==True] = False # TEMPORARY!!!
-        self.wealth[t+1, too_much] = max_wealth[too_much]
-        self.wealth[t+1, self.wealth[t+1] < self.max_neg_wealth] = self.max_neg_wealth
-        # if t == 20:
-        #     code.interact(local=dict(globals(), **locals()))
-        ## TEMPORARY
-        # self.wealth[t+1, self.wealth[t+1]<0] = 0
+        # BINARY SWITCHES
+        if not self.savings_acct:
+            self.savings[t+1] = 0 # agents cannot carry over money to the next year
+
+        # save for next time step
+        self.livestock[t+1] = ls_obj # save
+        self.wealth[t+1] = ls_obj + self.savings[t+1]
+        # code.interact(local=dict(globals(), **locals()))
 
     def adaptation(self, land, adap_properties):
         '''
@@ -126,14 +153,14 @@ class Agents():
             if self.adap_type == 'coping':
                 # agents engage in the adaptation option next period
                 # if they had to cope this period
-                self.adapt[t+1, self.coping_rqd[t]] = True
+                self.adapt[t+1, self.neg_income[t]] = True
             elif self.adap_type == 'switching':
                 # agents SWITCH adaptation types if they had to cope in this period
-                self.adapt[t+1, ~self.coping_rqd[t]] = self.adapt[t, ~self.coping_rqd[t]]
-                self.adapt[t+1, self.coping_rqd[t]] = ~self.adapt[t, self.coping_rqd[t]]
+                self.adapt[t+1, ~self.neg_income[t]] = self.adapt[t, ~self.neg_income[t]]
+                self.adapt[t+1, self.neg_income[t]] = ~self.adapt[t, self.neg_income[t]]
             elif self.adap_type == 'affording':
                 # agents adapt if they can afford it
-                afford = self.wealth[t+1] >= (adap_properties['cost'] * self.land_area)
+                afford = self.savings[t+1] >= (adap_properties['cost'] * self.land_area)
                 self.adapt[t+1, afford] = True
             elif self.adap_type == 'always':
                 # all agents adapt

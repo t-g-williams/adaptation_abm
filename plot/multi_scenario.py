@@ -28,8 +28,8 @@ def main(mods, nreps, inp_base, scenarios, exp_name, T, shock_years=[]):
         # poverty_trap_combined(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
         # poverty_trap(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
         # sys.exit()
-        neg_wealth_probabilities(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
         combined_wealth_income(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
+        neg_wealth_probabilities(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
         # agent_trajectories(mods, nreps, inp_base, scenarios, exp_name, T, savedir, 'wealth')
         # agent_trajectories(mods, nreps, inp_base, scenarios, exp_name, T, savedir, 'income')
     

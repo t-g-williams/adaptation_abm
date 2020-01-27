@@ -8,6 +8,8 @@ def compile():
     d['land'] = land()
     d['climate'] = climate()
     d['adaptation'] = adaptation()
+    d['rangeland'] = rangeland()
+    d['livestock'] = livestock()
     return d
 
 def model():
@@ -44,6 +46,9 @@ def adaptation():
 
 def agents():
     d = {
+        # binary switches
+        'savings_acct' : True, # if false, agents can't carry over extra money between years
+
         # adaptation / decision-making
         'adap_type' : 'always', # coping, switching, affording, or always
 
@@ -52,17 +57,18 @@ def agents():
         'land_area_multiplier' : 1, # for sensitivity analysis
 
         ##### cash + wealth #####
-        # initial (normal distribution)
-        'wealth_init_mean' : 15000,
-        'wealth_init_sd' : 0,
-        'max_neg_wealth' : 0, # birr. just for plotting. these ppl cant recover anyway
+        # initial cash savings (normal distribution)
+        'savings_init_mean' : 15000, # birr
+        'savings_init_sd' : 0,
+        # 'max_neg_wealth' : 0, # birr. just for plotting. these ppl cant recover anyway
+        # initial livestock (constant amount)
+        'livestock_init_mean' : 0,
         # requirements
         'cash_req_mean' : 17261, # 17261 birr/yr. median value from 2015 LSMS
         'cash_req_sd' : 0,
         # market prices
         'crop_sell_price' : 2.17, # 2.17 birr/kg. mean 2015 maize price (FAO)
         'fertilizer_cost' : 13.2, # 13.2 birr/kg. median from 2015 LSMS
-        'livestock_cost' : 3000, # birr/head. Ethiopia CSA data 2015
     }
     return d
 
@@ -88,12 +94,10 @@ def land():
         'crop_CN_conversion' : 50, # 50 from Century model curves (middle of the y axis) -- pretty arbitrary. represents C:N ratio kind of
         'residue_CN_conversion' : 200, # 1/4 of the crop. elias1998
 
-        ##### livestock #####
+        ##### residues #####
         'residue_loss_factor' : 0.9, #  90% conversion efficiency  
         'residue_multiplier' : 2, # 2x crop yield->maize residue conversion factor (FAO1987), 
-        'wealth_N_conversion' : 0.026, # 0.026 kgN/yr per birr. a proxy for livestock manure. derived as 3000birr/head and using values from Newcombe1987. nitrogen %age in manure also similar in Lupwayi2000
-        'livestock_frac_crops' : 0.5, # fraction of livestock feed that comes from crops (in an ~average year). this influences the nitrogen input to farmland and the maximum herdsize attainable
-        'livestock_residue_factor' : 2280, # kg dry matter / TLU / year.(Amsalu2014)
+        # 'wealth_N_conversion' : 0.026, # 0.026 kgN/yr per birr. a proxy for livestock manure. derived as 3000birr/head and using values from Newcombe1987. nitrogen %age in manure also similar in Lupwayi2000
     }
     return d
 
@@ -105,5 +109,38 @@ def climate():
 
         'shock_years' : [30], # starting at 0 (pythonic)
         'shock_rain' : 0.1, # the rain value in the simulated shock
+    }
+    return d
+
+def rangeland():
+    d = {
+        # binary switches
+        'rangeland_dynamics' : True, # if false, just use the livestock "frac_crops" parameter
+
+        # rangeland size relative to farmland
+        'range_farm_ratio' : 0.5, # eg 0.5 means rangeland is 0.5x the size of the total farmland
+        # initial conditions
+        'R0_frac' : 0.3,
+        # growth parameters
+        'R_biomass_growth' : 0.8, # w for gunnar
+        'R_mortality' : 0.1, # m_r for gunnar (reserve biomass mortality rate)
+        'G_mortality' : 0, # m_g for gunnar (green biomass mortality rate)
+        'gr1' : 0.5, # grazing harshness (what fraction of the grazed biomass contributes to R growth) (CHECK??)
+        'gr2' : 0.1, # fraction of reserve biomass that can be consumed
+        # constants
+        'rain_use_eff' : 1, # rue for gunnar (CALIBRATION RQD)
+        'G_R_ratio' : 0.5, # lambda for gunnar (limit of ratio of green to reserve biomass (i.e. G:R can't be larger than this))
+        'R_max' : 1500, # kg/ha
+    }
+    return d
+
+def livestock():
+    d = {
+        'N_production' : 78.3, # kg N/year/cattle. see CC_Ins paper for derivation
+        'frac_crops' : 0.5, # IF rangeland_dynamics==True, this parameter is unnecessary. fraction of livestock feed that comes from crops (in an ~average year). this influences the nitrogen input to farmland and the maximum herdsize attainable
+        'income' : 0, # 125, # birr/year/head represents the value of milk production: taken directly from Redda2002 -- 240-480birr/year with local cow. assume 350 and 50% are female --> 125 birr/year/animal
+        'consumption' : 2280, # kg/annum (640 in gunnar. i derived 2280 for cc_ins paper: kg dry matter / TLU / year.(Amsalu2014))
+        'birth_rate' : 0.8, # livestock birth rate
+        'cost' : 3000, # birr/head. Ethiopia CSA data 2015
     }
     return d

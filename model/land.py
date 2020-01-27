@@ -91,10 +91,10 @@ class Land():
         (above the crop residues they have consumed)
         is given by the fraction of their consumption that is from crop residue
         '''
-        # agents' wealth is split equally over their land. birr / ha
-        wealth_per_ha = agents.wealth[self.t[0]] / agents.land_area
-        wealth_per_ha = np.maximum(wealth_per_ha, 0) # assume ppl in debt have no livestock
-        N_per_ha = wealth_per_ha * self.wealth_N_conversion * (1-self.livestock_frac_crops) # birr/ha * kgN/birr * __ = kgN/ha
+        ls_inp = self.all_inputs['livestock']
+        # agents' livestock are split equally over their land. birr / ha       
+        ls_per_ha = agents.livestock[self.t[0]] / agents.land_area
+        N_per_ha = ls_per_ha * ls_inp['N_production'] * (1-ls_inp['frac_crops']) # head/ha * kgN/head * __ = kgN/ha
         return N_per_ha
 
     def cover_crop_input(self, agents, adap_properties):

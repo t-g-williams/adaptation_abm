@@ -20,7 +20,7 @@ import multiprocessing
 
 def main():
     nreps = 300
-    exp_name = '2019_10_15_4'
+    exp_name = '2020_1_27_savings'
     ncores = 40
 
     # load default params
@@ -38,6 +38,7 @@ def main():
     inp_base['model']['exp_name'] = exp_name
     inp_base['agents']['adap_type'] = 'always'
     inp_base['agents']['land_area_multiplier'] = 1
+    inp_base['rangeland']['R0_frac'] = 0.3
 
     # inp_base['agents']['land_area_init'] = np.linspace(1,2,100)
     # inp_base['adaptation']['insurance']['climate_percentile'] = 0.3
@@ -80,7 +81,7 @@ def multi_mod_run(nreps, inp_base, scenarios, ncores):
             'wealth' : np.array([oi for tmp_i in tmp for oi in tmp_i['wealth']]).astype(int),
             'organic' : np.array([oi.astype(int) for tmp_i in tmp for oi in tmp_i['organic']]), # each rep is different length
             'land_area' : np.array([oi for tmp_i in tmp for oi in tmp_i['land_area']]),
-            'coping' : np.array([oi for tmp_i in tmp for oi in tmp_i['coping']]),
+            # 'coping' : np.array([oi for tmp_i in tmp for oi in tmp_i['coping']]),
             'owners' : np.array([oi for tmp_i in tmp for oi in tmp_i['owners']]),
             'income' : np.array([oi for tmp_i in tmp for oi in tmp_i['income']]).astype(int),
             'yields' : np.array([oi for tmp_i in tmp for oi in tmp_i['yields']]).astype(int),
@@ -108,7 +109,7 @@ def run_chunk_reps(reps, params):
         ms['wealth'].append(m.agents.wealth)
         ms['organic'].append(m.land.organic)
         ms['land_area'].append(m.agents.land_area)
-        ms['coping'].append(m.agents.coping_rqd)
+        # ms['coping'].append(m.agents.coping_rqd)
         ms['owners'].append(m.land.owner)
         ms['income'].append(m.agents.income)
         ms['yields'].append(m.land.yields)

@@ -5,6 +5,7 @@ import numpy as np
 from .agents import Agents
 from .land import Land
 from .climate import Climate
+from .rangeland import Rangeland
 import code
 
 class Model():
@@ -21,10 +22,11 @@ class Model():
         self.climate = Climate(inputs)
         self.agents = Agents(inputs)
         self.land = Land(self.agents, inputs)
+        self.rangeland = Rangeland(np.sum(self.agents.land_area), inputs)
 
         # set the time
         # save as list so it is mutable (stays same over all objects)
-        self.t = self.agents.t = self.land.t = self.climate.t = [0] 
+        self.t = self.agents.t = self.land.t = self.climate.t = self.rangeland.t = [0] 
         
         # initialize adaptation options
         self.init_adaptation_option()
@@ -37,7 +39,8 @@ class Model():
         self.land.update_soil(self.agents, self.adap_properties)
         self.land.crop_yields(self.agents, self.climate)
         self.agents.calculate_income(self.land, self.climate, self.adap_properties)
-        self.agents.coping_measures(self.land)
+        # self.rangeland.update(self.climate, self.agents)
+        self.agents.wealth_and_coping_measures(self.land)
         self.agents.adaptation(self.land, self.adap_properties)
         # increment the year
         self.t[0] += 1

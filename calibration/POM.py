@@ -30,7 +30,7 @@ def main():
     N_samples = 100000
     ncores = 40
     nreps = 10
-    exp_name = '2019_10_15_4/POM'
+    exp_name = '2020_1_27_savings/POM'
     inputs = {
         'model' : {'n_agents' : 100, 'T' : 100, 'exp_name' : exp_name,
                     'adaptation_option' : 'none'}
@@ -42,12 +42,12 @@ def main():
         # id, key1, key2, min, max
         [[1, 'land', 'rain_cropfail_low_SOM', 0, 0.5],
         [2, 'land', 'fast_mineralization_rate', 0.05, 0.95],
-        [3, 'land', 'wealth_N_conversion', 0.01, 0.05],
-        [4, 'land', 'livestock_frac_crops', 0.5, 1],
+        [3, 'livestock', 'N_production', 30, 150],
+        [4, 'livestock', 'frac_crops', 0.5, 1],
         [5, 'land', 'residue_CN_conversion', 25, 200],
         [6, 'agents', 'cash_req_mean', 5000, 30000],
         [7, 'land', 'loss_max', 0.05, 0.95],
-        [8, 'agents', 'wealth_init_mean', 5000, 50000]],
+        [8, 'agents', 'savings_init_mean', 5000, 50000]],
         # [9, 'climate', 'rain_mu', 0.2, 0.8],
         # [10, 'land', 'random_effect_sd', 0, 1]],
         columns = ['id','key1','key2','min_val','max_val'])
@@ -56,10 +56,10 @@ def main():
     rvs = hypercube_sample(N_samples, calib_vars)
 
     # # run the model and calculate fitting metrics
-    # fits = run_model(rvs, inputs, calib_vars, ncores, nreps)
+    fits = run_model(rvs, inputs, calib_vars, ncores, nreps)
     
     # # process the fit data
-    # process_fits(fits, rvs, calib_vars, inputs, nreps, exp_name, fit_threshold)
+    process_fits(fits, rvs, calib_vars, inputs, nreps, exp_name, fit_threshold)
     plot_ex_post(exp_name, N_samples, nreps, rvs, calib_vars, fit_threshold)
 
 def fitting_metrics(mod):
