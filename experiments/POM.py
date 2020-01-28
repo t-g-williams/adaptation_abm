@@ -27,30 +27,33 @@ import plot.single_run as plt_single
 
 def main():
     # specify experimental settings
-    N_samples = 100000
+    N_samples = 10000
     ncores = 40
     nreps = 10
-    exp_name = '2020_1_27_savings/POM'
+    exp_name = '2020_1_28_rangeland/POM'
     inputs = {
-        'model' : {'n_agents' : 100, 'T' : 100, 'exp_name' : exp_name,
-                    'adaptation_option' : 'none'}
+        'model' : {'n_agents' : 99, 'T' : 50, 'exp_name' : exp_name}
     }
     fit_threshold = 0.8
 
     # define the variables for calibration
     calib_vars = pd.DataFrame(
         # id, key1, key2, min, max
-        [[1, 'land', 'rain_cropfail_low_SOM', 0, 0.5],
-        [2, 'land', 'fast_mineralization_rate', 0.05, 0.95],
-        [3, 'livestock', 'N_production', 30, 150],
-        [4, 'livestock', 'frac_crops', 0.5, 1],
-        [5, 'land', 'residue_CN_conversion', 25, 200],
-        [6, 'agents', 'cash_req_mean', 5000, 30000],
-        [7, 'land', 'loss_max', 0.05, 0.95],
-        [8, 'agents', 'savings_init_mean', 5000, 50000]],
+        [['land', 'rain_cropfail_low_SOM', 0, 0.5],
+        ['land', 'fast_mineralization_rate', 0.05, 0.95],
+        ['land', 'residue_CN_conversion', 25, 200],
+        ['land', 'loss_max', 0.05, 0.95],
+        ['agents', 'cash_req_mean', 3000, 30000],
+        ['agents', 'livestock_init', 0, 15], # converted to integer
+        ['rangeland', 'range_farm_ratio', 0.1, 5],
+        ['rangeland', 'gr2', 0, 0.3],
+        ['rangeland', 'rain_use_eff', 0.1, 10],
+        ['rangeland', 'R_max', 1000, 7000],
+        ['livestock', 'birth_rate', 0.1, 0.8],
+        ['livestock', 'N_production', 30, 150]],
         # [9, 'climate', 'rain_mu', 0.2, 0.8],
         # [10, 'land', 'random_effect_sd', 0, 1]],
-        columns = ['id','key1','key2','min_val','max_val'])
+        columns = ['key1','key2','min_val','max_val'])
 
     # generate set of RVs
     rvs = hypercube_sample(N_samples, calib_vars)
@@ -67,55 +70,39 @@ def fitting_metrics(mod):
     determine whether the model displays the desired patterns
     '''
     n_yrs = 10 # how many years to do calculations over (from the end of the simulation)
-    ag1 = mod.agents.land_area == mod.agents.land_area_init[0]
-    ag2 = mod.agents.land_area == mod.agents.land_area_init[1]
-    ag3 = mod.agents.land_area == mod.agents.land_area_init[2]
-    
-    ## 1. agent wealth
-    ## we want agent type 1 (lowest land) to have -ve wealth with certainty
-    ## and agent type 3 (highest land) to not have -ve wealth
-    ## and agent type 2 to be somewhere in the middle
-    p1 = True if np.mean(mod.agents.cant_cope[-1, ag1]) == 1 else False
-    v2 = np.mean(mod.agents.cant_cope[-1, ag2])
-    p2 = True if (v2 >= 0.1) and (v2 <= 0.9) else False
-    p3 = True if np.mean(mod.agents.cant_cope[-1, ag3]) == 0 else False
-    fit1 = bool(p1 * p2 * p3)
-    # fit1 = bool(p1 * p3)
+    types = list(mod.agents.types.keys())
 
-    ## 2a. yield nutrient effects -- no "dead" soil for any agent at any time
-    vals = mod.land.nutrient_factors[-n_yrs:]
-    if np.sum(~np.isnan(vals)) == 0:
-        fit2a = False
-    else:
-        fit2a = np.nanmin(vals) > 0.01
+    ## 1. wealth/poverty
+    ## A: one group always has >0 wealth
+    ## B: one group has a probability of having >0 wealth \in [0.2,0.8]
+    oneA = False
+    oneB = False
+    for t in types:
+        ag_type = mod.agents.type == t
+        prob = np.mean(mod.agents.cant_cope[-1,ag_type])
+        cond1 = prob == 1
+        oneA = True if cond1 else oneA
+        cond2 = ((prob >= 0.2) and (prob <= 0.8))
+        oneB = True if cond2 else oneB
+    one = bool(oneA * oneB)
 
-    ## 2b. every year there is some nutrient limitation for some agent
-    fit2b = True
-    for y in range(n_yrs):
-        if fit2b:
-            vals = mod.land.nutrient_factors[-y]
-            if np.sum(~np.isnan(vals)) != 0:
-                min_y = np.nanmin(vals)
-                fit2b = True if min_y<1 else False
-
-    ## 3. soil organic matter
-    ## not consistently someone at maximum value
+    ## 2. land degradation exists
+    # not consistently someone at maximum value
+    # (this is calculated over TIME, not a single AGENT that's at max) 
     maxs = np.max(mod.land.organic[-n_yrs:], axis=1)
-    # fit3 = False if all(maxs == maxs[-1]) else True
-    fit3 = False if max(maxs) == mod.land.max_organic_N else True
+    two = False if max(maxs) == mod.land.max_organic_N else True
 
-    ## 4. some agents have higher SOM than the start
-    fit4 = True if np.percentile(mod.land.organic[-10:], 90) >= mod.land.organic_N_min_init else False
+    ## 3. rangeland is not fully degrated
+    ## A: P(regional destocking required) \in [0.1,0.5]
+    prob = np.mean(mod.rangeland.destocking_rqd)
+    threeA = True if ((prob >= 0.1) and (prob <= 0.5)) else False
+    ## B: min(reserve biomass) > 0.2*R_max
+    threeB = True if min(mod.rangeland.R >= 0.2 * mod.rangeland.R_max) else False
+    ## C: there are livestock on the rangeland in the last n_yrs
+    threeC = True if (min(mod.rangeland.livestock_supported[-n_yrs:]) > 0) else False
+    three = bool(threeA * threeB * threeC)
 
-    ## 5. middle agents were at/below zero and then came back up
-    fit5 = True if np.sum((np.min(mod.agents.wealth[:, ag2], axis=0)<=0) * (mod.agents.wealth[-1,ag2]>0)) > 0 else False
-
-    # sequential fitting
-    fit5 = True if fit5*fit1 else False
-    fit3 = True if fit1*fit3 else False
-    fit4 = True if fit1*fit4 else False
-
-    return [fit1, fit3, fit4, fit5]#, fit2a, fit2b]
+    return [one,two,three]
 
 def hypercube_sample(N, calib_vars):
     '''

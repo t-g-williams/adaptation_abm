@@ -20,7 +20,7 @@ def model():
         'seed' : 0,
         'sim_id' : 0,
         'rep_id' : 0,
-        'adaptation_option' : 'insurance', # set to "none" for baseline
+        'adaptation_option' : 'none', # set to "none" for baseline
         'shock' : False,
     }
     return d
@@ -56,13 +56,17 @@ def agents():
         'land_area_init' : [1, 1.5, 2], # ha. uniformly sample from each
         'land_area_multiplier' : 1, # for sensitivity analysis
 
+        'types' : {'land-poor' : {'land_area' : 1},
+                    'middle' : {'land_area' : 1.5},
+                    'land-rich' : {'land_area' : 2}},
+
         ##### cash + wealth #####
         # initial cash savings (normal distribution)
-        'savings_init_mean' : 15000, # birr
+        'savings_init_mean' : 0,# 15000, # birr
         'savings_init_sd' : 0,
         # 'max_neg_wealth' : 0, # birr. just for plotting. these ppl cant recover anyway
         # initial livestock (constant amount)
-        'livestock_init_mean' : 0,
+        'livestock_init' : 5,# 0,
         # requirements
         'cash_req_mean' : 12001, # 17261 birr/yr. median value from 2015 LSMS
         'cash_req_sd' : 0,
@@ -122,7 +126,7 @@ def rangeland():
         # initial conditions
         'R0_frac' : 0.8,
         # growth parameters
-        'R_biomass_growth' : 0.8, # w for gunnar
+        'R_biomass_growth' : 0.8, # w for gunnar (reserve biomass growth rate)
         'R_mortality' : 0.1, # m_r for gunnar (reserve biomass mortality rate)
         'G_mortality' : 0, # m_g for gunnar (green biomass mortality rate)
         'gr1' : 0.5, # grazing harshness (what fraction of the grazed biomass contributes to R growth) (CHECK??)

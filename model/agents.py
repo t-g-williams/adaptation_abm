@@ -20,13 +20,16 @@ class Agents():
         self.land_area = self.init_farm_size()      
         self.crop_production = np.full([self.T, self.N], -9999)
 
+        # define agent types
+        self.init_types()
+
         # savings and livestock
         # this represents the START of the year
         self.savings = np.full([self.T+1, self.N], -9999)
         self.savings[0] = np.random.normal(self.savings_init_mean, self.savings_init_sd, self.N)
         self.savings[0][self.savings[0]<0] = 0 # fix any -ve values
         self.livestock = np.full([self.T+1, self.N], -9999)
-        self.livestock[0] = self.livestock_init_mean # constant amount for each agent (same as savings)
+        self.livestock[0] = np.floor(self.livestock_init).astype(int) # constant amount for each agent (same as savings)
         self.wealth = np.full([self.T+1, self.N], -9999) # sum of livestock + savings
         self.wealth[0] = self.savings[0] + self.livestock[0]
         # money
@@ -60,6 +63,22 @@ class Agents():
         else:
             return np.random.choice(self.land_area_init, size=self.N) * mult
         
+
+    def init_types(self):
+        '''
+        assign each agent to a "type" based on its characteristics
+        '''
+        if self.types == False:
+            self.type = np.repeat(0, self.N)
+            return
+
+        self.type = np.full(self.N, np.nan, dtype='object')
+        for name, rqmt in self.types.items():
+            qualifies = np.full(self.N, True)
+            for ki, vi in rqmt.items():
+                qualifies *= eval('self.{}'.format(ki)) == vi
+            self.type[qualifies] = name
+
     def calculate_income(self, land, climate, adap_properties):
         '''
         calculate end-of-year income

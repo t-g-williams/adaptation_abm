@@ -55,7 +55,7 @@ class Rangeland():
         self.apportion_destocking(destocking_total, agents.herds_on_rangeland[t])
         agents.livestock[t] = self.herds_on_residue + agents.herds_on_rangeland[t]
         agents.ls_destock[t] = copy.deepcopy(agents.livestock[t])
-        
+
         ## 4. reserve biomass growth
         self.R[t+1] = (1-self.R_mortality) * self.R[t] + \
                 self.R_biomass_growth * (self.gr1 * (self.G_no_cons[t] - self.G[t+1]) + self.G[t+1]) * \
@@ -104,6 +104,7 @@ class Rangeland():
         '''
         if total > 0:
             tot_ls = np.sum(range_herds)
+            total = min(total, tot_ls)
             destock_ix = np.random.choice(np.arange(tot_ls), size=total, replace=False) # indexes of livestock
             owner_ix = np.repeat(np.arange(range_herds.shape[0]), range_herds)
             owner_destocks = owner_ix[destock_ix]
