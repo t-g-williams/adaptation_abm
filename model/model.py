@@ -39,8 +39,8 @@ class Model():
         self.land.update_soil(self.agents, self.adap_properties)
         self.land.crop_yields(self.agents, self.climate)
         self.agents.calculate_income(self.land, self.climate, self.adap_properties)
-        # self.rangeland.update(self.climate, self.agents)
-        self.agents.wealth_and_coping_measures(self.land)
+        self.rangeland.update(self.climate, self.agents, self.land)
+        self.agents.wealth_and_coping_measures(self.land, self.rangeland)
         self.agents.adaptation(self.land, self.adap_properties)
         # increment the year
         self.t[0] += 1

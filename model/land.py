@@ -86,15 +86,22 @@ class Land():
 
     def livestock_SOM_input(self, agents):
         '''
-        use agents' wealth as a _proxy_ for livestock ownership
-        assuming that the amount of additional SOM available 
-        (above the crop residues they have consumed)
-        is given by the fraction of their consumption that is from crop residue
+        additional livestock SOM inputs come from import from rangeland
+        assume 100% of nutrients from livestock grazed on rangeland are imported
         '''
+        agents.ls_start[self.t[0]] = copy.deepcopy(agents.livestock[self.t[0]])
         ls_inp = self.all_inputs['livestock']
-        # agents' livestock are split equally over their land. birr / ha       
-        ls_per_ha = agents.livestock[self.t[0]] / agents.land_area
-        N_per_ha = ls_per_ha * ls_inp['N_production'] * (1-ls_inp['frac_crops']) # head/ha * kgN/head * __ = kgN/ha
+        # agents' livestock are split equally over their land. birr / ha
+        if self.all_inputs['rangeland']['rangeland_dynamics']:
+            # use last year's livestock grazed on rangeland
+            if self.t[0]==0:
+                external_ls_per_ha = np.full(agents.N, 0)
+            else:
+                external_ls_per_ha = agents.herds_on_rangeland[self.t[0]-1] / agents.land_area
+        else:       
+            external_ls_per_ha = agents.livestock[self.t[0]] / agents.land_area * (1-ls_inp['frac_crops'])
+        
+        N_per_ha = external_ls_per_ha * ls_inp['N_production']  # head/ha * kgN/head * __ = kgN/ha
         return N_per_ha
 
     def cover_crop_input(self, agents, adap_properties):
@@ -133,6 +140,7 @@ class Land():
 
         # attribute to agents
         agents.crop_production[t] = self.yields[t] * agents.land_area # kg
+        self.residue_production = agents.crop_production[t] * self.residue_multiplier * self.residue_loss_factor # kg total
 
     def calculate_rainfall_factor(self, rain, virtual=False):
         '''

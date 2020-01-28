@@ -39,6 +39,13 @@ class Agents():
         self.cant_cope = np.full([self.T, self.N], False)
         # adaptation option decisions
         self.adapt = np.full([self.T+1, self.N], False)
+        # other livestock values for record keeping
+        self.ls_start = np.full([self.T, self.N], -9999)
+        self.ls_reprod = np.full([self.T, self.N], -9999)
+        self.ls_destock = np.full([self.T, self.N], -9999)
+        self.ls_stress = np.full([self.T, self.N], -9999)
+        self.ls_purchase = np.full([self.T, self.N], -9999)
+        self.herds_on_rangeland = np.full([self.T, self.N], -9999)
 
     def init_farm_size(self):
         '''
@@ -73,11 +80,11 @@ class Agents():
             adap_costs[self.adapt[t]] = adap_properties['cost'] * self.land_area[self.adapt[t]]
 
         ## livestock milk production
-        ls_milk_money = self.livestock[self.t[0]] * self.all_inputs['livestock']['income']
+        ls_milk_money = self.livestock[t] * self.all_inputs['livestock']['income']
 
         # income = crop_sales - cash_req - adap_costs + livestock_milk
         self.income[t] = self.crop_sell_price*self.crop_production[t] - self.cash_req - adap_costs + ls_milk_money
-        
+
         if self.insurance_payout_year:
             # assume that agents first use their payout to neutralize their income
             # and any left over, they use to buy fodder
@@ -85,7 +92,7 @@ class Agents():
             self.remaining_payout = np.minimum(np.maximum(payouts+self.income[t], 0), payouts) # outer "minimum" is in case their income is +ve --> they can only use the payout for fodder
             self.income[t] += payouts.astype(int)
 
-    def wealth_and_coping_measures(self, land):
+    def wealth_and_coping_measures(self, land, rangeland):
         '''
         calculate end-of-year income balance
         and simulate coping measures
@@ -94,18 +101,6 @@ class Agents():
         ls_inp = self.all_inputs['livestock']
         t = self.t[0]
         ls_obj = copy.deepcopy(self.livestock[t])
-        # wealth (/livestock) constraints: can't carry more than your crop residues allows
-        # if 80% of livestock must be grazed on fodder, then the maximum wealth you can carry
-        # is 20% of your current livestock herds + whatever you can sustain from your crop residues
-        # i.e. it's assumed that some fraction of your livestock are fully independent of crop residue
-        # rather than all livestock requiring this fraction of feed from fodder
-        max_ls_residue = self.crop_production[t] * land.residue_multiplier * land.residue_loss_factor / \
-                (ls_inp['consumption']) # TLU = kgCrop * kgDM/kgCrop / kgDM/TLU
-        max_ls_fodder = max_ls_residue + (1-ls_inp['frac_crops']) * ls_obj
-        if self.insurance_payout_year:
-            # assume that any leftover income from the insurance payout can be put towards livestock
-            max_ls_fodder += (self.remaining_payout / ls_inp['cost'])        
-
 
         ## 1. ADD INCOME TO SAVINGS
         # this proxies using savings to counteract -ve income
@@ -115,9 +110,11 @@ class Agents():
         ## 2. STRESS DESTOCKING
         sell_rqmt = np.maximum(np.ceil(-self.savings[t+1]/ls_inp['cost']), 0).astype(int) # calculate amt rqd
         sell_amt = np.minimum(ls_obj, sell_rqmt) # restricted by available livestock
+
         ls_obj -= sell_amt # reduce the herdsize
         self.savings[t+1] += sell_amt * ls_inp['cost'] # add to income
         self.stress_ls_sell_rqd[t, sell_rqmt>0] = True # record
+        self.ls_stress[t] = copy.deepcopy(ls_obj)
 
         ## 3. CONSUMPTION SMOOTHING
         # if agents are still in negative wealth we assume they can smooth their consumption
@@ -125,13 +122,13 @@ class Agents():
         self.cant_cope[t, self.savings[t+1]==0] = True # record
 
         ## 4. LIVESTOCK PURCHASE / DESTOCKING
-        max_purchase = np.floor(self.savings[t+1] / ls_inp['cost'])
-        ls_change = np.floor(np.minimum(max_purchase, max_ls_fodder - ls_obj)).astype(int) # critical value (money or fodder availability)
+        ls_change = self.livestock_stocking(land, ls_obj, t, rangeland, ls_inp)
         # ^^ if this is +ve this represents purchase. 
-        # ^^ if it's -ve this represents rqd destocking due to fodder availability
+        # ^^ if it's -ve this represents rqd destocking due to fodder availability (only possible w/o rangeland)
         ls_obj += ls_change # attribute to livestock
         self.savings[t+1] -= ls_change * ls_inp['cost'] # attribute to savings
         self.destocking_rqd[t,ls_change<0] = True # record
+        self.ls_purchase[t] = copy.deepcopy(ls_obj)
         
         # BINARY SWITCHES
         if not self.savings_acct:
@@ -139,8 +136,52 @@ class Agents():
 
         # save for next time step
         self.livestock[t+1] = ls_obj # save
-        self.wealth[t+1] = ls_obj + self.savings[t+1]
+        self.wealth[t+1] = ls_obj*ls_inp['cost'] + self.savings[t+1]
         # code.interact(local=dict(globals(), **locals()))
+
+    def livestock_stocking(self, land, ls_obj, t, rangeland, ls_inp):
+        '''
+        calculate stocking/destocking
+        stocking 
+        - if the agent has extra money
+        - WITH RANGELAND: if no destocking was rqd at regional level
+        destocking
+        - WITH RANGELAND: already calculated
+        - WITHOUT RANGELAND ONLY: if not enough fodder total
+        '''
+        # how many can be purchased
+        max_purchase = np.floor(self.savings[t+1] / ls_inp['cost'])
+        # how many can be grazed on-farm
+        max_on_farm = self.crop_production[t] * land.residue_multiplier * land.residue_loss_factor / \
+                (ls_inp['consumption']) # TLU = kgCrop * kgDM/kgCrop / kgDM/TLU
+        # how many can be grazed off-farm
+        if rangeland.rangeland_dynamics:
+            # assume that agents do not increase livestock on rangeland
+            # if there was destocking rqd at the regional level
+            # otherwise, they look back at the maximum amount they ever had on the rangeland
+            if t == 0:
+                max_off_farm = 0
+            else:
+                max_off_farm = self.herds_on_rangeland[t] if rangeland.destocking_rqd[t] else np.max(self.herds_on_rangeland[0:t], axis=0)
+        else:
+            # if 80% of livestock must be grazed on fodder, then the maximum wealth you can carry
+            # is 20% of your current livestock herds + whatever you can sustain from your crop residues
+            # i.e. it's assumed that some fraction of your livestock are fully independent of crop residue
+            # rather than all livestock requiring this fraction of feed from fodder
+            max_off_farm = (1-ls_inp['frac_crops']) * ls_obj
+
+        # calculate the required change in livestock
+        # if this is positive, fodder availability and cash allow for livestock purchase
+        # if this is negative (ONLY POSSIBLE W/O RANGELAND) then this represents lack of fodder availability -> destocking
+        ls_change = np.minimum(max_purchase, max_on_farm + max_off_farm - ls_obj)
+
+        if self.insurance_payout_year:
+            # assume that any leftover income from the insurance payout can be put towards livestock
+            ls_change += (self.remaining_payout / ls_inp['cost']) 
+
+        # return max_total
+        # ls_change = np.floor(np.minimum(max_purchase, max_ls_fodder - ls_obj)).astype(int) # critical value (money or fodder availability)        
+        return np.floor(ls_change).astype(int)
 
     def adaptation(self, land, adap_properties):
         '''

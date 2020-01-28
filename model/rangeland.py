@@ -1,5 +1,6 @@
 import numpy as np
 import code
+import copy
 
 class Rangeland():
     def __init__(self, farm_area_ha, inputs):
@@ -11,7 +12,7 @@ class Rangeland():
         self.T = self.all_inputs['model']['T']
 
         # calculate size (in ha)
-        self.size = self.range_farm_ratio * farm_area_ha
+        self.size_ha = self.range_farm_ratio * farm_area_ha
 
         # initialize arrays
         # note: this represents the state at the START of the time step
@@ -20,47 +21,58 @@ class Rangeland():
         self.F_avail = np.full(self.T, -99)
         self.R[0] = self.R0_frac * self.R_max
         self.G[0] = self.R[0] * self.G_R_ratio # assume it starts saturated
+        self.G_no_cons = np.full(self.T, -99) # store as integer (kg/ha)
+        self.destocking_rqd = np.full(self.T, False)
+        self.livestock_supported = np.full(self.T, -99)
 
-    def update(self, climate, agents):
+    def update(self, climate, agents, land):
         '''
         simulate the rangeland dynamics
         This model is copied from Gunnar
         '''
+        if not self.rangeland_dynamics:
+            return
+
         t = self.t[0]
 
         ## 1. green biomass growth
         self.G[t+1] = (1-self.G_mortality) * self.G[t] + \
-                self.rain[t] * self.rain_use_eff * self.R[t]
+                climate.rain[t] * self.rain_use_eff * self.R[t]
         # green biomass constraints
         self.G[t+1] = min(self.G[t+1], self.R[t] * self.G_R_ratio)
-        G_no_consumption = copy.deepcopy(self.G[t+1])
+        self.G_no_cons[t] = copy.deepcopy(self.G[t+1])
 
         ## 2. livestock reproduction
         # note: we model livestock as integer valued
         # each animal has the same probability of reproducing
         herds = agents.livestock[t]
-        births = np.random.binomial(herds, self.birth_rate)
+        births = np.random.binomial(herds, self.all_inputs['livestock']['birth_rate'])
         herds += births
+        agents.ls_reprod[t] = copy.deepcopy(herds)
 
         ## 3. livestock consumption and destocking
-        destocking_total = self.consumption(herds, land)
-        self.apportion_destocking(herds, destocking_total)
-
+        destocking_total = self.consumption(agents, land, herds, t)
+        self.apportion_destocking(destocking_total, agents.herds_on_rangeland[t])
+        agents.livestock[t] = self.herds_on_residue + agents.herds_on_rangeland[t]
+        agents.ls_destock[t] = copy.deepcopy(agents.livestock[t])
+        
         ## 4. reserve biomass growth
         self.R[t+1] = (1-self.R_mortality) * self.R[t] + \
-                self.R_biomass_growth * (gr1 * (G_no_consumption - self.G[t+1]) + self.G[t+1]) * \
+                self.R_biomass_growth * (self.gr1 * (self.G_no_cons[t] - self.G[t+1]) + self.G[t+1]) * \
                 (1 - self.R[t]/self.R_max)
 
-    def consumption(self, land, herds):
+    def consumption(self, agents, land, herds, t):
         '''
         simulate the consumption of on-farm crop residues
         as well as green and reserve biomass
         '''
         # livestock consumption is achieved via a mix of on-farm residues and the communal rangeland
-        residue_production = self.crop_production[t] * land.residue_multiplier * land.residue_loss_factor # kg total
-        herds_on_residue = np.minimum(herds, residue_production / self.consumption) # kg / (kg/head) = head
+        self.herds_on_residue = np.floor(np.minimum(herds, land.residue_production / self.all_inputs['livestock']['consumption'])).astype(int) # kg / (kg/head) = head
+        # ^ take the floor of this. keep as integer
         # demand for the rangeland
-        rangeland_demand_intensity = np.sum(herds - herds_on_residue) * self.consumption / self.size # unit = kg/ha
+        ls_consumption = self.all_inputs['livestock']['consumption']
+        agents.herds_on_rangeland[t] = herds - self.herds_on_residue
+        rangeland_demand_intensity = np.sum(agents.herds_on_rangeland[t]) * ls_consumption / self.size_ha # unit = kg/ha
         # how is this demand satisfied...?
         if self.G[t+1] > rangeland_demand_intensity:
             # green biomass satisfies demand
@@ -69,7 +81,7 @@ class Rangeland():
         else:
             # need to use reserve biomass
             reserve_demand = rangeland_demand_intensity - self.G[t+1]
-            reserve_limit = gr2 * self.R[t]
+            reserve_limit = self.gr2 * self.R[t]
             self.G[t+1] = 0
             if reserve_demand < reserve_limit:
                 # reserve can supply the demand
@@ -79,19 +91,21 @@ class Rangeland():
                 # still remaining shortfall
                 self.R[t] -= reserve_limit
                 deficit = reserve_demand - reserve_limit
-                destocking_total = int(deficit * self.size / self.consumption) # kg/ha * ha / (kg/head) = head
+                destocking_total = int(np.ceil(deficit * self.size_ha / ls_consumption)) # kg/ha * ha / (kg/head) = head
 
+        self.destocking_rqd[t] = True if np.sum(destocking_total)>0 else False
+        self.livestock_supported[t] = np.sum(agents.herds_on_rangeland[t])-destocking_total
         return destocking_total
 
-    def apportion_destocking(self, herds, total):
+    def apportion_destocking(self, total, range_herds):
         '''
         apportion destocking randomly between agents
         each livestock has an equal probability of being destocked
         '''
         if total > 0:
-            tot_ls = np.sum(herds)
+            tot_ls = np.sum(range_herds)
             destock_ix = np.random.choice(np.arange(tot_ls), size=total, replace=False) # indexes of livestock
-            owner_ix = np.repeat(np.arange(herds.shape), herds)
+            owner_ix = np.repeat(np.arange(range_herds.shape[0]), range_herds)
             owner_destocks = owner_ix[destock_ix]
             for owner in owner_destocks: # would be great to get rid of this for-loop!!
-                herds[owner] -= 1
+                range_herds[owner] -= 1

@@ -1,5 +1,5 @@
 from model.model import Model
-import model.base_inputs as inputs
+import model.base_inputs as base_inputs
 import plot.single_run as plt
 import code
 import time
@@ -9,8 +9,9 @@ import sys
 
 st1 = time.time()
 # compile the inputs
-inp_base = inputs.compile()
+inp_base = base_inputs.compile()
 inp = inp_base
+inputs = inp
 
 #### OR ####
 
@@ -23,16 +24,15 @@ inp = inp_base
 
 
 ## change any params
-inp['model']['adaptation_option'] = 'none'
-inp['model']['shock'] = False
-inp['model']['T'] = 100
-inp['model']['n_agents'] = 9
-# inp['climate']['shock_years'] = [15]
-# inp['climate']['shock_rain'] = 0.15
-inp['model']['exp_name'] = 'test'
+inputs['model']['T'] = 30
+inputs['model']['n_agents'] = 6
+inputs['rangeland']['range_farm_ratio'] = 0.5
+inputs['rangeland']['gr2'] = 0.1
+inputs['agents']['savings_acct'] = True
+inputs['rangeland']['rangeland_dynamics'] = True
 
 # initialize the model
-m = Model(inp)
+m = Model(inputs)
 # run the model
 for t in range(m.T):
     m.step()

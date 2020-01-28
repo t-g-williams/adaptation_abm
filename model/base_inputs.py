@@ -64,7 +64,7 @@ def agents():
         # initial livestock (constant amount)
         'livestock_init_mean' : 0,
         # requirements
-        'cash_req_mean' : 17261, # 17261 birr/yr. median value from 2015 LSMS
+        'cash_req_mean' : 12001, # 17261 birr/yr. median value from 2015 LSMS
         'cash_req_sd' : 0,
         # market prices
         'crop_sell_price' : 2.17, # 2.17 birr/kg. mean 2015 maize price (FAO)
@@ -120,7 +120,7 @@ def rangeland():
         # rangeland size relative to farmland
         'range_farm_ratio' : 0.5, # eg 0.5 means rangeland is 0.5x the size of the total farmland
         # initial conditions
-        'R0_frac' : 0.3,
+        'R0_frac' : 0.8,
         # growth parameters
         'R_biomass_growth' : 0.8, # w for gunnar
         'R_mortality' : 0.1, # m_r for gunnar (reserve biomass mortality rate)
@@ -130,7 +130,7 @@ def rangeland():
         # constants
         'rain_use_eff' : 1, # rue for gunnar (CALIBRATION RQD)
         'G_R_ratio' : 0.5, # lambda for gunnar (limit of ratio of green to reserve biomass (i.e. G:R can't be larger than this))
-        'R_max' : 1500, # kg/ha
+        'R_max' : 5000, # kg/ha (gunnar had 1500). this constrains NPP. max(NPP) = R_max. amsalu2014: could be from 1-7t DM/ha. use 5?
     }
     return d
 
@@ -138,9 +138,9 @@ def livestock():
     d = {
         'N_production' : 78.3, # kg N/year/cattle. see CC_Ins paper for derivation
         'frac_crops' : 0.5, # IF rangeland_dynamics==True, this parameter is unnecessary. fraction of livestock feed that comes from crops (in an ~average year). this influences the nitrogen input to farmland and the maximum herdsize attainable
-        'income' : 0, # 125, # birr/year/head represents the value of milk production: taken directly from Redda2002 -- 240-480birr/year with local cow. assume 350 and 50% are female --> 125 birr/year/animal
-        'consumption' : 2280, # kg/annum (640 in gunnar. i derived 2280 for cc_ins paper: kg dry matter / TLU / year.(Amsalu2014))
-        'birth_rate' : 0.8, # livestock birth rate
+        'income' : 125, # birr/year/head represents the value of milk production: taken directly from Redda2002 -- 240-480birr/year with local cow. assume 350 and 50% are female --> 125 birr/year/animal
+        'consumption' : 2280, # kg/annum (640 in gunnar. i derived 2280 for cc_ins paper: kg dry matter / TLU / year.(Amsalu2014)). also compare to 2700kgDM in (NOTE: ITS AUSTRALIA HERE NOT BORANA) desta1999 for 400kg animal
+        'birth_rate' : 0.5, # livestock birth rate (probability) (gunnar has 0.8). see also angassa2007
         'cost' : 3000, # birr/head. Ethiopia CSA data 2015
     }
     return d
