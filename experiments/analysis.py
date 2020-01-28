@@ -62,10 +62,10 @@ def main():
         assess_resilience(exp_name, inp_base, adap_scenarios, load, ncores)
 
         # ## B: vary shock magnitude
-        vary_magnitude(exp_name, inp_base, adap_scenarios, load, ncores)
+        # vary_magnitude(exp_name, inp_base, adap_scenarios, load, ncores)
 
-        ## C: effect of policy design
-        policy_design(exp_name, inp_base, adap_scenarios, load, ncores)
+        # ## C: effect of policy design
+        # policy_design(exp_name, inp_base, adap_scenarios, load, ncores)
 
 def policy_design(exp_name, inp_base, adap_scenarios, load, ncores):
     '''
@@ -222,7 +222,7 @@ def assess_resilience(exp_name, inp_base, adap_scenarios, load, ncores):
     '''
     compare the strategies over the dimensions of shock (t_shock, t_res)
     '''
-    nreps = 100
+    nreps = 300
     shock_mags = [0.1,0.2]#,0.3]
     shock_times = np.arange(2,51,step=2) # measured after the burn-in period
     T_res = np.arange(1,15) # how many years to calculate effects over
