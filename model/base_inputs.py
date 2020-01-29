@@ -51,7 +51,8 @@ def agents():
 
         # adaptation / decision-making
         'adap_type' : 'always', # coping, switching, affording, or always
-
+        'n_yr_smooth' : 3, # number of smoothing years for livestock management decisions (fodder availability assumption)
+        
         # plot ownership
         'land_area_init' : [1, 1.5, 2], # ha. uniformly sample from each
         'land_area_multiplier' : 1, # for sensitivity analysis
@@ -68,7 +69,7 @@ def agents():
         # initial livestock (constant amount)
         'livestock_init' : 5,# 0,
         # requirements
-        'cash_req_mean' : 12001, # 17261 birr/yr. median value from 2015 LSMS
+        'cash_req_mean' : 6000, # 17261 birr/yr. median value from 2015 LSMS
         'cash_req_sd' : 0,
         # market prices
         'crop_sell_price' : 2.17, # 2.17 birr/kg. mean 2015 maize price (FAO)
@@ -84,14 +85,14 @@ def land():
         'organic_N_max_init' : 4000, # NOTE: CURRENTLY THE MODEL SETS THIS TO BE THE SAME AS MIN
         # soil model
         'max_organic_N' : 8000, # kgN/ha. arbitrary (set in relation to the initial value)
-        'fast_mineralization_rate' : 0.6, # what fraction of applied organic matter mineralizes straight away
+        'fast_mineralization_rate' : 0.1, # 0.6, # what fraction of applied organic matter mineralizes straight away. 0.1 in POM for CC-ins
         'slow_mineralization_rate' : 0.02, # 0.02 rate of mineralization from organic->inorganic (assume linear decay). taken from schmidt2011 -- 50year turnover time of bulk SOM
         'loss_max' : 0.5, # 0.5 inorganic loss fraction with no SOM. Di2002 data had ~50% maximum leaching rates of N. giller1997 says up to 50% in high-rainfall environments
         'loss_min' : 0.05, # 0.05 inorganic loss fraction with maximum SOM. Di2002 had ~5% minimum leaching.
         
         ##### ag practices #####
-        'fallow_frac' : 0.2, # fraction fallow under traditional settings. calibrate to get stable SOM
-        'fallow_N_add' : 40, # kg N/ha. lower limit from N-fixing legumes https://www.tandfonline.com/doi/pdf/10.1080/01904160009382074
+        'fallow_frac' : 0.3, # fraction fallow under traditional settings. calibrate to get stable SOM
+        'fallow_N_add' : 60/0.3, # FOR NOW TRY TO GET NEUTRAL SOIL N BALANCE. this is unrealistic # 40, # kg N/ha. lower limit from N-fixing legumes https://www.tandfonline.com/doi/pdf/10.1080/01904160009382074
 
         ##### yield #####
         'max_yield' : 6590, # 6590 kg/ha. maximum, unconstrained yield. 95%ile for Ethiopia-wide LSMS (all 3 years) maize yields
@@ -112,7 +113,7 @@ def land():
 def climate():
     d = {
         # annual climate measure -- assume normal distribution (truncated to [0,1])
-        'rain_mu' : 0.5, # 0.5 approximately fits country-wide CYF distribution for maize (BUT this variable is rain not CYF)
+        'rain_mu' : 0.7, # 0.5 approximately fits country-wide CYF distribution for maize (BUT this variable is rain not CYF)
         'rain_sd' : 0.2,
 
         'shock_years' : [30], # starting at 0 (pythonic)
@@ -148,7 +149,7 @@ def livestock():
         'frac_crops' : 0.5, # IF rangeland_dynamics==True, this parameter is unnecessary. fraction of livestock feed that comes from crops (in an ~average year). this influences the nitrogen input to farmland and the maximum herdsize attainable
         'income' : 125, # birr/year/head represents the value of milk production: taken directly from Redda2002 -- 240-480birr/year with local cow. assume 350 and 50% are female --> 125 birr/year/animal
         'consumption' : 2280, # kg/annum (640 in gunnar. i derived 2280 for cc_ins paper: kg dry matter / TLU / year.(Amsalu2014)). also compare to 2700kgDM in (NOTE: ITS AUSTRALIA HERE NOT BORANA) desta1999 for 400kg animal
-        'birth_rate' : 0.5, # livestock birth rate (probability) (gunnar has 0.8). see also angassa2007
+        'birth_rate' : 0, # use no birth rate -- livestock aren't for breeding. livestock birth rate (probability) (gunnar has 0.8). see also angassa2007 (~0.5)
         'cost' : 3000, # birr/head. Ethiopia CSA data 2015
     }
     return d

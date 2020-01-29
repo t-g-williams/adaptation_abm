@@ -73,6 +73,7 @@ class Land():
         ### save final values
         self.inorganic[self.t[0]] = inorganic # end of this year (for yields)
         self.organic[self.t[0]+1] = organic # start of next year
+        # code.interact(local=dict(globals(), **locals()))
 
     def crop_residue_input(self):
         '''
