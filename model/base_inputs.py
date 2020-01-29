@@ -89,6 +89,10 @@ def land():
         'loss_max' : 0.5, # 0.5 inorganic loss fraction with no SOM. Di2002 data had ~50% maximum leaching rates of N. giller1997 says up to 50% in high-rainfall environments
         'loss_min' : 0.05, # 0.05 inorganic loss fraction with maximum SOM. Di2002 had ~5% minimum leaching.
         
+        ##### ag practices #####
+        'fallow_frac' : 0.2, # fraction fallow under traditional settings. calibrate to get stable SOM
+        'fallow_N_add' : 40, # kg N/ha. lower limit from N-fixing legumes https://www.tandfonline.com/doi/pdf/10.1080/01904160009382074
+
         ##### yield #####
         'max_yield' : 6590, # 6590 kg/ha. maximum, unconstrained yield. 95%ile for Ethiopia-wide LSMS (all 3 years) maize yields
         'rain_crit' : 0.8, # value at which rainfall starts to be limiting. 0.8 in CENTURY

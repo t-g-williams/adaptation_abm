@@ -42,6 +42,8 @@ class Agents():
         self.cant_cope = np.full([self.T, self.N], False)
         # adaptation option decisions
         self.adapt = np.full([self.T+1, self.N], False)
+        # agricultural decisions
+        self.fallow = np.full([self.T+1, self.N], True)
         # other livestock values for record keeping
         self.ls_start = np.full([self.T, self.N], -9999)
         self.ls_reprod = np.full([self.T, self.N], -9999)

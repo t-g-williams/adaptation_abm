@@ -56,9 +56,10 @@ class Land():
         residue = self.crop_residue_input()
         livestock = self.livestock_SOM_input(agents) # kgN/ha
         cover_crop = self.cover_crop_input(agents, adap_properties) # kgN/ha
+        fallow = self.fallow_input(agents)
         # these additions are split between organic and inorganic matter
-        inorganic += self.fast_mineralization_rate * (residue + livestock + cover_crop)
-        organic += (1-self.fast_mineralization_rate) * (residue + livestock + cover_crop)
+        inorganic += self.fast_mineralization_rate * (residue + livestock + cover_crop + fallow)
+        organic += (1-self.fast_mineralization_rate) * (residue + livestock + cover_crop + fallow)
 
         ### constrain to be within bounds
         organic[organic < 0] = 0
@@ -118,6 +119,16 @@ class Land():
 
         return inputs
 
+    def fallow_input(self, agents):
+        '''
+        SOM additions from fallow
+        assume that legumes are grown on fallow plots
+        or some other type of fixation naturally occurs
+        '''
+        inputs = np.full(self.n_plots, self.fallow_N_add * self.fallow_frac) # kgN/ha = kgN/ha_fallow * ha_fallow/ha
+        inputs[~agents.fallow[self.t[0]]] = 0
+        return inputs
+
     def crop_yields(self, agents, climate):
         '''
         calculate crop yields
@@ -138,8 +149,8 @@ class Land():
             self.nutrient_factors[t] = self.yields[t] / self.yields_unconstrained[t]
             self.nutrient_factors[t] = np.minimum(self.nutrient_factors[t], 1)
 
-        # attribute to agents
-        agents.crop_production[t] = self.yields[t] * agents.land_area # kg
+        # attribute to agents -- adjust for their fallowing fractions
+        agents.crop_production[t] = self.yields[t] * agents.land_area * (1 - self.fallow_frac * agents.fallow[t]) # kg
         self.residue_production = agents.crop_production[t] * self.residue_multiplier * self.residue_loss_factor # kg total
 
     def calculate_rainfall_factor(self, rain, virtual=False):
