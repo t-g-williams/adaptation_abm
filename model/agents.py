@@ -173,8 +173,11 @@ class Agents():
         # how many can be purchased
         max_purchase = np.floor(self.savings[t+1] / ls_inp['cost'])
         # how many can be grazed on-farm
-        max_on_farm = self.crop_production[t] * land.residue_multiplier * land.residue_loss_factor / \
+        # average the production over the past n years
+        yrs = np.arange(0,t+1) if t<self.n_yr_smooth else np.arange(t-self.n_yr_smooth+1,t+1)
+        max_on_farm = np.mean(self.crop_production[yrs], axis=0) * land.residue_multiplier * land.residue_loss_factor / \
                 (ls_inp['consumption']) # TLU = kgCrop * kgDM/kgCrop / kgDM/TLU
+        # code.interact(local=dict(globals(), **locals()))
         # how many can be grazed off-farm
         if rangeland.rangeland_dynamics:
             # assume that agents do not increase livestock on rangeland
