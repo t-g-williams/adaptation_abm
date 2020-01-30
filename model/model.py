@@ -40,10 +40,14 @@ class Model():
         self.land.crop_yields(self.agents, self.climate)
         self.agents.calculate_income(self.land, self.climate, self.adap_properties)
         self.rangeland.update(self.climate, self.agents, self.land)
-        self.agents.wealth_and_coping_measures(self.land, self.rangeland)
+        ls_obj = self.agents.coping_measures(self.land, self.rangeland)
+        self.agents.livestock_stocking(self.land, ls_obj, self.rangeland)
         self.agents.adaptation(self.land, self.adap_properties)
         # increment the year
-        self.t[0] += 1
+        self.t[0] += 1        
+        # BINARY SWITCHES
+        if not self.agents.savings_acct:
+            agents.savings[t+1] = 0 # agents cannot carry over money to the next year
 
     def init_adaptation_option(self):
         '''

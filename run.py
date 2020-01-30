@@ -25,7 +25,7 @@ inputs = inp
 
 ## change any params
 inputs['model']['T'] = 30
-inputs['model']['n_agents'] = 6
+inputs['model']['n_agents'] = 60
 # inputs['rangeland']['range_farm_ratio'] = 0.5
 # inputs['rangeland']['gr2'] = 0.1
 # inputs['agents']['savings_acct'] = True
