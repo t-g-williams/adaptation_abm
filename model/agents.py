@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import scipy.stats as stat
 import code
 import copy
@@ -17,11 +18,12 @@ class Agents():
         self.id = np.arange(self.N)
 
         # generate land ownership
-        self.land_area = self.init_farm_size()      
+        self.land_area = self.init_farm_size()
+        self.has_land = self.land_area>0     
         self.crop_production = np.full([self.T, self.N], -9999)
         # household size
         self.hh_size = np.full(self.N, self.hh_size_init) # all same size for now
-
+        self.living_cost =  self.living_cost_pp * self.hh_size
         # define agent types
         self.init_types()
 
@@ -37,7 +39,6 @@ class Agents():
         # money
         self.income = np.full([self.T, self.N], -9999)
         self.savings_post_cons_smooth = np.full([self.T, self.N], -9999)
-        self.living_cost =  self.living_cost_pp * self.hh_size
         # coping measures
         self.cons_red_rqd = np.full([self.T, self.N], False)
         self.neg_income = np.full([self.T, self.N], False)
@@ -64,6 +65,28 @@ class Agents():
 
         ##### MARKET #####
         self.job_avail_total = np.floor(self.jobs_availability * self.N / self.job_increment) * self.job_increment
+
+        ##### DATA IMPORT #####
+        # this overwrites the previous things if necessary
+        if self.read_from_file:
+            d_in = pd.read_csv(self.file_name, index_col=0)
+            d_in_subs = d_in.query(self.data_filter)
+            d_in_subs.index = np.arange(d_in_subs.shape[0])
+            # define the sampling
+            replace = False if self.N <= d_in_subs.shape[0] else True
+            hh_ixs = np.random.choice(d_in_subs.shape[0], self.N, replace=replace)
+            # loop over the variables
+            for el in self.props_from_file:
+                ## adapt this for each variable added
+                if el == 'hh_size':
+                    self.hh_size = np.array(d_in_subs.loc[hh_ixs,'hh_size'])
+                    self.living_cost =  self.living_cost_pp * self.hh_size
+                elif el == 'land_area_init':
+                    self.land_area = np.array(d_in_subs.loc[hh_ixs, 'land_area_init'])
+                    self.has_land = self.land_area>0     
+                else:
+                    print('ERROR: Undefined empirical data parameter specified')
+                    sys.exit()
 
     def init_farm_size(self):
         '''
@@ -102,7 +125,7 @@ class Agents():
         self.ls_start[t] = copy.deepcopy(self.livestock[t])
         ## farm labor
         self.ag_labor[t] = np.minimum(self.ag_labor_rqmt*self.land_area, self.hh_size) # ppl = ppl/ha*ha
-        farm_frac = np.minimum(self.hh_size / (self.ag_labor_rqmt * self.land_area), np.full(self.N,1)) # ppl / (ppl/ha*ha)
+        # farm_frac = np.minimum(self.hh_size / (self.ag_labor_rqmt * self.land_area), np.full(self.N,1)) # ppl / (ppl/ha*ha)
         ## livestock labor
         # destock if required (assume they are sold)
         max_ls = np.floor(np.minimum((self.hh_size - self.ag_labor[t]) / self.ls_labor_rqmt, self.livestock[t])).astype(int) # head = ppl / (ppl/head)
@@ -111,7 +134,6 @@ class Agents():
         self.savings[t] += destock_amt * self.all_inputs['livestock']['cost']
         self.ls_num_lbr[t] = copy.deepcopy(self.livestock[t])
         self.ls_labor[t] = self.livestock[t] * self.ls_labor_rqmt
-
 
         ## non-farm labor
         if t == 0:

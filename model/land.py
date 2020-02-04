@@ -14,6 +14,7 @@ class Land():
         # how many total plots?
         self.n_plots = agents.N
         self.owner = agents.id
+        self.positive_area = agents.has_land # some elements might actually be zero area
 
         ##### soil properties #####
         # represents the START of the year
@@ -91,6 +92,8 @@ class Land():
         additional livestock SOM inputs come from import from rangeland
         assume 100% of nutrients from livestock grazed on rangeland are imported
         '''
+        external_ls_per_ha = np.full(self.n_plots, 0.)
+        pos = self.positive_area
         ls_inp = self.all_inputs['livestock']
         # agents' livestock are split equally over their land. birr / ha
         if self.all_inputs['rangeland']['rangeland_dynamics']:
@@ -98,9 +101,9 @@ class Land():
             if self.t[0]==0:
                 external_ls_per_ha = np.full(agents.N, 0)
             else:
-                external_ls_per_ha = agents.herds_on_rangeland[self.t[0]-1] / agents.land_area
+                external_ls_per_ha[pos] = agents.herds_on_rangeland[self.t[0]-1, pos] / agents.land_area[pos]
         else:       
-            external_ls_per_ha = agents.livestock[self.t[0]] / agents.land_area * (1-ls_inp['frac_crops'])
+            external_ls_per_ha = agents.livestock[self.t[0],pos] / agents.land_area[pos] * (1-ls_inp['frac_crops'])
         
         N_per_ha = external_ls_per_ha * ls_inp['N_production']  # head/ha * kgN/head * __ = kgN/ha
         return N_per_ha

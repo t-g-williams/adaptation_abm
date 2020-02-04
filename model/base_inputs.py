@@ -49,6 +49,12 @@ def agents():
         # binary switches
         'savings_acct' : True, # if false, agents can't carry over extra money between years
 
+        # data import
+        'read_from_file' : True,
+        'props_from_file' : ['hh_size','land_area_init'], # the variable names in the file should be equivalent to the names in this file
+        'file_name' : '../inputs/lsla_for_abm.csv',
+        'data_filter' : 'site=="OR1"',
+
         # adaptation / decision-making
         'adap_type' : 'always', # coping, switching, affording, or always
         'n_yr_smooth' : 3, # number of smoothing years for livestock management decisions (fodder availability assumption)
