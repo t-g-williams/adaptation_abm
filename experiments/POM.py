@@ -27,12 +27,12 @@ import plot.single_run as plt_single
 
 def main():
     # specify experimental settings
-    N_samples = 10000
+    N_samples = 100000
     ncores = 40
     nreps = 10
-    exp_name = '2020_1_31_3/POM'
+    exp_name = '2020_2_4/POM'
     inputs = {
-        'model' : {'n_agents' : 99, 'T' : 50, 'exp_name' : exp_name}
+        'model' : {'n_agents' : 200, 'T' : 30, 'exp_name' : exp_name}
     }
     fit_threshold = 0.8
 
@@ -46,6 +46,10 @@ def main():
         ['agents', 'cash_req_mean', 3000, 30000, False],
         ['agents', 'livestock_init', 0, 15, True], # converted to integer
         ['agents', 'n_yr_smooth', 1, 6, True], # converted to integer. if 6 is max then in model max will be 5
+        ['agents', 'salary_jobs_availability', 0.01, 0.5, False],
+        ['agents', 'wage_jobs_availability', 0.01, 0.5, False],
+        ['agents', 'labor_salary', 5000, 30000, True],
+        ['agents', 'wage_salary', 5000, 30000, True],
         ['rangeland', 'range_farm_ratio', 0.1, 5, False],
         ['rangeland', 'gr2', 0, 0.3, False],
         ['rangeland', 'rain_use_eff', 0.1, 10, False],
@@ -73,19 +77,25 @@ def fitting_metrics(mod):
     n_yrs = 10 # how many years to do calculations over (from the end of the simulation)
     types = list(mod.agents.types.keys())
 
-    ## 1. wealth/poverty
-    ## A: one group always has >0 wealth
-    ## B: one group has a probability of having >0 wealth \in [0.2,0.8]
-    oneA = False
-    oneB = False
-    for t in types:
-        ag_type = mod.agents.type == t
-        prob = np.mean(mod.agents.cant_cope[-1,ag_type])
-        cond1 = prob == 1
-        oneA = True if cond1 else oneA
-        cond2 = ((prob >= 0.2) and (prob <= 0.8))
-        oneB = True if cond2 else oneB
-    one = bool(oneA * oneB)
+    # ## 1. wealth/poverty FOR AGENT TYPES (NON-EMPIRICAL)
+    # ## A: one group always has >0 wealth
+    # ## B: one group has a probability of having >0 wealth \in [0.2,0.8]
+    # oneA = False
+    # oneB = False
+    # for t in types:
+    #     ag_type = mod.agents.type == t
+    #     prob = np.mean(mod.agents.cant_cope[-1,ag_type])
+    #     cond1 = prob == 1
+    #     oneA = True if cond1 else oneA
+    #     cond2 = ((prob >= 0.2) and (prob <= 0.8))
+    #     oneB = True if cond2 else oneB
+    # one = bool(oneA * oneB)
+
+    ## VULNERABILITY
+    # %age of Hhs that can't initially meet food requirements is \in (30%,45%)
+    # note: it is 31% in OR1 and 44% in OR2
+    p_cope = np.mean(mod.agents.cons_red_rqd[-n_yrs:])
+    one = True if ((p_cope>=0.3) & (p_cope<=0.45)) else False
 
     ## 2. land degradation exists
     # not consistently someone at maximum value
@@ -97,21 +107,30 @@ def fitting_metrics(mod):
     ## A: P(regional destocking required) \in [0.1,0.5]
     prob = np.mean(mod.rangeland.destocking_rqd)
     threeA = True if ((prob >= 0.1) and (prob <= 0.9)) else False
-    ## B: min(reserve biomass) > 0.2*R_max
-    threeB = True if min(mod.rangeland.R >= 0.2 * mod.rangeland.R_max) else False
+    ## B: min(reserve biomass) > 0.4*R_max
+    threeB = True if min(mod.rangeland.R >= 0.4 * mod.rangeland.R_max) else False
     ## C: there are livestock on the rangeland in the last n_yrs
-    threeC = True if (min(mod.rangeland.livestock_supported[-n_yrs:]) > 0) else False
-    three = bool(threeA * threeB * threeC)
+    # threeC = True if (min(mod.rangeland.livestock_supported[-n_yrs:]) > 0) else False
+    three = bool(threeA * threeB)
 
-    ## 4. livestock: most HHs have livestock but not too much
-    fourA = np.mean(mod.agents.livestock[-1]>0) >= 0.8
+    ## 4. livestock: 
+    # >80% of HHs have livestock
+    fourA = np.mean(mod.agents.livestock[-n_yrs:]>0) >= 0.8
     # 90th%ile agent has less than 10 livestock on average
     fourB = np.percentile(np.mean(mod.agents.livestock, axis=0), 90) < 10 # take mean over time for each agent
-    # maximum ever is less than 30
-    fourC = np.max(mod.agents.livestock)<30
+    # maximum ever is less than 50
+    fourC = np.max(mod.agents.livestock)<50
     four = bool(fourA*fourB*fourC)
 
-    return [one,two,three,four]
+    ## 5. non-farm income
+    # upper and lower limits on wage and salary income
+    p_wage = np.mean(mod.agents.wage_labor[-n_yrs:] > 0)
+    p_sal = np.mean(mod.agents.salary_labor[-n_yrs:] > 0)
+    fiveA = ((p_wage>0.1) & (p_wage<0.15))
+    fiveB = ((p_sal>0.05) & (p_sal<0.1))
+    five = bool(fiveA*fiveB)
+
+    return [one,two,three,four,five]
 
 def hypercube_sample(N, calib_vars):
     '''

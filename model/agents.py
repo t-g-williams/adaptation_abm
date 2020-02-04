@@ -40,7 +40,8 @@ class Agents():
         self.income = np.full([self.T, self.N], -9999)
         self.farm_income = np.full([self.T, self.N], -9999)
         self.ls_income = np.full([self.T, self.N], 0)
-        self.nonfarm_income = np.full([self.T, self.N], -9999)
+        self.salary_income = np.full([self.T, self.N], -9999)
+        self.wage_income = np.full([self.T, self.N], -9999)
         self.savings_post_cons_smooth = np.full([self.T, self.N], -9999)
         # coping measures
         self.cons_red_rqd = np.full([self.T, self.N], False)
@@ -63,11 +64,14 @@ class Agents():
         # other
         self.n_yr_smooth = int(self.n_yr_smooth) # in case it's from POM
         self.ag_labor = np.full([self.T, self.N], np.nan)
-        self.nonag_labor = np.full([self.T, self.N], np.nan)
+        self.salary_labor = np.full([self.T, self.N], np.nan)
+        self.wage_labor = np.full([self.T, self.N], np.nan)
         self.ls_labor = np.full([self.T, self.N], np.nan)
+        self.p_wage_labor = np.full(self.T, np.nan)
 
         ##### MARKET #####
-        self.job_avail_total = np.floor(self.jobs_availability * self.N / self.job_increment) * self.job_increment
+        self.salary_job_avail_total = np.floor(self.salary_jobs_availability * self.N / self.salary_job_increment) * self.salary_job_increment
+        self.wage_job_avail_total = np.floor(self.wage_jobs_availability * self.N / self.wage_job_increment) * self.wage_job_increment
 
         ##### DATA IMPORT #####
         # this overwrites the previous things if necessary
@@ -123,6 +127,8 @@ class Agents():
     def labor_allocation(self):
         '''
         start-of-year labor allocation to ag and non-ag activities
+        here, the non-ag activities represent SALARY jobs b/c they are decided ex-ante
+        and they have some inertia
         '''
         t = self.t[0]
         self.ls_start[t] = copy.deepcopy(self.livestock[t])
@@ -143,46 +149,50 @@ class Agents():
         ## non-farm labor
         if t == 0:
             # only allocating labor as coping mechanism so don't do in first period
-            self.nonag_labor[t] = 0
+            self.salary_labor[t] = 0
         else:
             # assume that people by default do what they did last year
             # ie ppl with jobs keep them by default
-            nonag_lbr = self.nonag_labor[t-1]
+            nonag_lbr = self.salary_labor[t-1]
 
             # DECREASES: exits from non-farm labor
             # this frees up space for other agents
             if t > 1:
                 # agents decrease their non-farm labor when
-                # their average income over the past N years (smoothing) allows
+                # (they don't have enough labor any more - e.g. b/c new livestock)
+                reductions_lbr = -np.minimum(self.hh_size - self.ag_labor[t] - self.ls_labor[t] - nonag_lbr, 0)
+                # but mainly when their average income over the past N years (smoothing) allows
                 # for expenditure beyond the minimum value
                 yrs = np.arange(0,t) if (t-1)<self.n_yr_smooth else np.arange(t-self.n_yr_smooth,t)
                 exp_income_hist = np.mean(self.income[yrs], axis=0)
-                reductions = np.minimum(nonag_lbr, -np.minimum(exp_income_hist/self.labor_wage, 0)) # ppl = $ / ($/ppl)
-                reductions = np.floor(reductions/self.job_increment) * self.job_increment # be pessimistic
-                nonag_lbr -= reductions
+                reductions = np.minimum(nonag_lbr, -np.minimum(exp_income_hist/self.labor_salary, 0)) # ppl = $ / ($/ppl)
+                reductions = np.floor(reductions/self.salary_job_increment) * self.salary_job_increment # be pessimistic
+                nonag_lbr -= np.maximum(reductions, reductions_lbr)
 
             # INCREASES in non-farm labor
             # try to increase if there was negative cash last year BEYOND the consumption reductions
-            ppl_req_cash = round_up(np.maximum(-self.savings_post_cons_smooth[t-1] / self.labor_wage, 0), self.job_increment) # ppl = $ / ($/ppl)
+            ppl_req_cash = round_up(np.maximum(-self.savings_post_cons_smooth[t-1] / self.labor_salary, 0), self.salary_job_increment) # ppl = $ / ($/ppl)
             # and extra labor available
-            max_ppl_avail = round_up(self.hh_size - self.ag_labor[t] - self.ls_labor[t] - nonag_lbr, self.job_increment)
+            max_ppl_avail = round_down(self.hh_size - self.ag_labor[t] - self.ls_labor[t] - nonag_lbr, self.salary_job_increment)
             consider_amt = np.minimum(ppl_req_cash, max_ppl_avail)
 
             # allocate the jobs between those that want them
-            new_allocations = self.allocate_nonfarm_labor(consider_amt, nonag_lbr)
-            self.nonag_labor[t] = nonag_lbr + new_allocations  
-            # if self.nonag_labor[t].max() > 50:
-            # code.interact(local=dict(globals(), **locals()))      
+            new_allocations = self.allocate_salary_labor(consider_amt, nonag_lbr, self.salary_job_avail_total)
+            self.salary_labor[t] = nonag_lbr + new_allocations  
+            # spare_labor = self.hh_size - self.ag_labor[t] - self.ls_labor[t] - self.salary_labor[t]
+            # if spare_labor.min() < 0:
+            #     print('neg labor!!')
+            #     code.interact(local=dict(globals(), **locals()))      
 
-    def allocate_nonfarm_labor(self, consider_amt, nonag_lbr):
+    def allocate_salary_labor(self, consider_amt, nonag_lbr, tot_jobs):
         '''
-        allocate the available non-farm jobs between the agents that want them
+        allocate the available salary jobs between the agents that want them
         assume that agents are considered successively
         (independent of how much work they need)
         with the order randomized at each time step
         '''
         # subtract off jobs that have already been allocated to continuing workers
-        num_jobs_avail = self.job_avail_total - np.sum(nonag_lbr)
+        num_jobs_avail = tot_jobs - np.sum(nonag_lbr)
 
         if np.sum(consider_amt) <= num_jobs_avail:
             return consider_amt
@@ -202,6 +212,27 @@ class Agents():
             agent_allocs = np.full(self.N, np.nan)
             agent_allocs[order_consider] = allocs
             return agent_allocs
+
+    def allocate_wage_labor(self, consider_amt, num_jobs_avail, increment):
+        '''
+        allocate the available wage jobs between the agents that want them
+        assume that each job is randomly allocated each day
+        '''
+        tot_consider = consider_amt.sum()
+        if tot_consider == 0:
+            return consider_amt
+        else:
+            self.p_wage_labor[self.t[0]] = min(1, num_jobs_avail/tot_consider)
+            if self.p_wage_labor[self.t[0]] == 1:
+                return consider_amt
+            else:
+                ntries = (consider_amt/increment).astype(int)
+                # just honor the regional probability
+                try:
+                    agent_allocs = np.random.binomial(n=ntries,p=self.p_wage_labor[self.t[0]]) * increment
+                except:
+                    code.interact(local=dict(globals(), **locals()))
+                return agent_allocs
 
     def calculate_income(self, land, climate, adap_properties):
         '''
@@ -225,11 +256,11 @@ class Agents():
         ## different income sources
         self.ls_income[t] += self.livestock[t] * self.all_inputs['livestock']['income']
         self.farm_income[t] = self.crop_sell_price*self.crop_production[t]
-        self.nonfarm_income[t] = (self.nonag_labor[t] * self.labor_wage).astype(int)
+        self.salary_income[t] = (self.salary_labor[t] * self.labor_salary).astype(int)
         
         # net income = crop_sales - living_cost - adap_costs + livestock_milk
         # assume the baseline with consumption smoothing here
-        self.income[t] = self.farm_income[t] + self.ls_income[t] + self.nonfarm_income[t] - \
+        self.income[t] = self.farm_income[t] + self.ls_income[t] + self.salary_income[t] - \
                 (self.living_cost*self.living_cost_min_frac).astype(int) - adap_costs
 
         if self.insurance_payout_year:
@@ -261,7 +292,18 @@ class Agents():
         self.cons_red_rqd[t, extra_spending==0] = True
         self.savings_post_cons_smooth[t] = copy.deepcopy(self.savings[t+1])
 
-        ## 3. STRESS DESTOCKING
+        ## 3. CASUAL LABOR
+        # agents that cannot meet their immediate food requirements (min living costs) with their income and savings
+        # try to engage in casual labor
+        lbr_rqmt = round_up(np.maximum(-self.savings[t+1]/self.labor_wage, 0), self.wage_job_increment) # calculate amt rqd: $ / ($/person) = person
+        max_ppl_avail = round_up(self.hh_size-self.ag_labor[t]-self.ls_labor[t]-self.salary_labor[t], self.wage_job_increment)
+        lbr_amts = np.minimum(lbr_rqmt, max_ppl_avail)
+        self.wage_labor[t] = self.allocate_wage_labor(lbr_amts, self.wage_job_avail_total, self.wage_job_increment)
+        self.wage_income[t] = self.wage_labor[t] * self.labor_wage
+        self.savings[t+1] += self.wage_income[t]
+
+        ## 4. STRESS DESTOCKING
+        # sell livestock if food requirements still haven't been met
         sell_rqmt = np.maximum(np.ceil(-self.savings[t+1]/ls_inp['cost']), 0).astype(int) # calculate amt rqd
         sell_amt = np.minimum(ls_obj, sell_rqmt) # restricted by available livestock
         ls_obj -= sell_amt # reduce the herdsize
@@ -270,12 +312,12 @@ class Agents():
         self.stress_ls_sell_rqd[t, sell_rqmt>0] = True # record
         self.ls_stress[t] = copy.deepcopy(ls_obj)
 
-        ## 4. reset savings for those that have less than zero still
+        ## 5. reset savings for those that have less than zero still
         # assume that debts can't carry over
         self.cant_cope[t, self.savings[t+1]<0] = True # record
         self.savings[t+1, self.cant_cope[t]] = 0
-
         # code.interact(local=dict(globals(), **locals()))
+
         return ls_obj
 
     def livestock_stocking(self, land, ls_obj, rangeland):
@@ -293,7 +335,7 @@ class Agents():
         ## A: how many can be purchased
         max_purchase = np.floor(self.savings[t+1] / ls_inp['cost'])
         ## B: how many is there labor available for (given current employment and farming)
-        max_labor_tot = np.floor((self.hh_size-self.ag_labor[t]-self.nonag_labor[t]) / self.ls_labor_rqmt) # head = ppl / ppl/head
+        max_labor_tot = np.floor((self.hh_size-self.ag_labor[t]-self.salary_labor[t]) / self.ls_labor_rqmt) # head = ppl / ppl/head
         ## C: how many can be grazed on-farm
         # average the production over the past n years
         yrs = np.arange(0,t+1) if t<self.n_yr_smooth else np.arange(t-self.n_yr_smooth+1,t+1)
@@ -317,8 +359,19 @@ class Agents():
                 # max_off_farm = self.herds_on_rangeland[t] if rangeland.destocking_rqd[t] else np.floor(np.mean(self.herds_on_rangeland[t])).astype(int)
                 # OPTION 4: look back at the max amount they've had over the past few years
                 # this leads to low rangeland quality long-run
-                max_off_farm = self.herds_on_rangeland[t] if rangeland.destocking_rqd[t] else np.floor(np.max(self.herds_on_rangeland[yrs], axis=0)).astype(int)
-                # # code.interact(local=dict(globals(), **locals()))
+                # max_off_farm = self.herds_on_rangeland[t] if rangeland.destocking_rqd[t] else np.floor(np.max(self.herds_on_rangeland[yrs], axis=0)).astype(int)
+                # OPTION 5: if destocking has been rqd, look at maximum _successful_ herdsize in the previous N years.
+                # else, increase by 1 above the maximum you've had in the past
+                # (note: herds_on_rangeland represents the value after destocking)
+                agent_destocks = self.ls_reprod[yrs] > self.ls_destock[yrs]
+                # take the minimum amt of livestock in years that destocking was required (to be conservative)
+                max_off_farm = np.array(np.ma.array(self.herds_on_rangeland[yrs], mask=~agent_destocks).min(axis=0, fill_value=99))
+                # take the maximum amt of livestock in years that destocking was not required
+                max_no_destock = np.array(np.ma.array(self.herds_on_rangeland[yrs], mask=agent_destocks).max(axis=0, fill_value=0))
+                # agents that have experienced no destocking assume they're able to increase above the max that they've had by 1
+                max_off_farm[max_off_farm>98] = max_no_destock[max_off_farm>98] + 1
+                # print(max_off_farm)
+                # code.interact(local=dict(globals(), **locals()))
         else:
             # if 80% of livestock must be grazed on fodder, then the maximum wealth you can carry
             # is 20% of your current livestock herds + whatever you can sustain from your crop residues
@@ -381,3 +434,9 @@ def round_up(amts, stepsize):
     round amts up to the nearest stepsize
     '''
     return np.ceil(amts/stepsize) * stepsize
+
+def round_down(amts, stepsize):
+    '''
+    round amts up to the nearest stepsize
+    '''
+    return np.floor(amts/stepsize) * stepsize

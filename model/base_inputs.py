@@ -83,9 +83,12 @@ def agents():
         ##### socio-environmental condns #####
         'crop_sell_price' : 2.17, # 2.17 birr/kg. mean 2015 maize price (FAO)
         'fertilizer_cost' : 13.2, # 13.2 birr/kg. median from 2015 LSMS
+        'labor_salary' : 70*365*5/7, # birr/person/year: 70 birr/day * 5 days per week all year
         'labor_wage' : 70*365*5/7, # birr/person/year: 70 birr/day * 5 days per week all year
-        'jobs_availability' : 0.1, # full-time jobs per agent
-        'job_increment' : 0.5, # minimum fraction of a person's time that can be devoted to non-farm labor (e.g., if 1 then ONLY full-time jobs are available)
+        'salary_jobs_availability' : 0.1, # full-time salary jobs per agent (used as livelihood strategy)
+        'wage_jobs_availability' : 0.1, # single-day wage jobs per agent (used as coping)
+        'salary_job_increment' : 0.5, # minimum fraction of a person's time that can be devoted to non-farm SALARY labor (e.g., if 1 then ONLY full-time jobs are available)
+        'wage_job_increment' : 0.005, # minimum fraction of a person's time that can be devoted to non-farm WAGE labor (e.g., if 0.005 then 1/200th of year)
         'ag_labor_rqmt' : 1.5, # ppl/ha
         'ls_labor_rqmt' : 0.2, # ppl/head
     }
