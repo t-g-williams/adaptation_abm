@@ -91,7 +91,6 @@ class Land():
         additional livestock SOM inputs come from import from rangeland
         assume 100% of nutrients from livestock grazed on rangeland are imported
         '''
-        agents.ls_start[self.t[0]] = copy.deepcopy(agents.livestock[self.t[0]])
         ls_inp = self.all_inputs['livestock']
         # agents' livestock are split equally over their land. birr / ha
         if self.all_inputs['rangeland']['rangeland_dynamics']:

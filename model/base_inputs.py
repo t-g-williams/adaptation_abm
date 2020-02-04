@@ -53,15 +53,18 @@ def agents():
         'adap_type' : 'always', # coping, switching, affording, or always
         'n_yr_smooth' : 3, # number of smoothing years for livestock management decisions (fodder availability assumption)
         
-        # plot ownership
+        ##### land #####
         'land_area_init' : [1, 1.5, 2], # ha. uniformly sample from each
         'land_area_multiplier' : 1, # for sensitivity analysis
 
+        ##### demographics ######
         'types' : {'land-poor' : {'land_area' : 1, 'hh_size' : 3},
                     'middle' : {'land_area' : 1.5, 'hh_size' : 3},
                     'land-rich' : {'land_area' : 2, 'hh_size' : 3}},
 
         'hh_size_init' : 3,
+        'living_cost_pp' : 2000, # birr/yr. "desired living costs". 17261 median (hh) value from 2015 LSMS
+        'living_cost_min_frac' : 0.5, # fraction of the living costs that must be spent
 
         ##### cash + wealth #####
         # initial cash savings (normal distribution)
@@ -70,12 +73,15 @@ def agents():
         # 'max_neg_wealth' : 0, # birr. just for plotting. these ppl cant recover anyway
         # initial livestock (constant amount)
         'livestock_init' : 5,# 0,
-        # requirements
-        'living_cost_pp' : 2000, # birr/yr. 17261 median (hh) value from 2015 LSMS
-        'living_cost_reduction_max' : 0.5, # fraction of the living costs that can be reduced as a coping measure
-        # market prices
+        
+        ##### socio-environmental condns #####
         'crop_sell_price' : 2.17, # 2.17 birr/kg. mean 2015 maize price (FAO)
         'fertilizer_cost' : 13.2, # 13.2 birr/kg. median from 2015 LSMS
+        'labor_wage' : 70*365*5/7, # birr/person/year: 70 birr/day * 5 days per week all year
+        'jobs_availability' : 0.1, # full-time jobs per agent
+        'job_increment' : 0.5, # minimum fraction of a person's time that can be devoted to non-farm labor (e.g., if 1 then ONLY full-time jobs are available)
+        'ag_labor_rqmt' : 1.5, # ppl/ha
+        'ls_labor_rqmt' : 0.2, # ppl/head
     }
     return d
 

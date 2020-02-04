@@ -30,7 +30,7 @@ def main():
     N_samples = 10000
     ncores = 40
     nreps = 10
-    exp_name = '2020_1_28_rangeland/POM'
+    exp_name = '2020_1_31_3/POM'
     inputs = {
         'model' : {'n_agents' : 99, 'T' : 50, 'exp_name' : exp_name}
     }
@@ -39,21 +39,22 @@ def main():
     # define the variables for calibration
     calib_vars = pd.DataFrame(
         # id, key1, key2, min, max
-        [['land', 'rain_cropfail_low_SOM', 0, 0.5],
-        ['land', 'fast_mineralization_rate', 0.05, 0.95],
-        ['land', 'residue_CN_conversion', 25, 200],
-        ['land', 'loss_max', 0.05, 0.95],
-        ['agents', 'cash_req_mean', 3000, 30000],
-        ['agents', 'livestock_init', 0, 15], # converted to integer
-        ['rangeland', 'range_farm_ratio', 0.1, 5],
-        ['rangeland', 'gr2', 0, 0.3],
-        ['rangeland', 'rain_use_eff', 0.1, 10],
-        ['rangeland', 'R_max', 1000, 7000],
-        ['livestock', 'birth_rate', 0.1, 0.8],
-        ['livestock', 'N_production', 30, 150]],
+        [['land', 'rain_cropfail_low_SOM', 0, 0.5, False],
+        ['land', 'fast_mineralization_rate', 0.05, 0.95, False],
+        ['land', 'residue_CN_conversion', 25, 200, False],
+        ['land', 'loss_max', 0.05, 0.95, False],
+        ['agents', 'cash_req_mean', 3000, 30000, False],
+        ['agents', 'livestock_init', 0, 15, True], # converted to integer
+        ['agents', 'n_yr_smooth', 1, 6, True], # converted to integer. if 6 is max then in model max will be 5
+        ['rangeland', 'range_farm_ratio', 0.1, 5, False],
+        ['rangeland', 'gr2', 0, 0.3, False],
+        ['rangeland', 'rain_use_eff', 0.1, 10, False],
+        ['rangeland', 'R_max', 1000, 7000, False],
+        ['livestock', 'birth_rate', 0.1, 0.8, False],
+        ['livestock', 'N_production', 30, 150, False]],
         # [9, 'climate', 'rain_mu', 0.2, 0.8],
         # [10, 'land', 'random_effect_sd', 0, 1]],
-        columns = ['key1','key2','min_val','max_val'])
+        columns = ['key1','key2','min_val','max_val','as_int'])
 
     # generate set of RVs
     rvs = hypercube_sample(N_samples, calib_vars)
@@ -95,14 +96,22 @@ def fitting_metrics(mod):
     ## 3. rangeland is not fully degrated
     ## A: P(regional destocking required) \in [0.1,0.5]
     prob = np.mean(mod.rangeland.destocking_rqd)
-    threeA = True if ((prob >= 0.1) and (prob <= 0.5)) else False
+    threeA = True if ((prob >= 0.1) and (prob <= 0.9)) else False
     ## B: min(reserve biomass) > 0.2*R_max
     threeB = True if min(mod.rangeland.R >= 0.2 * mod.rangeland.R_max) else False
     ## C: there are livestock on the rangeland in the last n_yrs
     threeC = True if (min(mod.rangeland.livestock_supported[-n_yrs:]) > 0) else False
     three = bool(threeA * threeB * threeC)
 
-    return [one,two,three]
+    ## 4. livestock: most HHs have livestock but not too much
+    fourA = np.mean(mod.agents.livestock[-1]>0) >= 0.8
+    # 90th%ile agent has less than 10 livestock on average
+    fourB = np.percentile(np.mean(mod.agents.livestock, axis=0), 90) < 10 # take mean over time for each agent
+    # maximum ever is less than 30
+    fourC = np.max(mod.agents.livestock)<30
+    four = bool(fourA*fourB*fourC)
+
+    return [one,two,three,four]
 
 def hypercube_sample(N, calib_vars):
     '''
@@ -115,6 +124,9 @@ def hypercube_sample(N, calib_vars):
     # scale
     rvs = np.array(calib_vars.min_val)[None,:] + rvs_unif * \
             np.array(calib_vars.max_val - calib_vars.min_val)[None,:]
+
+    # convert integer params
+    rvs[:,calib_vars.as_int] = rvs[:,calib_vars.as_int].astype(int)
 
     return rvs
 

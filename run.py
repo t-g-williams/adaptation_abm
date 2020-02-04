@@ -25,7 +25,7 @@ inputs = inp
 
 ## change any params
 inputs['model']['T'] = 30
-inputs['model']['n_agents'] = 60
+inputs['model']['n_agents'] = 10
 # inputs['rangeland']['range_farm_ratio'] = 0.5
 # inputs['rangeland']['gr2'] = 0.1
 # inputs['agents']['savings_acct'] = True
@@ -41,8 +41,8 @@ st2 = time.time()
 print(st2-st1)
 # sys.exit()
 # plot
-plt.main(m)
 code.interact(local=dict(globals(), **locals()))
+plt.main(m)
 
 st3 = time.time()
 # print(st3-st2)

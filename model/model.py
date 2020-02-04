@@ -36,6 +36,7 @@ class Model():
         '''
         advance the simulation by one year
         '''
+        self.agents.labor_allocation()
         self.land.update_soil(self.agents, self.adap_properties)
         self.land.crop_yields(self.agents, self.climate)
         self.agents.calculate_income(self.land, self.climate, self.adap_properties)
