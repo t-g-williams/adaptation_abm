@@ -38,6 +38,9 @@ class Agents():
         self.wealth[0] = self.savings[0] + self.livestock[0]
         # money
         self.income = np.full([self.T, self.N], -9999)
+        self.farm_income = np.full([self.T, self.N], -9999)
+        self.ls_income = np.full([self.T, self.N], 0)
+        self.nonfarm_income = np.full([self.T, self.N], -9999)
         self.savings_post_cons_smooth = np.full([self.T, self.N], -9999)
         # coping measures
         self.cons_red_rqd = np.full([self.T, self.N], False)
@@ -131,9 +134,11 @@ class Agents():
         max_ls = np.floor(np.minimum((self.hh_size - self.ag_labor[t]) / self.ls_labor_rqmt, self.livestock[t])).astype(int) # head = ppl / (ppl/head)
         destock_amt = np.ceil(np.maximum(self.livestock[t] - max_ls, 0)).astype(int)
         self.livestock[t] -= destock_amt
-        self.savings[t] += destock_amt * self.all_inputs['livestock']['cost']
+        ls_inc = destock_amt * self.all_inputs['livestock']['cost']
+        self.savings[t] += ls_inc
         self.ls_num_lbr[t] = copy.deepcopy(self.livestock[t])
         self.ls_labor[t] = self.livestock[t] * self.ls_labor_rqmt
+        self.ls_income[t] += ls_inc
 
         ## non-farm labor
         if t == 0:
@@ -152,7 +157,7 @@ class Agents():
                 # for expenditure beyond the minimum value
                 yrs = np.arange(0,t) if (t-1)<self.n_yr_smooth else np.arange(t-self.n_yr_smooth,t)
                 exp_income_hist = np.mean(self.income[yrs], axis=0)
-                reductions = np.minimum(nonag_lbr, exp_income_hist/self.labor_wage) # ppl = $ / ($/ppl)
+                reductions = np.minimum(nonag_lbr, -np.minimum(exp_income_hist/self.labor_wage, 0)) # ppl = $ / ($/ppl)
                 reductions = np.floor(reductions/self.job_increment) * self.job_increment # be pessimistic
                 nonag_lbr -= reductions
 
@@ -165,7 +170,9 @@ class Agents():
 
             # allocate the jobs between those that want them
             new_allocations = self.allocate_nonfarm_labor(consider_amt, nonag_lbr)
-            self.nonag_labor[t] = nonag_lbr + new_allocations        
+            self.nonag_labor[t] = nonag_lbr + new_allocations  
+            # if self.nonag_labor[t].max() > 50:
+            # code.interact(local=dict(globals(), **locals()))      
 
     def allocate_nonfarm_labor(self, consider_amt, nonag_lbr):
         '''
@@ -176,21 +183,25 @@ class Agents():
         '''
         # subtract off jobs that have already been allocated to continuing workers
         num_jobs_avail = self.job_avail_total - np.sum(nonag_lbr)
-        # the order in which agents are considered is randomized each time step
-        order_consider = np.random.choice(self.N, size=self.N, replace=False)
-        # line up the agents
-        cumsums = np.cumsum(consider_amt[order_consider])
-        # find the last agent that gets any (first index that it is >= the limit)
-        crit_ix = np.argmax(cumsums >= num_jobs_avail)
-        # if the last agent has overshot, only allocate up to the limit
-        cumsums[crit_ix] = num_jobs_avail
-        # take the differences to give agent-level allocations
-        allocs = cumsums - np.concatenate([[0], cumsums[:-1]])
-        allocs[(crit_ix+1):] = 0
-        # convert back to the regular agent order
-        agent_allocs = np.full(self.N, np.nan)
-        agent_allocs[order_consider] = allocs
-        return agent_allocs
+
+        if np.sum(consider_amt) <= num_jobs_avail:
+            return consider_amt
+        else:
+            # the order in which agents are considered is randomized each time step
+            order_consider = np.random.choice(self.N, size=self.N, replace=False)
+            # line up the agents
+            cumsums = np.cumsum(consider_amt[order_consider])
+            # find the last agent that gets any (first index that it is >= the limit)
+            crit_ix = np.argmax(cumsums >= num_jobs_avail)
+            # if the last agent has overshot, only allocate up to the limit
+            cumsums[crit_ix] = min(num_jobs_avail, cumsums[crit_ix])
+            # take the differences to give agent-level allocations
+            allocs = cumsums - np.concatenate([[0], cumsums[:-1]])
+            allocs[(crit_ix+1):] = 0
+            # convert back to the regular agent order
+            agent_allocs = np.full(self.N, np.nan)
+            agent_allocs[order_consider] = allocs
+            return agent_allocs
 
     def calculate_income(self, land, climate, adap_properties):
         '''
@@ -211,12 +222,15 @@ class Agents():
         elif adap_properties['type'] == 'cover_crop':
             adap_costs[self.adapt[t]] = adap_properties['cost'] * self.land_area[self.adapt[t]]
 
-        ## livestock milk production
-        ls_milk_money = self.livestock[t] * self.all_inputs['livestock']['income']
-
-        # income = crop_sales - living_cost - adap_costs + livestock_milk
+        ## different income sources
+        self.ls_income[t] += self.livestock[t] * self.all_inputs['livestock']['income']
+        self.farm_income[t] = self.crop_sell_price*self.crop_production[t]
+        self.nonfarm_income[t] = (self.nonag_labor[t] * self.labor_wage).astype(int)
+        
+        # net income = crop_sales - living_cost - adap_costs + livestock_milk
         # assume the baseline with consumption smoothing here
-        self.income[t] = self.crop_sell_price*self.crop_production[t] - (self.living_cost*self.living_cost_min_frac).astype(int) - adap_costs + ls_milk_money
+        self.income[t] = self.farm_income[t] + self.ls_income[t] + self.nonfarm_income[t] - \
+                (self.living_cost*self.living_cost_min_frac).astype(int) - adap_costs
 
         if self.insurance_payout_year:
             # assume that agents first use their payout to neutralize their income
@@ -252,6 +266,7 @@ class Agents():
         sell_amt = np.minimum(ls_obj, sell_rqmt) # restricted by available livestock
         ls_obj -= sell_amt # reduce the herdsize
         self.savings[t+1] += sell_amt * ls_inp['cost'] # add to income
+        self.ls_income[t] += sell_amt * ls_inp['cost']
         self.stress_ls_sell_rqd[t, sell_rqmt>0] = True # record
         self.ls_stress[t] = copy.deepcopy(ls_obj)
 
@@ -328,6 +343,7 @@ class Agents():
         self.savings[t+1] -= ls_change * ls_inp['cost'] # attribute to savings
         self.destocking_rqd[t,ls_change<0] = True # record
         self.ls_purchase[t] = copy.deepcopy(ls_obj)
+        self.ls_income[t, self.destocking_rqd[t]] += -ls_change[self.destocking_rqd[t]]*ls_inp['cost']
 
         # save for next time step
         self.livestock[t+1] = ls_obj # save
