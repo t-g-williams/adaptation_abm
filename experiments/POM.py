@@ -27,10 +27,10 @@ import plot.single_run as plt_single
 
 def main():
     # specify experimental settings
-    N_samples = 10000
+    N_samples = 200000
     ncores = 40
-    nreps = 10
-    exp_name = '2020_2_5_9/POM'
+    nreps = 20
+    exp_name = '2020_2_5_10/POM'
     inputs = {
         'model' : {'n_agents' : 200, 'T' : 30, 'exp_name' : exp_name}
     }
