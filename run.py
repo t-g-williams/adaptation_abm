@@ -16,16 +16,16 @@ inputs = inp
 #### OR ####
 
 # load from POM experiment
-# f = '../outputs/2019_10_15_4/POM/100000_10reps/input_params_0.pkl'
-# inp = pickle.load(open(f, 'rb'))
+f = '../outputs/2020_2_5/POM/1000_10reps/input_params_0.pkl'
+inp = pickle.load(open(f, 'rb'))
 # inp['climate']['rain_mu'] = 0.5
 # inp['agents']['land_area_multiplier'] = 1
 # inp['rangeland'] = inp_base['rangeland']
 
 
 ## change any params
-inputs['model']['T'] = 50
-inputs['model']['n_agents'] = 600
+# inputs['model']['T'] = 50
+# inputs['model']['n_agents'] = 600
 # inputs['agents']['jobs_availability'] *= 20
 # inputs['agents']['living_cost_pp'] *= 5
 # inputs['rangeland']['range_farm_ratio'] = 0.5

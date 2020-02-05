@@ -27,10 +27,10 @@ import plot.single_run as plt_single
 
 def main():
     # specify experimental settings
-    N_samples = 100000
+    N_samples = 10000
     ncores = 40
     nreps = 10
-    exp_name = '2020_2_4/POM'
+    exp_name = '2020_2_5_9/POM'
     inputs = {
         'model' : {'n_agents' : 200, 'T' : 30, 'exp_name' : exp_name}
     }
@@ -40,23 +40,27 @@ def main():
     calib_vars = pd.DataFrame(
         # id, key1, key2, min, max
         [['land', 'rain_cropfail_low_SOM', 0, 0.5, False],
-        ['land', 'fast_mineralization_rate', 0.05, 0.95, False],
+        ['land', 'fast_mineralization_rate', 0.4, 0.95, False],
         ['land', 'residue_CN_conversion', 25, 200, False],
         ['land', 'loss_max', 0.05, 0.95, False],
-        ['agents', 'cash_req_mean', 3000, 30000, False],
         ['agents', 'livestock_init', 0, 15, True], # converted to integer
         ['agents', 'n_yr_smooth', 1, 6, True], # converted to integer. if 6 is max then in model max will be 5
+        ['agents', 'living_cost_pp', 500, 4000, True],
+        ['agents', 'living_cost_min_frac', 0.2, 0.8, False],
         ['agents', 'salary_jobs_availability', 0.01, 0.5, False],
         ['agents', 'wage_jobs_availability', 0.01, 0.5, False],
         ['agents', 'labor_salary', 5000, 30000, True],
         ['agents', 'wage_salary', 5000, 30000, True],
+        ['agents', 'ag_labor_rqmt', 0.5, 3, False],
+        ['agents', 'ls_labor_rqmt', 0.02, 0.5, False],
         ['rangeland', 'range_farm_ratio', 0.1, 5, False],
-        ['rangeland', 'gr2', 0, 0.3, False],
+        ['rangeland', 'gr2', 0, 0.2, False],
         ['rangeland', 'rain_use_eff', 0.1, 10, False],
         ['rangeland', 'R_max', 1000, 7000, False],
-        ['livestock', 'birth_rate', 0.1, 0.8, False],
-        ['livestock', 'N_production', 30, 150, False]],
-        # [9, 'climate', 'rain_mu', 0.2, 0.8],
+        ['livestock', 'birth_rate', 0, 0.8, False],
+        ['livestock', 'N_production', 30, 150, False],
+        ['livestock', 'consumption', 1500, 3000, True],
+        ['climate', 'rain_mu', 0.4, 0.8, False]],
         # [10, 'land', 'random_effect_sd', 0, 1]],
         columns = ['key1','key2','min_val','max_val','as_int'])
 
@@ -92,10 +96,12 @@ def fitting_metrics(mod):
     # one = bool(oneA * oneB)
 
     ## VULNERABILITY
-    # %age of Hhs that can't initially meet food requirements is \in (30%,45%)
+    # %age of Hhs that can't initially meet food requirements (before wage labor or destocking) is \in (30%,45%)
     # note: it is 31% in OR1 and 44% in OR2
     p_cope = np.mean(mod.agents.cons_red_rqd[-n_yrs:])
     one = True if ((p_cope>=0.3) & (p_cope<=0.45)) else False
+    #### NOTE: REMOVING THIS ONE BECAUSE IT CONFLICTS WITH THE WAGE AND SALARY REQUIREMENTS AND LIVESTOCK
+    #### (IE HAVING 30-45% OF PEOPLE NEEDING TO COPE BUT >80% WITH LIVESTOCK AND <15% WITH WAGE IS ROUGH)
 
     ## 2. land degradation exists
     # not consistently someone at maximum value
@@ -118,19 +124,26 @@ def fitting_metrics(mod):
     fourA = np.mean(mod.agents.livestock[-n_yrs:]>0) >= 0.8
     # 90th%ile agent has less than 10 livestock on average
     fourB = np.percentile(np.mean(mod.agents.livestock, axis=0), 90) < 10 # take mean over time for each agent
+    # median agent has less than 5 on average
+    fourC = np.percentile(np.mean(mod.agents.livestock, axis=0), 50) < 5
     # maximum ever is less than 50
-    fourC = np.max(mod.agents.livestock)<50
-    four = bool(fourA*fourB*fourC)
+    fourD = np.max(mod.agents.livestock)<50
+    four = bool(fourA*fourB*fourC*fourD)
 
     ## 5. non-farm income
     # upper and lower limits on wage and salary income
     p_wage = np.mean(mod.agents.wage_labor[-n_yrs:] > 0)
     p_sal = np.mean(mod.agents.salary_labor[-n_yrs:] > 0)
-    fiveA = ((p_wage>0.1) & (p_wage<0.15))
-    fiveB = ((p_sal>0.05) & (p_sal<0.1))
-    five = bool(fiveA*fiveB)
+    # print(p_sal)
+    fiveA = ((p_wage>0.05) & (p_wage<0.15))
+    fiveB = ((p_sal>0.05) & (p_sal<0.15))
+    # fiveA = ((p_wage>0.1) & (p_wage<0.15))
+    # fiveB = ((p_sal>0.05) & (p_sal<0.1))
+    # code.interact(local=dict(globals(), **locals()))
+    # five = bool(fiveA*fiveB)
 
-    return [one,two,three,four,five]
+    # return [one,two,three,four,fiveA,fiveB]
+    return [two,three,four,fiveA,fiveB]
 
 def hypercube_sample(N, calib_vars):
     '''
@@ -159,6 +172,9 @@ def run_model(rvs, inputs, calib_vars, ncores, nreps):
     outdir = '../outputs/{}/'.format(inputs['model']['exp_name'])
     if not os.path.isdir(outdir):
         os.makedirs(outdir)
+    outname = 'fits_raw.npz'
+    if os.path.isfile(outdir + outname):
+        return np.load(outdir+outname)['data']
 
     # run the model
     N = rvs.shape[0]
@@ -183,6 +199,7 @@ def run_model(rvs, inputs, calib_vars, ncores, nreps):
     # average over all reps
     fits_all_np = np.array(fits_all_np)
     fits_avg = np.mean(fits_all_np, axis=0)
+    np.savez_compressed(outdir+outname, data=fits_avg)
     return fits_avg
 
 def run_chunk_sims(ixs, rvs, inp_all, calib_vars):
@@ -270,7 +287,6 @@ def process_fits(fits, rvs, calib_vars, inputs, nreps, exp_name, fit_threshold):
     ax.text(i, vals.loc[i]+1, '{} patterns\n{} model(s)'.format(np.round(i, 1), vals.loc[i]), horizontalalignment='center')
     ax.set_xlim([0, fits.shape[1]])
     fig.savefig(outdir + 'histogram.png')
-
     # write outputs
     fit_pd = fit_pd.sort_values(by='sum', axis=0, ascending=False)
     fit_pd['sim_number'] = fit_pd.index
@@ -310,7 +326,7 @@ def process_fits(fits, rvs, calib_vars, inputs, nreps, exp_name, fit_threshold):
         m = model.Model(inp_all)
         for t in range(m.T):
             m.step()
-        plt_single.main(m)
+        # plt_single.main(m)
         fits_mod.append(fitting_metrics(m))
 
         # save the inputs -- as csv and pickle

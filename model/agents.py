@@ -170,8 +170,9 @@ class Agents():
                 nonag_lbr -= np.maximum(reductions, reductions_lbr)
 
             # INCREASES in non-farm labor
-            # try to increase if there was negative cash last year BEYOND the consumption reductions
-            ppl_req_cash = round_up(np.maximum(-self.savings_post_cons_smooth[t-1] / self.labor_salary, 0), self.salary_job_increment) # ppl = $ / ($/ppl)
+            # try to increase if there was on average negative cash last N years BEYOND the consumption reductions
+            yrs = np.arange(0,t) if (t-1)<self.n_yr_smooth else np.arange(t-self.n_yr_smooth,t)
+            ppl_req_cash = round_up(np.maximum(-np.mean(self.savings_post_cons_smooth[yrs], axis=0) / self.labor_salary, 0), self.salary_job_increment) # ppl = $ / ($/ppl)
             # and extra labor available
             max_ppl_avail = round_down(self.hh_size - self.ag_labor[t] - self.ls_labor[t] - nonag_lbr, self.salary_job_increment)
             consider_amt = np.minimum(ppl_req_cash, max_ppl_avail)
@@ -287,8 +288,8 @@ class Agents():
 
         ## 2. DESIRED LIVING COSTS
         # increase expenditure up towards the desird living cost level if possible
-        extra_spending = np.maximum(np.minimum(self.living_cost * (1-self.living_cost_min_frac), self.savings[t]), 0).astype(int)
-        self.savings[t] -= extra_spending
+        extra_spending = np.maximum(np.minimum(self.living_cost * (1-self.living_cost_min_frac), self.savings[t+1]), 0).astype(int)
+        self.savings[t+1] -= extra_spending
         self.cons_red_rqd[t, extra_spending==0] = True
         self.savings_post_cons_smooth[t] = copy.deepcopy(self.savings[t+1])
 
@@ -296,7 +297,7 @@ class Agents():
         # agents that cannot meet their immediate food requirements (min living costs) with their income and savings
         # try to engage in casual labor
         lbr_rqmt = round_up(np.maximum(-self.savings[t+1]/self.labor_wage, 0), self.wage_job_increment) # calculate amt rqd: $ / ($/person) = person
-        max_ppl_avail = round_up(self.hh_size-self.ag_labor[t]-self.ls_labor[t]-self.salary_labor[t], self.wage_job_increment)
+        max_ppl_avail = round_down(self.hh_size-self.ag_labor[t]-self.ls_labor[t]-self.salary_labor[t], self.wage_job_increment)
         lbr_amts = np.minimum(lbr_rqmt, max_ppl_avail)
         self.wage_labor[t] = self.allocate_wage_labor(lbr_amts, self.wage_job_avail_total, self.wage_job_increment)
         self.wage_income[t] = self.wage_labor[t] * self.labor_wage
