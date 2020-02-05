@@ -6,6 +6,7 @@ from .agents import Agents
 from .land import Land
 from .climate import Climate
 from .rangeland import Rangeland
+from.lsla import LSLA
 import code
 
 class Model():
@@ -36,6 +37,8 @@ class Model():
         '''
         advance the simulation by one year
         '''
+        if (self.lsla_simulation and self.t[0]==self.all_inputs['LSLA']['tstart']):
+            self.lsla = LSLA(self.all_inputs, self.agents, self.land, self.rangeland) # implement the LSLA
         self.agents.labor_allocation()
         self.land.update_soil(self.agents, self.adap_properties)
         self.land.crop_yields(self.agents, self.climate)

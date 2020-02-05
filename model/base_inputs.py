@@ -10,6 +10,7 @@ def compile():
     d['adaptation'] = adaptation()
     d['rangeland'] = rangeland()
     d['livestock'] = livestock()
+    d['LSLA'] = LSLA()
     return d
 
 def model():
@@ -22,6 +23,7 @@ def model():
         'rep_id' : 0,
         'adaptation_option' : 'none', # set to "none" for baseline
         'shock' : False,
+        'lsla_simulation' : True,
     }
     return d
 
@@ -96,6 +98,7 @@ def agents():
 
 def land():
     d = {
+        'plot_size' : 0.25, # ha. resolution of the landscape. NOTE: not fully integrated into the model
         ##### SOM #####
         # initial vals
         'organic_N_min_init' : 4000, # kgN/ha. similar to initial value in Li2004
@@ -168,5 +171,18 @@ def livestock():
         'consumption' : 2280, # kg/annum (640 in gunnar. i derived 2280 for cc_ins paper: kg dry matter / TLU / year.(Amsalu2014)). also compare to 2700kgDM in (NOTE: ITS AUSTRALIA HERE NOT BORANA) desta1999 for 400kg animal
         'birth_rate' : 0, # use no birth rate -- livestock aren't for breeding. livestock birth rate (probability) (gunnar has 0.8). see also angassa2007 (~0.5)
         'cost' : 3000, # birr/head. Ethiopia CSA data 2015
+    }
+    return d
+
+def LSLA():
+    d = {
+        'tstart' : 5, # e.g. 5 means start of 6th year of simulation
+        'size' : 0.25, # ha per agent
+        'employment' : 2, # jobs/ha taken
+        'LUC' : 'farm', # 'farm' or 'commons'' or ?'none'?
+        'encroachment' : 'farm', # where do displaced HHs encroach on? 'farm' or 'commons'
+        'frac_retain' : 0.5, # fraction of land that was originally taken that HHs retain (on average)
+        'land_distribution_type' : 'amt_lost', # amt_lost: proportional to the amt of land lost, 'equal_hh' : equal per hh, "equal_pp" : equal per person
+        'land_taking_type' : 'equalizing', # random or equalizing
     }
     return d

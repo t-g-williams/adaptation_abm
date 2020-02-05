@@ -25,7 +25,7 @@ inp = pickle.load(open(f, 'rb'))
 
 ## change any params
 # inputs['model']['T'] = 50
-# inputs['model']['n_agents'] = 600
+inputs['model']['n_agents'] = 50
 # inputs['agents']['jobs_availability'] *= 20
 # inputs['agents']['living_cost_pp'] *= 5
 # inputs['rangeland']['range_farm_ratio'] = 0.5

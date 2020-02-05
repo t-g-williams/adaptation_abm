@@ -70,30 +70,33 @@ class Agents():
         self.p_wage_labor = np.full(self.T, np.nan)
 
         ##### MARKET #####
-        self.salary_job_avail_total = np.floor(self.salary_jobs_availability * self.N / self.salary_job_increment) * self.salary_job_increment
-        self.wage_job_avail_total = np.floor(self.wage_jobs_availability * self.N / self.wage_job_increment) * self.wage_job_increment
+        self.salary_job_avail_total = round_down(self.salary_jobs_availability * self.N, self.salary_job_increment)
+        self.wage_job_avail_total = round_down(self.wage_jobs_availability * self.N, self.wage_job_increment)
 
         ##### DATA IMPORT #####
         # this overwrites the previous things if necessary
         if self.read_from_file:
-            d_in = pd.read_csv(self.file_name, index_col=0)
-            d_in_subs = d_in.query(self.data_filter)
-            d_in_subs.index = np.arange(d_in_subs.shape[0])
-            # define the sampling
-            replace = False if self.N <= d_in_subs.shape[0] else True
-            hh_ixs = np.random.choice(d_in_subs.shape[0], self.N, replace=replace)
-            # loop over the variables
-            for el in self.props_from_file:
-                ## adapt this for each variable added
-                if el == 'hh_size':
-                    self.hh_size = np.array(d_in_subs.loc[hh_ixs,'hh_size'])
-                    self.living_cost =  self.living_cost_pp * self.hh_size
-                elif el == 'land_area_init':
-                    self.land_area = np.array(d_in_subs.loc[hh_ixs, 'land_area_init'])
-                    self.has_land = self.land_area>0     
-                else:
-                    print('ERROR: Undefined empirical data parameter specified')
-                    sys.exit()
+            self.init_from_file()
+
+    def init_from_file(self):
+        d_in = pd.read_csv(self.file_name, index_col=0)
+        d_in_subs = d_in.query(self.data_filter)
+        d_in_subs.index = np.arange(d_in_subs.shape[0])
+        # define the sampling
+        replace = False if self.N <= d_in_subs.shape[0] else True
+        hh_ixs = np.random.choice(d_in_subs.shape[0], self.N, replace=replace)
+        # loop over the variables
+        for el in self.props_from_file:
+            ## adapt this for each variable added
+            if el == 'hh_size':
+                self.hh_size = np.array(d_in_subs.loc[hh_ixs,'hh_size'])
+                self.living_cost =  self.living_cost_pp * self.hh_size
+            elif el == 'land_area_init':
+                self.land_area = np.array(d_in_subs.loc[hh_ixs, 'land_area_init'])
+                self.has_land = self.land_area>0     
+            else:
+                print('ERROR: Undefined empirical data parameter specified')
+                sys.exit()
 
     def init_farm_size(self):
         '''
@@ -104,7 +107,7 @@ class Agents():
             return np.array(self.land_area_init) * mult
         elif self.N % len(self.land_area_init) == 0:
             # equal number of each
-            return np.repeat(self.land_area_init, self.N / len(self.land_area_init)) * mult
+            return np.tile(self.land_area_init, self.N / len(self.land_area_init)) * mult
         else:
             return np.random.choice(self.land_area_init, size=self.N) * mult
         

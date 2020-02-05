@@ -13,6 +13,8 @@ class Land():
 
         # how many total plots?
         self.n_plots = agents.N
+        self.land_area = agents.land_area
+        self.tot_area = np.sum(self.land_area)
         self.owner = agents.id
         self.positive_area = agents.has_land # some elements might actually be zero area
 
