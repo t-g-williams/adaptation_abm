@@ -160,6 +160,7 @@ def rangeland():
         'rain_use_eff' : 1, # rue for gunnar (CALIBRATION RQD)
         'G_R_ratio' : 0.5, # lambda for gunnar (limit of ratio of green to reserve biomass (i.e. G:R can't be larger than this))
         'R_max' : 5000, # kg/ha (gunnar had 1500). this constrains NPP. max(NPP) = R_max. amsalu2014: could be from 1-7t DM/ha. use 5?
+        'SOM' : 3000, # if agents are displaced. this is constant and exogenous
     }
     return d
 

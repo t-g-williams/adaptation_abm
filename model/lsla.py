@@ -39,7 +39,7 @@ class LSLA:
         if self.LUC == 'farm':
             self.agent_displacement(agents, land, rangeland)
 
-        code.interact(local=dict(globals(), **locals()))
+        # code.interact(local=dict(globals(), **locals()))
 
     def area_checks(self, land, rangeland, agents):
         '''
@@ -75,25 +75,38 @@ class LSLA:
         self.area_after_disp = new_cumsum - np.concatenate([[0], new_cumsum[:-1]])
         self.area_lost = agents.land_area - self.area_after_disp
 
-        ## 2. determine how much new area each agent gets
-        self.assign_ha = self.redistribute_land(agents, land.plot_size)
-
-        ## 3. determine where this new land comes from
+        ## 2. determine where this new land comes from
         if self.encroachment == 'farm':
-            self.encroach_ha_lost = self.farmland_encroachment(agents, land.plot_size)
+            self.encroach_ha_lost, som_removed = self.farmland_encroachment(agents, land.plot_size, land)
         elif self.encroachment == 'commons':
             self.encroach_ha_lost = np.full(agents.N, 0.) # for the agents
-            rangeland.size_ha -= self.assign_ha.sum() # displaced to rangeland
+            som_removed = np.full(int(self.area_encroach/land.plot_size), rangeland.SOM) # inherit the SOM of the rangeland
         else:
             print('ERROR: unknown encroachment type specified: {}'.format(self.encroachment))
 
-        # save the changes
-        self.net_change = -self.area_lost + self.assign_ha - self.encroach_ha_lost
-        agents.land_area += self.net_change
+        ## 3. determine how much new area each agent gets
+        self.assign_ha, new_som = self.redistribute_land(agents, land.plot_size, som_removed)
 
-    def redistribute_land(self, agents, plot_size):
+        # save the changes
+        if self.encroachment == 'commons':
+            rangeland.size_ha -= self.assign_ha.sum() # displaced to rangeland
+        self.net_change = -self.area_lost + self.assign_ha - self.encroach_ha_lost
+        self.lost_land = self.net_change < 0
+        agents.land_area += self.net_change
+        agents.has_land = agents.land_area > 0     
+        land.positive_area = agents.has_land
+        # calculate the new SOM (weighted sum of old land and inherited land)
+        land.organic[land.t[0]] = np.nansum(np.array([(self.area_after_disp-self.encroach_ha_lost) * land.organic[land.t[0]], self.assign_ha * new_som]), axis=0)
+        # convert to correct unit (for those that have land)
+        land.organic[land.t[0], agents.has_land] /= agents.land_area[agents.has_land]
+        # make it np.nan for agents that have no land
+        # land.organic[land.t[0], ~agents.has_land] = np.nan
+        # code.interact(local=dict(globals(), **locals()))
+
+    def redistribute_land(self, agents, plot_size, som_removed):
         '''
         determine how much land each agent receives
+        and calculate its SOM
         '''
         ## 2A probability of each agent getting each new plot
         if self.land_distribution_type == 'amt_lost':
@@ -116,20 +129,31 @@ class LSLA:
         assign_ha = np.full(agents.N, 0.)
         assign_ha[assign_counts[:,0]] = assign_counts[:,1] * plot_size
 
-        return assign_ha
+        # calculate the average SOM on their new land
+        # note: the model is not spatially explicit so don't worry about the order / just do it randomly
+        # note: i tried to do this w/o a loop but it's difficult
+        som_means = np.full(len(agents.id), np.nan)
+        for o, ownr in enumerate(assign_ids):
+            som_means[ownr] = np.nanmean([som_means[ownr], som_removed[o]])
 
-    def farmland_encroachment(self, agents, plot_size):
+        return assign_ha, som_means
+
+    def farmland_encroachment(self, agents, plot_size, land):
         '''
         simulate the encroachment of displaced agents into existing farmland
         return the amount of land lost due to encroachment
         '''
         if self.land_taking_type == 'random':
-            owner_ids = np.repeat(agents.id, (self.area_after_disp/plot_size).astype(int))
+            num_new_plots = int(self.area_encroach / plot_size)
+            owner_ids = np.repeat(agents.id, (self.area_after_disp/plot_size).astype(int)) # owners of the remaining farmland
             ids_rmv = np.random.choice(np.arange(owner_ids.shape[0]), size=num_new_plots, replace=False)
             owner_ids_rem = owner_ids[ids_rmv]
             agent_plots_lost = np.array(list(Counter(owner_ids_rem).items()))
             encroach_ha_lost = np.full(agents.N, 0.)
             encroach_ha_lost[agent_plots_lost[:,0]] = agent_plots_lost[:,1] * plot_size
+            # track the SOM of this land (to be given to other agents)
+            som_ids = np.repeat(land.organic[land.t[0]], (self.area_after_disp/plot_size).astype(int))
+            som_rmv = som_ids[ids_rmv] # list of the SOM of the plots to be given to other agents
         elif self.land_taking_type == 'equalizing':
             # do this iteratively:
             # iteratively take land from those with the most
@@ -137,6 +161,7 @@ class LSLA:
             ha_claimed = 0
             ha_remaining = copy.deepcopy(self.area_encroach)
             new_areas_tmp = copy.deepcopy(self.area_after_disp)
+            som_taken = [] # track the SOM of the land that is taken
             while ha_remaining > 0:
                 # print('{} remaining, size={}'.format(ha_remaining, size_i))
                 # identify who has this much land
@@ -153,15 +178,18 @@ class LSLA:
                 # take it off them
                 ha_remaining -= plot_size * len(take_land_ids)
                 new_areas_tmp[take_land_ids] -= plot_size
+                # track the SOM
+                som_taken.append(land.organic[land.t[0], take_land_ids])
                 # move to next step
                 size_i -= plot_size
             # save
             encroach_ha_lost = self.area_after_disp - new_areas_tmp
+            som_rmv = np.array([item for sublist in som_taken for item in sublist])
         else:
             print('ERROR: unknown land taking type : {}'.format(self.land_taking_type))
             sys.exit()
 
-        return encroach_ha_lost
+        return encroach_ha_lost, som_rmv
 
 def round_up(amts, stepsize):
     '''
