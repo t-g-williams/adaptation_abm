@@ -22,7 +22,7 @@ plt.style.use(styles[plot_type])
 
 from model import base_inputs
 from model import model
-import plot.single_run as plt_single
+import plot.single as plt_single
 
 
 def main():

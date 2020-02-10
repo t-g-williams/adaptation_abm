@@ -16,17 +16,7 @@ import copy
 
 def main():
     #### define LSLA parameters ####
-    lsla_params = {
-        'tstart' : 5, # e.g. 5 means start of 6th year of simulation
-        'employment' : 2, # jobs/ha taken
-        'LUC' : 'farm', # 'farm' or 'commons'' or ?'none'?
-        'encroachment' : 'farm', # where do displaced HHs encroach on? 'farm' or 'commons'
-        'frac_retain' : 0.5, # fraction of land that was originally taken that HHs retain (on average)
-        'land_distribution_type' : 'amt_lost', # current_holdings: proportional to current holdings, 'equal_hh' : equal per hh, "equal_pp" : equal per person
-        'land_taking_type' : 'random', # random or equalizing
-        }
-
-    exp_name = 'single_lsla_200_emp'
+    exp_name = 'single_lsla'
 
     # load inputs
     f = '../outputs/2020_2_5_10/POM/200000_20reps/input_params_0.pkl'
@@ -45,7 +35,7 @@ def main():
     'baseline' : {'model' : {'lsla_simulation' : False}},
     'farm-displacement-employment' : {'model' : {'lsla_simulation' : True},
              'LSLA' : {
-                'employment' : 200,
+                'employment' : 2,
                 'LUC' : 'farm',
                 'encroachment' : 'farm',
                 'frac_retain' : 0.5,
@@ -63,7 +53,7 @@ def main():
         }},
     'common-displacement-employment' : {'model' : {'lsla_simulation' : True},
              'LSLA' : {
-                'employment' : 200,
+                'employment' : 2,
                 'LUC' : 'farm',
                 'encroachment' : 'commons',
                 'frac_retain' : 0.5,
@@ -100,7 +90,8 @@ def main():
         # plot_single.main(m)
 
     print('plotting all...')
-    plot_compare.main(mods, exp_name)
+    plot_compare.main(mods, exp_name, relative=True)
+    plot_compare.main(mods, exp_name, relative=False)
     # code.interact(local=dict(globals(), **locals()))
 
 
