@@ -92,7 +92,8 @@ class Agents():
                 self.hh_size = np.array(d_in_subs.loc[hh_ixs,'hh_size'])
                 self.living_cost =  self.living_cost_pp * self.hh_size
             elif el == 'land_area_init':
-                self.land_area = np.array(d_in_subs.loc[hh_ixs, 'land_area_init'])
+                self.land_area = round_down(np.array(d_in_subs.loc[hh_ixs, 'land_area_init']), 
+                    self.all_inputs['land']['plot_size'])
                 self.has_land = self.land_area>0     
             else:
                 print('ERROR: Undefined empirical data parameter specified')
@@ -186,7 +187,13 @@ class Agents():
             # spare_labor = self.hh_size - self.ag_labor[t] - self.ls_labor[t] - self.salary_labor[t]
             # if spare_labor.min() < 0:
             #     print('neg labor!!')
-            #     code.interact(local=dict(globals(), **locals()))      
+            #     code.interact(local=dict(globals(), **locals()))  
+
+            ## checks
+            if np.sum(self.livestock[t]<0)>0:
+                print('ERROR: negative livestock in agents.labor_allocation()')
+                code.interact(local=dict(globals(), **locals()))  
+
 
     def allocate_salary_labor(self, consider_amt, nonag_lbr, tot_jobs):
         '''
@@ -321,6 +328,10 @@ class Agents():
         self.cant_cope[t, self.savings[t+1]<0] = True # record
         self.savings[t+1, self.cant_cope[t]] = 0
         # code.interact(local=dict(globals(), **locals()))
+        
+        if np.sum(self.livestock[t]<0)>0:
+            print('ERROR: negative livestock in agents.coping_measures()')
+            code.interact(local=dict(globals(), **locals())) 
 
         return ls_obj
 
@@ -405,6 +416,10 @@ class Agents():
         # save for next time step
         self.livestock[t+1] = ls_obj # save
         self.wealth[t+1] = ls_obj*ls_inp['cost'] + self.savings[t+1]
+
+        if np.sum(self.livestock[t]<0)>0:
+            print('ERROR: negative livestock in agents.destocking()')
+            code.interact(local=dict(globals(), **locals())) 
 
     def adaptation(self, land, adap_properties):
         '''

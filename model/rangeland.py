@@ -46,7 +46,10 @@ class Rangeland():
         # note: we model livestock as integer valued
         # each animal has the same probability of reproducing
         herds = agents.livestock[t]
-        births = np.random.binomial(herds, self.all_inputs['livestock']['birth_rate'])
+        try:
+            births = np.random.binomial(herds, self.all_inputs['livestock']['birth_rate'])
+        except:
+            code.interact(local=dict(globals(), **locals()))
         herds += births
         agents.ls_reprod[t] = copy.deepcopy(herds)
 
@@ -60,6 +63,10 @@ class Rangeland():
         self.R[t+1] = (1-self.R_mortality) * self.R[t] + \
                 self.R_biomass_growth * (self.gr1 * (self.G_no_cons[t] - self.G[t+1]) + self.G[t+1]) * \
                 (1 - self.R[t]/self.R_max)
+
+        if np.sum(agents.livestock[t]<0)>0:
+            print('ERROR: negative livestock in rangeland.update()')
+            code.interact(local=dict(globals(), **locals())) 
 
     def consumption(self, agents, land, herds, t):
         '''
@@ -95,6 +102,11 @@ class Rangeland():
 
         self.destocking_rqd[t] = True if np.sum(destocking_total)>0 else False
         self.livestock_supported[t] = np.sum(agents.herds_on_rangeland[t])-destocking_total
+
+        if np.sum(self.herds_on_residue<0)>0:
+            print('ERROR: negative herds on residue')
+            code.interact(local=dict(globals(), **locals())) 
+
         return destocking_total
 
     def apportion_destocking(self, total, range_herds):

@@ -73,7 +73,7 @@ class LSLA:
         new_cumsum = np.maximum(0, area_cumsum-self.area)
         # calculate new farm area
         self.area_after_disp = new_cumsum - np.concatenate([[0], new_cumsum[:-1]])
-        self.area_lost = agents.land_area - self.area_after_disp
+        self.area_lost = np.round(agents.land_area - self.area_after_disp, 2)
 
         ## 2. determine where this new land comes from
         if self.encroachment == 'farm':
@@ -102,6 +102,10 @@ class LSLA:
         # make it np.nan for agents that have no land
         # land.organic[land.t[0], ~agents.has_land] = np.nan
         # code.interact(local=dict(globals(), **locals()))
+
+        if np.sum(agents.land_area<0)>0:
+            print('ERROR: negative agent-level land area in lsla.agent_displacement()')
+            code.interact(local=dict(globals(), **locals()))
 
     def redistribute_land(self, agents, plot_size, som_removed):
         '''
