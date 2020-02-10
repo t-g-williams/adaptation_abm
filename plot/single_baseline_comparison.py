@@ -64,7 +64,7 @@ def area_comparison(mods, exp_name, savedir):
     # code.interact(local=dict(globals(), **locals()))
 
 def timeline(mods, exp_name, savedir, relative):
-    fig, axs = plt.subplots(1,4,figsize=(30,7))
+    fig, axs = plt.subplots(1,5,figsize=(30,7))
     n = len(mods)-1 if relative else len(mods)
     if n < 5:
         lss = [':','-.','--','-']
@@ -72,12 +72,13 @@ def timeline(mods, exp_name, savedir, relative):
         lss = ['-']*n
     lw = 3
     pre = 'Change in ' if relative else ''
-    titles = ['E[wealth]','E[income]','E[SOM]','rangeland biomass']
-    ylabs = ['birr','birr','kg N/ha','kg/ha']
+    titles = ['E[wealth]','E[livestock]','E[income]','E[SOM]','rangeland biomass']
+    ylabs = ['birr','head','birr','kg N/ha','kg/ha']
 
     # get the baseline data
     baseline = {
         'wealth' : mods['baseline'].agents.wealth,
+        'livestock' : mods['baseline'].agents.livestock,
         'income' : mods['baseline'].agents.income,
         'SOM' : mods['baseline'].land.organic,
         'rangeland' : mods['baseline'].rangeland.R,
@@ -89,17 +90,16 @@ def timeline(mods, exp_name, savedir, relative):
             if name == 'baseline':
                 continue
             axs[0].plot(np.mean(mod.agents.wealth - baseline['wealth'], axis=1), lw=lw, label=name, ls=lss[m])
-            axs[1].plot(np.mean(mod.agents.income - baseline['income'], axis=1), lw=lw, label=name, ls=lss[m])
-            axs[2].plot(np.mean(mod.land.organic - baseline['SOM'], axis=1), lw=lw, label=name, ls=lss[m])
-            axs[3].plot(mod.rangeland.R - baseline['rangeland'], lw=lw, label=name, ls=lss[m])
+            axs[1].plot(np.mean(mod.agents.livestock - baseline['livestock'], axis=1), lw=lw, label=name, ls=lss[m])
+            axs[2].plot(np.mean(mod.agents.income - baseline['income'], axis=1), lw=lw, label=name, ls=lss[m])
+            axs[3].plot(np.mean(mod.land.organic - baseline['SOM'], axis=1), lw=lw, label=name, ls=lss[m])
+            axs[4].plot(mod.rangeland.R - baseline['rangeland'], lw=lw, label=name, ls=lss[m])
         else:
-            try:
-                axs[0].plot(np.mean(mod.agents.wealth, axis=1), lw=lw, label=name, ls=lss[m])
-            except:
-                code.interact(local=dict(globals(), **locals()))
-            axs[1].plot(np.mean(mod.agents.income, axis=1), lw=lw, label=name, ls=lss[m])
-            axs[2].plot(np.mean(mod.land.organic, axis=1), lw=lw, label=name, ls=lss[m])
-            axs[3].plot(mod.rangeland.R, lw=lw, label=name, ls=lss[m])
+            axs[0].plot(np.mean(mod.agents.wealth, axis=1), lw=lw, label=name, ls=lss[m])
+            axs[1].plot(np.mean(mod.agents.livestock, axis=1), lw=lw, label=name, ls=lss[m])
+            axs[2].plot(np.mean(mod.agents.income, axis=1), lw=lw, label=name, ls=lss[m])
+            axs[3].plot(np.mean(mod.land.organic, axis=1), lw=lw, label=name, ls=lss[m])
+            axs[4].plot(mod.rangeland.R, lw=lw, label=name, ls=lss[m])
 
         m += 1
 
@@ -108,10 +108,15 @@ def timeline(mods, exp_name, savedir, relative):
         ax.set_xlabel('Year')
         ax.set_ylabel(ylabs[a])
         ax.legend()
-        ax.axhline(0, color='k', lw=lw*3/4)
+        if relative:
+            ax.axhline(0, color='k', lw=lw*3/4)
         ax.set_title('{}{}'.format(pre, titles[a]))
+        ax.axvline(mod.lsla.tstart, lw=1, color='k', ls=':')
 
-    ext = '_relative' if relative else ''
-    fig.savefig('{}combined_effect{}.png'.format(savedir, ext))
-    plt.close('all')
+    if isinstance(savedir, bool):
+        return
+    else:
+        ext = '_relative' if relative else ''
+        fig.savefig('{}combined_effect{}.png'.format(savedir, ext))
+        plt.close('all')
 

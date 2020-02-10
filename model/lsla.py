@@ -92,6 +92,7 @@ class LSLA:
             rangeland.size_ha -= self.assign_ha.sum() # displaced to rangeland
         self.net_change = -self.area_lost + self.assign_ha - self.encroach_ha_lost
         self.lost_land = self.net_change < 0
+        self.affected = np.maximum(self.assign_ha!=0, self.area_lost!=0, self.encroach_ha_lost!=0)
         agents.land_area += self.net_change
         agents.has_land = agents.land_area > 0     
         land.positive_area = agents.has_land

@@ -23,6 +23,7 @@ class Rangeland():
         self.G[0] = self.R[0] * self.G_R_ratio # assume it starts saturated
         self.G_no_cons = np.full(self.T, -99) # store as integer (kg/ha)
         self.destocking_rqd = np.full(self.T, False)
+        self.demand_intensity = np.full(self.T, np.nan)
         self.livestock_supported = np.full(self.T, -99)
 
     def update(self, climate, agents, land):
@@ -46,10 +47,7 @@ class Rangeland():
         # note: we model livestock as integer valued
         # each animal has the same probability of reproducing
         herds = agents.livestock[t]
-        try:
-            births = np.random.binomial(herds, self.all_inputs['livestock']['birth_rate'])
-        except:
-            code.interact(local=dict(globals(), **locals()))
+        births = np.random.binomial(herds, self.all_inputs['livestock']['birth_rate'])
         herds += births
         agents.ls_reprod[t] = copy.deepcopy(herds)
 
@@ -79,15 +77,15 @@ class Rangeland():
         # demand for the rangeland
         ls_consumption = self.all_inputs['livestock']['consumption']
         agents.herds_on_rangeland[t] = herds - self.herds_on_residue
-        rangeland_demand_intensity = np.sum(agents.herds_on_rangeland[t]) * ls_consumption / self.size_ha # unit = kg/ha
+        self.demand_intensity[t] = np.sum(agents.herds_on_rangeland[t]) * ls_consumption / self.size_ha # unit = kg/ha
         # how is this demand satisfied...?
-        if self.G[t+1] > rangeland_demand_intensity:
+        if self.G[t+1] > self.demand_intensity[t]:
             # green biomass satisfies demand
-            self.G[t+1] -= rangeland_demand_intensity
+            self.G[t+1] -= self.demand_intensity[t]
             destocking_total = 0 # no destocking rqd
         else:
             # need to use reserve biomass
-            reserve_demand = rangeland_demand_intensity - self.G[t+1]
+            reserve_demand = self.demand_intensity[t] - self.G[t+1]
             reserve_limit = self.gr2 * self.R[t]
             self.G[t+1] = 0
             if reserve_demand < reserve_limit:

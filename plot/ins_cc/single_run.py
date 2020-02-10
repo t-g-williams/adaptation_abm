@@ -6,12 +6,12 @@ import matplotlib.pyplot as plt
 import code
 import brewer2mpl
 import os
-from . import plot_style
-plot_type = 'paper'#'presentation_black_bg'
-styles = plot_style.create() # get the plotting styles
-styles['plot_type'] = plot_type
-plt.style.use('fivethirtyeight')
-plt.style.use(styles[plot_type])
+# from . import plot_style
+# plot_type = 'paper'#'presentation_black_bg'
+# styles = plot_style.create() # get the plotting styles
+# styles['plot_type'] = plot_type
+# plt.style.use('fivethirtyeight')
+# plt.style.use(styles[plot_type])
 
 def main(mod, save=True):
     if save == True:

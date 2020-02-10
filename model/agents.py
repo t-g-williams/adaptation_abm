@@ -35,7 +35,7 @@ class Agents():
         self.livestock = np.full([self.T+1, self.N], -9999)
         self.livestock[0] = np.floor(self.livestock_init).astype(int) # constant amount for each agent (same as savings)
         self.wealth = np.full([self.T+1, self.N], -9999) # sum of livestock + savings
-        self.wealth[0] = self.savings[0] + self.livestock[0]
+        self.wealth[0] = self.savings[0] + self.livestock[0]*self.all_inputs['livestock']['cost']
         # money
         self.income = np.full([self.T, self.N], -9999)
         self.farm_income = np.full([self.T, self.N], -9999)
@@ -108,7 +108,7 @@ class Agents():
             return np.array(self.land_area_init) * mult
         elif self.N % len(self.land_area_init) == 0:
             # equal number of each
-            return np.tile(self.land_area_init, self.N / len(self.land_area_init)) * mult
+            return np.tile(self.land_area_init, int(self.N / len(self.land_area_init))) * mult
         else:
             return np.random.choice(self.land_area_init, size=self.N) * mult
         
@@ -187,7 +187,7 @@ class Agents():
             # spare_labor = self.hh_size - self.ag_labor[t] - self.ls_labor[t] - self.salary_labor[t]
             # if spare_labor.min() < 0:
             #     print('neg labor!!')
-            #     code.interact(local=dict(globals(), **locals()))  
+            # code.interact(local=dict(globals(), **locals()))  
 
             ## checks
             if np.sum(self.livestock[t]<0)>0:

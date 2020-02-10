@@ -1,6 +1,6 @@
 from model.model import Model
 import model.base_inputs as base_inputs
-import plot.single_run as plt
+import plot.single as plt
 import code
 import time
 import pickle
@@ -8,30 +8,20 @@ import numpy as np
 import sys
 
 st1 = time.time()
-# compile the inputs
-inp_base = base_inputs.compile()
-inp = inp_base
-inputs = inp
 
-#### OR ####
+f = '../outputs/2020_2_5_10/POM/200000_20reps/input_params_0.pkl'
+inputs_pom = pickle.load(open(f, 'rb'))
 
-# load from POM experiment
-f = '../outputs/2020_2_5/POM/1000_10reps/input_params_0.pkl'
-inp = pickle.load(open(f, 'rb'))
-# inp['climate']['rain_mu'] = 0.5
-# inp['agents']['land_area_multiplier'] = 1
-# inp['rangeland'] = inp_base['rangeland']
-
+inputs = base_inputs.compile()
+for k, v in inputs_pom.items():
+    for k2, v2 in v.items():
+        inputs[k][k2] = v2
 
 ## change any params
-# inputs['model']['T'] = 50
-inputs['model']['n_agents'] = 50
-# inputs['agents']['jobs_availability'] *= 20
-# inputs['agents']['living_cost_pp'] *= 5
-# inputs['rangeland']['range_farm_ratio'] = 0.5
-# inputs['rangeland']['gr2'] = 0.1
-# inputs['agents']['savings_acct'] = True
-# inputs['rangeland']['rangeland_dynamics'] = True
+inputs['model']['T'] = 20
+inputs['model']['n_agents'] = 9
+inputs['agents']['read_from_file'] = False
+
 
 # initialize the model
 m = Model(inputs)

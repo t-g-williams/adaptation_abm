@@ -23,7 +23,7 @@ def model():
         'rep_id' : 0,
         'adaptation_option' : 'none', # set to "none" for baseline
         'shock' : False,
-        'lsla_simulation' : True,
+        'lsla_simulation' : False,
     }
     return d
 
@@ -80,7 +80,7 @@ def agents():
         'savings_init_sd' : 0,
         # 'max_neg_wealth' : 0, # birr. just for plotting. these ppl cant recover anyway
         # initial livestock (constant amount)
-        'livestock_init' : 5,# 0,
+        'livestock_init' : 1,# 0,
         
         ##### socio-environmental condns #####
         'crop_sell_price' : 2.17, # 2.17 birr/kg. mean 2015 maize price (FAO)
@@ -133,7 +133,7 @@ def land():
 def climate():
     d = {
         # annual climate measure -- assume normal distribution (truncated to [0,1])
-        'rain_mu' : 0.7, # 0.5 approximately fits country-wide CYF distribution for maize (BUT this variable is rain not CYF)
+        'rain_mu' : 0.6, # 0.5 approximately fits country-wide CYF distribution for maize (BUT this variable is rain not CYF)
         'rain_sd' : 0.2,
 
         'shock_years' : [30], # starting at 0 (pythonic)
@@ -147,9 +147,9 @@ def rangeland():
         'rangeland_dynamics' : True, # if false, just use the livestock "frac_crops" parameter
 
         # rangeland size relative to farmland
-        'range_farm_ratio' : 0.5, # eg 0.5 means rangeland is 0.5x the size of the total farmland
+        'range_farm_ratio' : 0.2, # eg 0.5 means rangeland is 0.5x the size of the total farmland
         # initial conditions
-        'R0_frac' : 0.8,
+        'R0_frac' : 0.5,
         # growth parameters
         'R_biomass_growth' : 0.8, # w for gunnar (reserve biomass growth rate)
         'R_mortality' : 0.1, # m_r for gunnar (reserve biomass mortality rate)

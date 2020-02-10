@@ -51,7 +51,7 @@ class Model():
         self.t[0] += 1        
         # BINARY SWITCHES
         if not self.agents.savings_acct:
-            agents.savings[t+1] = 0 # agents cannot carry over money to the next year
+            self.agents.savings[self.t[0]] = 0 # agents cannot carry over money to the next year
 
     def init_adaptation_option(self):
         '''

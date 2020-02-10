@@ -27,8 +27,11 @@ def main():
         for k2, v2 in v.items():
             inputs[k][k2] = v2
 
-    inputs['model']['T'] = 30
+    inputs['model']['T'] = 100
     inputs['model']['n_agents'] = 400
+
+    # other inputs
+    # inputs['rangeland']['R0_frac'] = 0.6
 
     # specify the scenarios
     scenarios = {

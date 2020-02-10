@@ -27,12 +27,12 @@ import plot.single as plt_single
 
 def main():
     # specify experimental settings
-    N_samples = 200000
+    N_samples = 100000
     ncores = 40
-    nreps = 20
-    exp_name = '2020_2_5_10/POM'
+    nreps = 10
+    exp_name = '2020_2_10_3/POM'
     inputs = {
-        'model' : {'n_agents' : 200, 'T' : 30, 'exp_name' : exp_name}
+        'model' : {'n_agents' : 200, 'T' : 50, 'exp_name' : exp_name}
     }
     fit_threshold = 0.8
 
@@ -43,7 +43,7 @@ def main():
         ['land', 'fast_mineralization_rate', 0.4, 0.95, False],
         ['land', 'residue_CN_conversion', 25, 200, False],
         ['land', 'loss_max', 0.05, 0.95, False],
-        ['agents', 'livestock_init', 0, 15, True], # converted to integer
+        # ['agents', 'livestock_init', 0, 15, True], # converted to integer
         ['agents', 'n_yr_smooth', 1, 6, True], # converted to integer. if 6 is max then in model max will be 5
         ['agents', 'living_cost_pp', 500, 4000, True],
         ['agents', 'living_cost_min_frac', 0.2, 0.8, False],
@@ -53,15 +53,14 @@ def main():
         ['agents', 'wage_salary', 5000, 30000, True],
         ['agents', 'ag_labor_rqmt', 0.5, 3, False],
         ['agents', 'ls_labor_rqmt', 0.02, 0.5, False],
-        ['rangeland', 'range_farm_ratio', 0.1, 5, False],
+        # ['rangeland', 'range_farm_ratio', 0.1, 5, False],
         ['rangeland', 'gr2', 0, 0.2, False],
         ['rangeland', 'rain_use_eff', 0.1, 10, False],
         ['rangeland', 'R_max', 1000, 7000, False],
         ['livestock', 'birth_rate', 0, 0.8, False],
         ['livestock', 'N_production', 30, 150, False],
-        ['livestock', 'consumption', 1500, 3000, True],
-        ['climate', 'rain_mu', 0.4, 0.8, False]],
-        # [10, 'land', 'random_effect_sd', 0, 1]],
+        ['livestock', 'consumption', 1500, 3000, True]],
+        # ['climate', 'rain_mu', 0.4, 0.8, False]],
         columns = ['key1','key2','min_val','max_val','as_int'])
 
     # generate set of RVs
@@ -113,8 +112,8 @@ def fitting_metrics(mod):
     ## A: P(regional destocking required) \in [0.1,0.5]
     prob = np.mean(mod.rangeland.destocking_rqd)
     threeA = True if ((prob >= 0.1) and (prob <= 0.9)) else False
-    ## B: min(reserve biomass) > 0.4*R_max
-    threeB = True if min(mod.rangeland.R >= 0.4 * mod.rangeland.R_max) else False
+    ## B: min(reserve biomass) > 0.2*R_max
+    threeB = True if min(mod.rangeland.R >= 0.2 * mod.rangeland.R_max) else False
     ## C: there are livestock on the rangeland in the last n_yrs
     # threeC = True if (min(mod.rangeland.livestock_supported[-n_yrs:]) > 0) else False
     three = bool(threeA * threeB)
