@@ -70,7 +70,7 @@ def agents():
                     'middle' : {'land_area' : 1.5, 'hh_size' : 3},
                     'land-rich' : {'land_area' : 2, 'hh_size' : 3}},
 
-        'hh_size_init' : 3,
+        'hh_size_init' : 6,
         'living_cost_pp' : 2000, # birr/yr. "desired living costs". 17261 median (hh) value from 2015 LSMS
         'living_cost_min_frac' : 0.5, # fraction of the living costs that must be spent
 

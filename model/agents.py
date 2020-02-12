@@ -16,6 +16,7 @@ class Agents():
         self.N = self.all_inputs['model']['n_agents']
         self.T = self.all_inputs['model']['T']
         self.id = np.arange(self.N)
+        self.savings_acct = bool(self.savings_acct)
 
         # generate land ownership
         self.land_area = self.init_farm_size()
@@ -32,9 +33,9 @@ class Agents():
         self.savings = np.full([self.T+1, self.N], -9999)
         self.savings[0] = np.random.normal(self.savings_init_mean, self.savings_init_sd, self.N)
         self.savings[0][self.savings[0]<0] = 0 # fix any -ve values
-        self.livestock = np.full([self.T+1, self.N], -9999)
+        self.livestock = np.full([self.T, self.N], -9999)
         self.livestock[0] = np.floor(self.livestock_init).astype(int) # constant amount for each agent (same as savings)
-        self.wealth = np.full([self.T+1, self.N], -9999) # sum of livestock + savings
+        self.wealth = np.full([self.T, self.N], -9999) # sum of livestock + savings
         self.wealth[0] = self.savings[0] + self.livestock[0]*self.all_inputs['livestock']['cost']
         # money
         self.income = np.full([self.T, self.N], -9999)
@@ -60,7 +61,9 @@ class Agents():
         self.ls_destock = np.full([self.T, self.N], -9999)
         self.ls_stress = np.full([self.T, self.N], -9999)
         self.ls_purchase = np.full([self.T, self.N], -9999)
+        self.max_ls_purchase = np.full([self.T, self.N], np.nan)
         self.herds_on_rangeland = np.full([self.T, self.N], -9999)
+        self.herds_on_residue = np.full([self.T, self.N], -9999)
         # other
         self.n_yr_smooth = int(self.n_yr_smooth) # in case it's from POM
         self.ag_labor = np.full([self.T, self.N], np.nan)
@@ -187,13 +190,13 @@ class Agents():
             # spare_labor = self.hh_size - self.ag_labor[t] - self.ls_labor[t] - self.salary_labor[t]
             # if spare_labor.min() < 0:
             #     print('neg labor!!')
-            # code.interact(local=dict(globals(), **locals()))  
 
             ## checks
             if np.sum(self.livestock[t]<0)>0:
                 print('ERROR: negative livestock in agents.labor_allocation()')
                 code.interact(local=dict(globals(), **locals()))  
 
+        # code.interact(local=dict(globals(), **locals()))  
 
     def allocate_salary_labor(self, consider_amt, nonag_lbr, tot_jobs):
         '''
@@ -348,7 +351,7 @@ class Agents():
         t = self.t[0]
         ls_inp = self.all_inputs['livestock']
         ## A: how many can be purchased
-        max_purchase = np.floor(self.savings[t+1] / ls_inp['cost'])
+        self.max_ls_purchase[t] = np.floor(self.savings[t+1] / ls_inp['cost'])
         ## B: how many is there labor available for (given current employment and farming)
         max_labor_tot = np.floor((self.hh_size-self.ag_labor[t]-self.salary_labor[t]) / self.ls_labor_rqmt) # head = ppl / ppl/head
         ## C: how many can be grazed on-farm
@@ -397,7 +400,7 @@ class Agents():
         # calculate the required change in livestock
         # if this is positive, fodder availability and cash allow for livestock purchase
         # if this is negative (ONLY POSSIBLE W/O RANGELAND) then this represents lack of fodder availability -> destocking
-        ls_change = np.minimum(max_purchase, max_on_farm + max_off_farm - ls_obj, max_labor_tot - ls_obj)
+        ls_change = np.min(np.array([self.max_ls_purchase[t], max_on_farm + max_off_farm - ls_obj, max_labor_tot - ls_obj]), axis=0)
         if self.insurance_payout_year:
             # assume that any leftover income from the insurance payout can be put towards livestock
             ls_change += (self.remaining_payout / ls_inp['cost']) 
@@ -414,8 +417,9 @@ class Agents():
         self.ls_income[t, self.destocking_rqd[t]] += -ls_change[self.destocking_rqd[t]]*ls_inp['cost']
 
         # save for next time step
-        self.livestock[t+1] = ls_obj # save
-        self.wealth[t+1] = ls_obj*ls_inp['cost'] + self.savings[t+1]
+        if t < (self.T-1):
+            self.livestock[t+1] = ls_obj # save
+            self.wealth[t+1] = ls_obj*ls_inp['cost'] + self.savings[t+1]
 
         if np.sum(self.livestock[t]<0)>0:
             print('ERROR: negative livestock in agents.destocking()')

@@ -30,7 +30,7 @@ def main():
     N_samples = 100000
     ncores = 40
     nreps = 10
-    exp_name = '2020_2_10_3/POM'
+    exp_name = '2020_2_12_11/POM'
     inputs = {
         'model' : {'n_agents' : 200, 'T' : 50, 'exp_name' : exp_name}
     }
@@ -43,23 +43,24 @@ def main():
         ['land', 'fast_mineralization_rate', 0.4, 0.95, False],
         ['land', 'residue_CN_conversion', 25, 200, False],
         ['land', 'loss_max', 0.05, 0.95, False],
-        # ['agents', 'livestock_init', 0, 15, True], # converted to integer
+        ['agents', 'livestock_init', 0, 6, True], # converted to integer
         ['agents', 'n_yr_smooth', 1, 6, True], # converted to integer. if 6 is max then in model max will be 5
         ['agents', 'living_cost_pp', 500, 4000, True],
         ['agents', 'living_cost_min_frac', 0.2, 0.8, False],
-        ['agents', 'salary_jobs_availability', 0.01, 0.5, False],
-        ['agents', 'wage_jobs_availability', 0.01, 0.5, False],
+        ['agents', 'salary_jobs_availability', 0.01, 0.1, False],
+        ['agents', 'wage_jobs_availability', 0.01, 0.1, False],
         ['agents', 'labor_salary', 5000, 30000, True],
         ['agents', 'wage_salary', 5000, 30000, True],
         ['agents', 'ag_labor_rqmt', 0.5, 3, False],
-        ['agents', 'ls_labor_rqmt', 0.02, 0.5, False],
-        # ['rangeland', 'range_farm_ratio', 0.1, 5, False],
+        ['agents', 'ls_labor_rqmt', 0.02, 1, False],
+        ['agents', 'savings_acct', 0, 2, True], # binary
+        ['rangeland', 'range_farm_ratio', 0.1, 1, False],
         ['rangeland', 'gr2', 0, 0.2, False],
         ['rangeland', 'rain_use_eff', 0.1, 10, False],
         ['rangeland', 'R_max', 1000, 7000, False],
         ['livestock', 'birth_rate', 0, 0.8, False],
         ['livestock', 'N_production', 30, 150, False],
-        ['livestock', 'consumption', 1500, 3000, True]],
+        ['livestock', 'consumption', 300, 3000, True]],
         # ['climate', 'rain_mu', 0.4, 0.8, False]],
         columns = ['key1','key2','min_val','max_val','as_int'])
 
@@ -111,7 +112,7 @@ def fitting_metrics(mod):
     ## 3. rangeland is not fully degrated
     ## A: P(regional destocking required) \in [0.1,0.5]
     prob = np.mean(mod.rangeland.destocking_rqd)
-    threeA = True if ((prob >= 0.1) and (prob <= 0.9)) else False
+    threeA = True if ((prob >= 0.05) and (prob <= 0.5)) else False
     ## B: min(reserve biomass) > 0.2*R_max
     threeB = True if min(mod.rangeland.R >= 0.2 * mod.rangeland.R_max) else False
     ## C: there are livestock on the rangeland in the last n_yrs
@@ -119,7 +120,7 @@ def fitting_metrics(mod):
     three = bool(threeA * threeB)
 
     ## 4. livestock: 
-    # >80% of HHs have livestock
+    # >80% of HHs have livestock on average
     fourA = np.mean(mod.agents.livestock[-n_yrs:]>0) >= 0.8
     # 90th%ile agent has less than 10 livestock on average
     fourB = np.percentile(np.mean(mod.agents.livestock, axis=0), 90) < 10 # take mean over time for each agent
@@ -128,6 +129,7 @@ def fitting_metrics(mod):
     # maximum ever is less than 50
     fourD = np.max(mod.agents.livestock)<50
     four = bool(fourA*fourB*fourC*fourD)
+    # four = bool(fourA*fourB*fourD)
 
     ## 5. non-farm income
     # upper and lower limits on wage and salary income
@@ -139,10 +141,11 @@ def fitting_metrics(mod):
     # fiveA = ((p_wage>0.1) & (p_wage<0.15))
     # fiveB = ((p_sal>0.05) & (p_sal<0.1))
     # code.interact(local=dict(globals(), **locals()))
-    # five = bool(fiveA*fiveB)
+    five = bool(fiveA*fiveB)
 
     # return [one,two,three,four,fiveA,fiveB]
     return [two,three,four,fiveA,fiveB]
+    # return [two,three,four,five]
 
 def hypercube_sample(N, calib_vars):
     '''

@@ -54,7 +54,7 @@ class Rangeland():
         ## 3. livestock consumption and destocking
         destocking_total = self.consumption(agents, land, herds, t)
         self.apportion_destocking(destocking_total, agents.herds_on_rangeland[t])
-        agents.livestock[t] = self.herds_on_residue + agents.herds_on_rangeland[t]
+        agents.livestock[t] = agents.herds_on_residue[t] + agents.herds_on_rangeland[t]
         agents.ls_destock[t] = copy.deepcopy(agents.livestock[t])
 
         ## 4. reserve biomass growth
@@ -72,11 +72,12 @@ class Rangeland():
         as well as green and reserve biomass
         '''
         # livestock consumption is achieved via a mix of on-farm residues and the communal rangeland
-        self.herds_on_residue = np.floor(np.minimum(herds, land.residue_production / self.all_inputs['livestock']['consumption'])).astype(int) # kg / (kg/head) = head
+        agents.herds_on_residue[t] = np.floor(np.minimum(herds, land.residue_production / self.all_inputs['livestock']['consumption'])).astype(int) # kg / (kg/head) = head
+        # agents.herds_on_residue[t] = np.minimum(herds, land.residue_production / self.all_inputs['livestock']['consumption'])
         # ^ take the floor of this. keep as integer
         # demand for the rangeland
         ls_consumption = self.all_inputs['livestock']['consumption']
-        agents.herds_on_rangeland[t] = herds - self.herds_on_residue
+        agents.herds_on_rangeland[t] = herds - agents.herds_on_residue[t]
         self.demand_intensity[t] = np.sum(agents.herds_on_rangeland[t]) * ls_consumption / self.size_ha # unit = kg/ha
         # how is this demand satisfied...?
         if self.G[t+1] > self.demand_intensity[t]:
@@ -101,10 +102,11 @@ class Rangeland():
         self.destocking_rqd[t] = True if np.sum(destocking_total)>0 else False
         self.livestock_supported[t] = np.sum(agents.herds_on_rangeland[t])-destocking_total
 
-        if np.sum(self.herds_on_residue<0)>0:
+        if np.sum(agents.herds_on_residue[t]<0)>0:
             print('ERROR: negative herds on residue')
             code.interact(local=dict(globals(), **locals())) 
 
+        # code.interact(local=dict(globals(), **locals()))  
         return destocking_total
 
     def apportion_destocking(self, total, range_herds):
