@@ -51,7 +51,8 @@ def main():
         }
     }
 
-    exp_name = 'param_swing'
+    exp_name = '2020_2_12_11'
+    pom_nreps = '100000_10reps'
     # types of lslas
     lsla_types = {
         'farm-LUC_farm-displacement' : {'LSLA' : {'LUC' : 'farm', 'encroachment' : 'farm'}},
@@ -71,7 +72,7 @@ def main():
     T_eval = 10 # how many years from the end of sim to evaluate over
 
     # load inputs
-    f = '../outputs/2020_2_5_10/POM/200000_20reps/input_params_0.pkl'
+    f = '../outputs/{}/POM/{}/input_params_0.pkl'.format(exp_name, pom_nreps)
     inputs_pom = pickle.load(open(f, 'rb'))
     # params not in POM
     baseline_inputs = base_inputs.compile()
@@ -79,8 +80,8 @@ def main():
         for k2, v2 in v.items():
             baseline_inputs[k][k2] = v2
 
-    nreps = 100
-    ncores = 10
+    nreps = 40
+    ncores = 40
     baseline_inputs['model']['T'] = 30
     baseline_inputs['model']['n_agents'] = 400
     

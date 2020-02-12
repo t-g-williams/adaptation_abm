@@ -16,10 +16,11 @@ import copy
 
 def main():
     #### define LSLA parameters ####
-    exp_name = 'single_lsla'
+    exp_name = '2020_2_12_11'
+    pom_nreps = '100000_10reps'
 
     # load inputs
-    f = '../outputs/2020_2_5_10/POM/200000_20reps/input_params_0.pkl'
+    f = '../outputs/{}/POM/{}/input_params_0.pkl'.format(exp_name, pom_nreps)
     inputs_pom = pickle.load(open(f, 'rb'))
     # params not in POM
     inputs = base_inputs.compile()
@@ -27,7 +28,7 @@ def main():
         for k2, v2 in v.items():
             inputs[k][k2] = v2
 
-    inputs['model']['T'] = 100
+    inputs['model']['T'] = 30
     inputs['model']['n_agents'] = 400
 
     # other inputs
@@ -90,7 +91,7 @@ def main():
         mods[name] = m
 
         # plot
-        # plot_single.main(m)
+        plot_single.main(m)
 
     print('plotting all...')
     plot_compare.main(mods, exp_name, relative=True)
