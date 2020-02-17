@@ -29,6 +29,7 @@ def main(mods, nreps, inp_base, scenarios, exp_name, T, shock_years=[]):
         # poverty_trap(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
         # sys.exit()
         neg_wealth_probabilities(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
+        neg_wealth_probabilities(mods, nreps, inp_base, scenarios, exp_name, T, savedir, pos=True)
         combined_wealth_income(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
         # agent_trajectories(mods, nreps, inp_base, scenarios, exp_name, T, savedir, 'wealth')
         # agent_trajectories(mods, nreps, inp_base, scenarios, exp_name, T, savedir, 'income')
@@ -153,7 +154,7 @@ def poverty_trap(mods, nreps, inp_base, scenarios, exp_name, T, savedir):
     plt.close('all')
     # code.interact(local=dict(globals(), **locals()))
 
-def neg_wealth_probabilities(mods, nreps, inp_base, scenarios, exp_name, T, savedir):
+def neg_wealth_probabilities(mods, nreps, inp_base, scenarios, exp_name, T, savedir, pos=False):
     '''
     plot the probability that each agents' wealth is below zero over time
     '''
@@ -179,7 +180,10 @@ def neg_wealth_probabilities(mods, nreps, inp_base, scenarios, exp_name, T, save
             all_wealth = np.array([item for sublist in all_wealth for item in sublist])
             # ^ this is (agents, time) shape
             # extract mean and variance
-            probs_t = np.mean(all_wealth>0, axis=0)
+            if pos:
+                probs_t = np.mean(all_wealth>0, axis=0)
+            else:
+                probs_t = np.mean(all_wealth<=0, axis=0)
             col = 'k' if m == 'baseline' else 'r' if m == 'cover_crop' else 'b'
             ls = '-' if m=='baseline' else '--' if m=='cover_crop' else '-.'
             axs[n].plot(np.arange(T+burnin+1), probs_t, label=scenario, lw=1.5, ls=ls, color=col)#, marker='o')
@@ -193,11 +197,13 @@ def neg_wealth_probabilities(mods, nreps, inp_base, scenarios, exp_name, T, save
         ax.grid(False)
         ax.set_xlabel('Year')
         ax.set_title(titles[a])
-    axs[0].set_ylabel('P(wealth > 0)')
+    ylab = 'P(wealth > 0)' if pos else 'P(wealth = 0)'
+    axs[0].set_ylabel(ylab)
     # axs[1].legend(loc=10, bbox_to_anchor=(0.5, -0.3), ncol=3, frameon=False)
     lg = fig.legend(list(mods.keys()) + ['burn-in'], loc=10, bbox_to_anchor=(0.5, 0.1), ncol=4, frameon=False)
     fig.tight_layout()
-    fig.savefig(savedir + 'pos_wealth_prob_combined.png', bbox_extra_artists=(lg,))
+    ext = 'pos' if pos else 'neg'
+    fig.savefig(savedir + '{}_wealth_prob_combined.png'.format(ext), bbox_extra_artists=(lg,))
     # code.interact(local=dict(globals(), **locals()))
     plt.close('all')
 
