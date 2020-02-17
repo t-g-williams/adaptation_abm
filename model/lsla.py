@@ -38,6 +38,13 @@ class LSLA:
         ## displacement
         if self.LUC == 'farm':
             self.agent_displacement(agents, land, rangeland)
+        else:
+            self.area_lost = np.full(agents.N, 0.)
+            self.assign_ha = np.full(agents.N, 0.)
+            self.lost_land = np.full(agents.N, False)
+            self.affected = np.full(agents.N, False)
+            self.net_change = np.full(agents.N, 0.)
+            self.encroach_ha_lost = np.full(agents.N, 0.)
 
         # code.interact(local=dict(globals(), **locals()))
 

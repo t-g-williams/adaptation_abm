@@ -16,8 +16,8 @@ import copy
 
 def main():
     #### define LSLA parameters ####
-    exp_name = '2020_2_12_11'
-    pom_nreps = '100000_10reps'
+    exp_name = '2020_2_12_10'
+    pom_nreps = '10000_10reps'
 
     # load inputs
     f = '../outputs/{}/POM/{}/input_params_0.pkl'.format(exp_name, pom_nreps)
@@ -37,7 +37,7 @@ def main():
     # specify the scenarios
     scenarios = {
     'baseline' : {'model' : {'lsla_simulation' : False}},
-    'farm-displacement-employment' : {'model' : {'lsla_simulation' : True},
+    'displ. to farms + employment' : {'model' : {'lsla_simulation' : True},
              'LSLA' : {
                 'employment' : 2,
                 'LUC' : 'farm',
@@ -46,7 +46,7 @@ def main():
                 'land_distribution_type' : 'amt_lost', # amt_lost 'equal_hh'  "equal_pp"
                 'land_taking_type' : 'equalizing', # random or equalizing
         }},
-    'farm-displacement-no_employment' : {'model' : {'lsla_simulation' : True},
+    'displ. to farms + NO employment' : {'model' : {'lsla_simulation' : True},
              'LSLA' : {
                 'employment' : 0,
                 'LUC' : 'farm',
@@ -55,7 +55,7 @@ def main():
                 'land_distribution_type' : 'amt_lost', # amt_lost 'equal_hh'  "equal_pp"
                 'land_taking_type' : 'equalizing', # random or equalizing
         }},
-    'common-displacement-employment' : {'model' : {'lsla_simulation' : True},
+    'displ. to commons + employment' : {'model' : {'lsla_simulation' : True},
              'LSLA' : {
                 'employment' : 2,
                 'LUC' : 'farm',
@@ -64,10 +64,28 @@ def main():
                 'land_distribution_type' : 'amt_lost', # amt_lost 'equal_hh'  "equal_pp"
                 'land_taking_type' : 'equalizing', # random or equalizing
         }},
-    'common-displacement-no_employment' : {'model' : {'lsla_simulation' : True},
+    'displ. to commons + NO employment' : {'model' : {'lsla_simulation' : True},
              'LSLA' : {
                 'employment' : 0,
                 'LUC' : 'farm',
+                'encroachment' : 'commons',
+                'frac_retain' : 0.5,
+                'land_distribution_type' : 'amt_lost', # amt_lost 'equal_hh'  "equal_pp"
+                'land_taking_type' : 'equalizing', # random or equalizing
+        }},
+    'LSLA in commons + employment' : {'model' : {'lsla_simulation' : True},
+             'LSLA' : {
+                'employment' : 2,
+                'LUC' : 'commons',
+                'encroachment' : 'commons',
+                'frac_retain' : 0.5,
+                'land_distribution_type' : 'amt_lost', # amt_lost 'equal_hh'  "equal_pp"
+                'land_taking_type' : 'equalizing', # random or equalizing
+        }},
+    'LSLA in commons + NO employment' : {'model' : {'lsla_simulation' : True},
+             'LSLA' : {
+                'employment' : 0,
+                'LUC' : 'commons',
                 'encroachment' : 'commons',
                 'frac_retain' : 0.5,
                 'land_distribution_type' : 'amt_lost', # amt_lost 'equal_hh'  "equal_pp"
