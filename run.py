@@ -14,16 +14,21 @@ f = '../outputs/2020_2_12_8/POM/10000_10reps/input_params_0.pkl'
 inputs_pom = pickle.load(open(f, 'rb'))
 
 inputs = base_inputs.compile()
-for k, v in inputs_pom.items():
-    for k2, v2 in v.items():
-        inputs[k][k2] = v2
+# for k, v in inputs_pom.items():
+#     for k2, v2 in v.items():
+#         inputs[k][k2] = v2
 
 ## change any params
-inputs['model']['T'] = 200
-inputs['model']['n_agents'] = 210
+inputs['model']['T'] = 10
+inputs['model']['n_agents'] = 20
 # inputs['agents']['read_from_file'] = False
-inputs['livestock']['consumption'] = 5
-inputs['rangeland']['gr2'] = 0.9
+# inputs['livestock']['consumption'] = 5
+# inputs['rangeland']['gr2'] = 0.9
+
+# temporary
+inputs['land']['max_yield'] = {0 : 6590, 1 : 6590}
+inputs['model']['lsla_simulation'] = True
+inputs['LSLA']['outgrower'] = True
 
 
 # initialize the model

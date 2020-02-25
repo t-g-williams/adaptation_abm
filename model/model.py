@@ -6,6 +6,7 @@ from .agents import Agents
 from .land import Land
 from .climate import Climate
 from .rangeland import Rangeland
+from .market import Market
 from.lsla import LSLA
 import code
 
@@ -21,7 +22,8 @@ class Model():
 
         # initialize the sub-objects
         self.climate = Climate(inputs)
-        self.agents = Agents(inputs)
+        self.market = Market(inputs)
+        self.agents = Agents(inputs, self.market)
         self.land = Land(self.agents, inputs)
         self.rangeland = Rangeland(np.sum(self.agents.land_area), inputs)
 
@@ -39,13 +41,13 @@ class Model():
         '''
         if (self.lsla_simulation and self.t[0]==self.all_inputs['LSLA']['tstart']):
             self.lsla = LSLA(self.all_inputs, self.agents, self.land, self.rangeland) # implement the LSLA
-        self.agents.labor_allocation(self.land)
+        self.agents.labor_allocation(self.land, self.market)
         self.land.update_soil(self.agents, self.adap_properties)
         self.land.crop_yields(self.agents, self.climate)
-        self.agents.calculate_income(self.land, self.climate, self.adap_properties)
+        self.agents.calculate_income(self.land, self.climate, self.adap_properties, self.market)
         self.rangeland.update(self.climate, self.agents, self.land)
-        ls_obj = self.agents.coping_measures(self.land, self.rangeland)
-        self.agents.livestock_stocking(self.land, ls_obj, self.rangeland)
+        ls_obj = self.agents.coping_measures(self.land, self.rangeland, self.market)
+        self.agents.livestock_stocking(self.land, ls_obj, self.rangeland, self.market)
         self.agents.adaptation(self.land, self.adap_properties)
         # increment the year
         self.t[0] += 1        

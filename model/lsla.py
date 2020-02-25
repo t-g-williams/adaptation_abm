@@ -12,7 +12,7 @@ class LSLA:
         '''
         implement the LSLA
         '''
-        rndm_int = np.random.randint(1e6) # generate random integer to control stochasticity
+        rand_int = np.random.randint(1e6) # generate random integer to control stochasticity
 
         # attribute the parameters to the object
         self.all_inputs = inputs
@@ -20,11 +20,47 @@ class LSLA:
         for key, val in self.inputs.items():
             setattr(self, key, val)
         
+        # create some objects (sometimes these don't get created but are rqd for plotting / analysis)
+        self.area_lost = np.full(agents.N, 0.)
+        self.assign_ha = np.full(agents.N, 0.)
+        self.lost_land = np.full(agents.N, False)
+        self.affected = np.full(agents.N, False)
+        self.net_change = np.full(agents.N, 0.)
+        self.encroach_ha_lost = np.full(agents.N, 0.)
+        self.outgrower_frmr = np.full(agents.N, False)
+
+
         ## calculate area and displacement stats
         self.area = self.size * agents.N # ha = ha/agent * agents
-        self.area_encroach = round_down(self.area * self.frac_retain, land.plot_size) if self.LUC == 'farm' else 0
+        self.area_encroach = round_down(self.area * self.frac_retain, land.plot_size) if (self.LUC=='farm' and self.outgrower==False) else 0
         self.area_checks(land, rangeland, agents)
+        
+        if self.outgrower:
+            self.init_outgrower(agents, land, rangeland)
+        else:
+            self.init_non_outgrower(agents, land, rangeland)
+        
 
+        np.random.seed(rand_int)
+        # code.interact(local=dict(globals(), **locals()))
+
+    def init_outgrower(self, agents, land, rangeland):
+        ## find the agents that participate
+        ## (round up agents that are partially in; agents are either affected or not)
+        area_cumsum = np.cumsum(agents.land_area)
+        crit_ix = np.where(area_cumsum >= self.area)[0][0]
+        self.area = area_cumsum[crit_ix]
+        self.outgrower_frmr[0:(crit_ix+1)] = True
+        ixs = self.outgrower_frmr
+
+        ## give these agents technology
+        t = land.t[0]
+        land.irrigation[t:, ixs] = True # no cost for irrigation
+        agents.apply_fert[t:, ixs] = True # assume they apply at the maximum required rate
+        land.fertilizer[t:, ixs] = self.fert_amt
+        land.crop_type[t:, ixs] = 1 # 1 = cash crop
+
+    def init_non_outgrower(self, agents, land, rangeland):
         ## change employment
         self.tot_salary_jobs = round_down(self.employment * self.size, agents.salary_job_increment)
         agents.salary_job_avail_total += self.tot_salary_jobs
@@ -40,16 +76,6 @@ class LSLA:
         ## displacement
         if self.LUC == 'farm':
             self.agent_displacement(agents, land, rangeland)
-        else:
-            self.area_lost = np.full(agents.N, 0.)
-            self.assign_ha = np.full(agents.N, 0.)
-            self.lost_land = np.full(agents.N, False)
-            self.affected = np.full(agents.N, False)
-            self.net_change = np.full(agents.N, 0.)
-            self.encroach_ha_lost = np.full(agents.N, 0.)
-
-        np.random.seed(rand_int)
-        # code.interact(local=dict(globals(), **locals()))
 
     def area_checks(self, land, rangeland, agents):
         '''

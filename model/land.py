@@ -25,6 +25,11 @@ class Land():
         # inorganic represents the END of the year (i.e. for crop yield)
         self.inorganic = np.full([self.T, self.n_plots], np.nan)
 
+        ##### crop type and technology ##### 
+        self.irrigation = np.full([self.T, self.n_plots], False)
+        self.fertilizer = np.full([self.T, self.n_plots], 0) # store as int (kg N/ha)
+        self.crop_type = np.full([self.T, self.n_plots], 0) # 0=subsistence, 1=cash (keep integer to allow for future extension)
+
         ##### crop yields #####
         self.yields = np.full([self.T, self.n_plots], -9999) # kg
         self.yields_unconstrained = np.full([self.T, self.n_plots], -9999)# kg
@@ -48,9 +53,10 @@ class Land():
         '''
         simulate the evolution of the land throughout the year
         '''
+        t = self.t[0]
         ### initialize -- assume inorganic is reset each year
         inorganic = np.full(self.n_plots, 0.)
-        organic = copy.copy(self.organic[self.t[0]])
+        organic = copy.copy(self.organic[t])
 
         ### mineralization: assume a linear decay model
         # assume the stocks from last year mineralize straight away
@@ -59,7 +65,6 @@ class Land():
         organic -= mineralization
 
         ### agent inputs
-        # inorganic += self.apply_fixed_fertilizer(agents) # kgN/ha ## NOT IN MODEL YET
         residue = self.crop_residue_input()
         livestock = self.livestock_SOM_input(agents) # kgN/ha
         cover_crop = self.cover_crop_input(agents, adap_properties) # kgN/ha
@@ -72,14 +77,18 @@ class Land():
         organic[organic < 0] = 0
         organic[organic > self.max_organic_N] = self.max_organic_N
 
+        # apply fertilizer
+        inorganic += self.fertilizer[t] # kgN/ha
+
         ### inorganic losses: loss of inorganic is a linear function of SOM
-        losses = inorganic * (self.loss_min + (self.max_organic_N-organic)/self.max_organic_N * (self.loss_max - self.loss_min))
+        inorg_loss_rate = (self.loss_min + (self.max_organic_N-organic)/self.max_organic_N * (self.loss_max - self.loss_min))
+        losses = inorganic * inorg_loss_rate
         inorganic -= losses
         inorganic[inorganic < 0] = 0 # constrain
 
         ### save final values
-        self.inorganic[self.t[0]] = inorganic # end of this year (for yields)
-        self.organic[self.t[0]+1] = organic # start of next year
+        self.inorganic[t] = inorganic # end of this year (for yields)
+        self.organic[t+1] = organic # start of next year
         # code.interact(local=dict(globals(), **locals()))
 
     def crop_residue_input(self):
@@ -147,7 +156,9 @@ class Land():
         # rainfall effect
         self.rf_factors[t] = self.calculate_rainfall_factor(climate.rain[t])
         # nutrient unconstrained yield
-        self.yields_unconstrained[t] = self.max_yield * self.rf_factors[t] # kg/ha
+        for crop_type, max_yield in self.max_yield.items():
+            ixs = self.crop_type[t] == crop_type
+            self.yields_unconstrained[t, ixs] = max_yield * self.rf_factors[t, ixs] # kg/ha
         # factor in nutrient contraints
         max_with_nutrients = self.inorganic[t] / (1/self.crop_CN_conversion+self.residue_multiplier/self.residue_CN_conversion) # kgN/ha / (kgN/kgC_yield) = kgC/ha ~= yield(perha
         self.yields[t] = np.minimum(self.yields_unconstrained[t], max_with_nutrients) * self.errors[t] # kg/ha
@@ -185,9 +196,13 @@ class Land():
             # assume the average of the start and end of the year
             mean_organic = np.mean(self.organic[[self.t[0], self.t[0]+1]], axis=0)
             rf_effects = eff_max - (1 - mean_organic/self.max_organic_N) * red_max
+
+            # add in effect of irrigation -- makes yields non-water constrained
+            rf_effects[self.irrigation[self.t[0]]] = 1           
+
             return np.maximum(rf_effects, 0)
 
-    def apply_fixed_fertilizer(self, agents):
+    def apply_fertilizer(self):
         '''
         simulate application of a fixed amount of fertilizer to fields
         only for agents that are using this option

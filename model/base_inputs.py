@@ -11,6 +11,7 @@ def compile():
     d['rangeland'] = rangeland()
     d['livestock'] = livestock()
     d['LSLA'] = LSLA()
+    d['market'] = market()
     return d
 
 def model():
@@ -83,17 +84,23 @@ def agents():
         'livestock_init' : 1,# 0,
         
         ##### socio-environmental condns #####
-        'crop_sell_price' : 2.17, # 2.17 birr/kg. mean 2015 maize price (FAO)
-        'farm_cost' : 100, # birr/ha. arbitrary
-        'fertilizer_cost' : 13.2, # 13.2 birr/kg. median from 2015 LSMS
-        'labor_salary' : 70*365*5/7, # birr/person/year: 70 birr/day * 5 days per week all year
-        'labor_wage' : 70*365*5/7, # birr/person/year: 70 birr/day * 5 days per week all year
-        'salary_jobs_availability' : 0.1, # full-time salary jobs per agent (used as livelihood strategy)
-        'wage_jobs_availability' : 0.1, # single-day wage jobs per agent (used as coping)
-        'salary_job_increment' : 0.5, # minimum fraction of a person's time that can be devoted to non-farm SALARY labor (e.g., if 1 then ONLY full-time jobs are available)
-        'wage_job_increment' : 0.005, # minimum fraction of a person's time that can be devoted to non-farm WAGE labor (e.g., if 0.005 then 1/200th of year)
         'ag_labor_rqmt' : 1.5, # ppl/ha
         'ls_labor_rqmt' : 0.2, # ppl/head
+    }
+    return d
+
+def market():
+    d = {
+    'crop_sell_params' : {0 : [2.17,0,0], 1 : [3,0.2,0.5]}, # [x,x,x]=[mean,sd,rho] 2.17 birr/kg. mean 2015 maize price (FAO)
+    'farm_cost' : 100, # birr/ha. arbitrary
+    'fertilizer_cost' : 13.2, # 13.2 birr/kg. median from 2015 LSMS
+    'labor_salary' : 70*365*5/7, # birr/person/year: 70 birr/day * 5 days per week all year
+    'labor_wage' : 70*365*5/7, # birr/person/year: 70 birr/day * 5 days per week all year
+    'salary_jobs_availability' : 0.1, # full-time salary jobs per agent (used as livelihood strategy)
+    'wage_jobs_availability' : 0.1, # single-day wage jobs per agent (used as coping)
+    'salary_job_increment' : 0.5, # minimum fraction of a person's time that can be devoted to non-farm SALARY labor (e.g., if 1 then ONLY full-time jobs are available)
+    'wage_job_increment' : 0.005, # minimum fraction of a person's time that can be devoted to non-farm WAGE labor (e.g., if 0.005 then 1/200th of year)
+    'livestock_cost' : 3000, # birr/head. Ethiopia CSA data 2015
     }
     return d
 
@@ -116,7 +123,7 @@ def land():
         'fallow_N_add' : 60/0.3, # FOR NOW TRY TO GET NEUTRAL SOIL N BALANCE. this is unrealistic # 40, # kg N/ha. lower limit from N-fixing legumes https://www.tandfonline.com/doi/pdf/10.1080/01904160009382074
 
         ##### yield #####
-        'max_yield' : 6590, # 6590 kg/ha. maximum, unconstrained yield. 95%ile for Ethiopia-wide LSMS (all 3 years) maize yields
+        'max_yield' : {0 : 6590, 1 : 6590}, #(0=subsistence, 1=cash crop) 6590 kg/ha. maximum, unconstrained yield. 95%ile for Ethiopia-wide LSMS (all 3 years) maize yields
         'rain_crit' : 0.8, # value at which rainfall starts to be limiting. 0.8 in CENTURY
         'rain_cropfail_high_SOM' : 0, # rainfall value at which crop yields are 0 with highest SOM. arbitrary
         'rain_cropfail_low_SOM' : 0.1, # rainfall value at which crop yields are 0 with lowest SOM. arbitrary
@@ -172,14 +179,20 @@ def livestock():
         'income' : 125, # birr/year/head represents the value of milk production: taken directly from Redda2002 -- 240-480birr/year with local cow. assume 350 and 50% are female --> 125 birr/year/animal
         'consumption' : 2280, # kg/annum (640 in gunnar. i derived 2280 for cc_ins paper: kg dry matter / TLU / year.(Amsalu2014)). also compare to 2700kgDM in (NOTE: ITS AUSTRALIA HERE NOT BORANA) desta1999 for 400kg animal
         'birth_rate' : 0, # use no birth rate -- livestock aren't for breeding. livestock birth rate (probability) (gunnar has 0.8). see also angassa2007 (~0.5)
-        'cost' : 3000, # birr/head. Ethiopia CSA data 2015
     }
     return d
 
 def LSLA():
     d = {
+        ## for all simulations ##
         'tstart' : 5, # e.g. 5 means start of 6th year of simulation
         'size' : 0.25, # ha per agent
+        'outgrower' : True, # has implications for other params
+        
+        ## outgrower params ##
+        'fert_amt' : 100, # kg/ha -- constant over time
+
+        ## non-outgrower params ##
         'employment' : 2, # jobs/ha taken
         'LUC' : 'farm', # 'farm' or 'commons'' or ?'none'?
         'encroachment' : 'farm', # where do displaced HHs encroach on? 'farm' or 'commons'

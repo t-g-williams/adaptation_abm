@@ -1,6 +1,7 @@
 import numpy as np
 import code
 import copy
+from collections import Counter
 
 class Rangeland():
     def __init__(self, farm_area_ha, inputs):
@@ -117,16 +118,16 @@ class Rangeland():
         apportion destocking randomly between agents
         each livestock has an equal probability of being destocked
         NOTE: variable number of calls to np.random so control stochasticity
+        NOTE2: agents receive no income for this destocking !!
         '''
         rand_int = np.random.randint(1e6)
         if total > 0:
-            print('destocking')
             tot_ls = np.sum(range_herds)
             total = min(total, tot_ls)
             destock_ix = np.random.choice(np.arange(tot_ls), size=total, replace=False) # indexes of livestock
             owner_ix = np.repeat(np.arange(range_herds.shape[0]), range_herds)
             owner_destocks = owner_ix[destock_ix]
-            for owner in owner_destocks: # would be great to get rid of this for-loop!!
-                range_herds[owner] -= 1
+            destock_counts = np.array(list(Counter(owner_destocks).items()))
+            range_herds[destock_counts[:,0]] -= destock_counts[:,1]
 
         np.random.seed(rand_int)
