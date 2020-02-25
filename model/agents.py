@@ -231,22 +231,25 @@ class Agents():
         '''
         allocate the available wage jobs between the agents that want them
         assume that each job is randomly allocated each day
+        NOTE: this involves a variable number of calls to the random generator
+        so control stochasticity
         '''
+        rndm_num = np.random.randint(1e6)
         tot_consider = consider_amt.sum()
+        
         if tot_consider == 0:
-            return consider_amt
+            rtn = consider_amt
         else:
             self.p_wage_labor[self.t[0]] = min(1, num_jobs_avail/tot_consider)
             if self.p_wage_labor[self.t[0]] == 1:
-                return consider_amt
+                rtn = consider_amt
             else:
                 ntries = (consider_amt/increment).astype(int)
                 # just honor the regional probability
-                try:
-                    agent_allocs = np.random.binomial(n=ntries,p=self.p_wage_labor[self.t[0]]) * increment
-                except:
-                    code.interact(local=dict(globals(), **locals()))
-                return agent_allocs
+                rtn = np.random.binomial(n=ntries,p=self.p_wage_labor[self.t[0]]) * increment
+
+        np.random.seed(rndm_num) # set seed to control stochasticity
+        return rtn
 
     def calculate_income(self, land, climate, adap_properties):
         '''

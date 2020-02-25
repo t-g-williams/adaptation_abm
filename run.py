@@ -19,10 +19,11 @@ for k, v in inputs_pom.items():
         inputs[k][k2] = v2
 
 ## change any params
-inputs['model']['T'] = 20
-inputs['model']['n_agents'] = 21
+inputs['model']['T'] = 200
+inputs['model']['n_agents'] = 210
 # inputs['agents']['read_from_file'] = False
-# inputs['livestock']['consumption'] = 500
+inputs['livestock']['consumption'] = 5
+inputs['rangeland']['gr2'] = 0.9
 
 
 # initialize the model

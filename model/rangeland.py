@@ -46,8 +46,11 @@ class Rangeland():
         ## 2. livestock reproduction
         # note: we model livestock as integer valued
         # each animal has the same probability of reproducing
+        # control stochasticity b/c we have variable number of livestock
         herds = agents.livestock[t]
+        rndm_num = np.random.randint(1e6)
         births = np.random.binomial(herds, self.all_inputs['livestock']['birth_rate'])
+        np.random.seed(rndm_num)
         herds += births
         agents.ls_reprod[t] = copy.deepcopy(herds)
 
@@ -113,8 +116,11 @@ class Rangeland():
         '''
         apportion destocking randomly between agents
         each livestock has an equal probability of being destocked
+        NOTE: variable number of calls to np.random so control stochasticity
         '''
+        rand_int = np.random.randint(1e6)
         if total > 0:
+            print('destocking')
             tot_ls = np.sum(range_herds)
             total = min(total, tot_ls)
             destock_ix = np.random.choice(np.arange(tot_ls), size=total, replace=False) # indexes of livestock
@@ -122,3 +128,5 @@ class Rangeland():
             owner_destocks = owner_ix[destock_ix]
             for owner in owner_destocks: # would be great to get rid of this for-loop!!
                 range_herds[owner] -= 1
+
+        np.random.seed(rand_int)

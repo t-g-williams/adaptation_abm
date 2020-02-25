@@ -12,6 +12,8 @@ class LSLA:
         '''
         implement the LSLA
         '''
+        rndm_int = np.random.randint(1e6) # generate random integer to control stochasticity
+
         # attribute the parameters to the object
         self.all_inputs = inputs
         self.inputs = inputs['LSLA']
@@ -46,6 +48,7 @@ class LSLA:
             self.net_change = np.full(agents.N, 0.)
             self.encroach_ha_lost = np.full(agents.N, 0.)
 
+        np.random.seed(rand_int)
         # code.interact(local=dict(globals(), **locals()))
 
     def area_checks(self, land, rangeland, agents):

@@ -30,6 +30,9 @@ class Land():
         self.yields_unconstrained = np.full([self.T, self.n_plots], -9999)# kg
         self.nutrient_factors = np.full([self.T, self.n_plots], np.nan)
         self.rf_factors = np.full([self.T, self.n_plots], np.nan)
+        # random effect -- init at start to control stochasticity
+        self.errors = np.random.normal(1, self.random_effect_sd, (self.T, self.n_plots))
+        self.errors[self.errors < 0] = 0
 
     def init_organic(self):
         '''
@@ -142,14 +145,11 @@ class Land():
         t = self.t[0]
         # rainfall effect
         self.rf_factors[t] = self.calculate_rainfall_factor(climate.rain[t])
-        # random effect
-        errors = np.random.normal(1, self.random_effect_sd, self.n_plots)
-        errors[errors < 0] = 0
         # nutrient unconstrained yield
         self.yields_unconstrained[t] = self.max_yield * self.rf_factors[t] # kg/ha
         # factor in nutrient contraints
         max_with_nutrients = self.inorganic[t] / (1/self.crop_CN_conversion+self.residue_multiplier/self.residue_CN_conversion) # kgN/ha / (kgN/kgC_yield) = kgC/ha ~= yield(perha
-        self.yields[t] = np.minimum(self.yields_unconstrained[t], max_with_nutrients) * errors # kg/ha
+        self.yields[t] = np.minimum(self.yields_unconstrained[t], max_with_nutrients) * self.errors[t] # kg/ha
         with np.errstate(invalid='ignore'):
             self.nutrient_factors[t] = self.yields[t] / self.yields_unconstrained[t]
             self.nutrient_factors[t] = np.minimum(self.nutrient_factors[t], 1)
