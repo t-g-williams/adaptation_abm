@@ -30,6 +30,7 @@ class Land():
         self.yields_unconstrained = np.full([self.T, self.n_plots], -9999)# kg
         self.nutrient_factors = np.full([self.T, self.n_plots], np.nan)
         self.rf_factors = np.full([self.T, self.n_plots], np.nan)
+        self.farmed_fraction = np.full([self.T, self.n_plots], np.nan)
         # random effect -- init at start to control stochasticity
         self.errors = np.random.normal(1, self.random_effect_sd, (self.T, self.n_plots))
         self.errors[self.errors < 0] = 0
@@ -155,7 +156,7 @@ class Land():
             self.nutrient_factors[t] = np.minimum(self.nutrient_factors[t], 1)
 
         # attribute to agents -- adjust for their fallowing fractions
-        agents.crop_production[t] = self.yields[t] * agents.land_area * (1 - self.fallow_frac * agents.fallow[t]) # kg
+        agents.crop_production[t] = self.yields[t] * agents.land_area * self.farmed_fraction[t] # kg
         self.residue_production = agents.crop_production[t] * self.residue_multiplier * self.residue_loss_factor # kg total
 
     def calculate_rainfall_factor(self, rain, virtual=False):

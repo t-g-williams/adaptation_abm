@@ -131,7 +131,7 @@ class Agents():
                 qualifies *= eval('self.{}'.format(ki)) == vi
             self.type[qualifies] = name
 
-    def labor_allocation(self):
+    def labor_allocation(self, land):
         '''
         start-of-year labor allocation to ag and non-ag activities
         here, the non-ag activities represent SALARY jobs b/c they are decided ex-ante
@@ -139,8 +139,12 @@ class Agents():
         '''
         t = self.t[0]
         self.ls_start[t] = copy.deepcopy(self.livestock[t])
+        ## fallow decisions
+        # assume nothing for now
+        land.farmed_fraction[t] = 1 - land.fallow_frac * self.fallow[t]
+
         ## farm labor
-        self.ag_labor[t] = np.minimum(self.ag_labor_rqmt*self.land_area, self.hh_size) # ppl = ppl/ha*ha
+        self.ag_labor[t] = np.minimum(self.ag_labor_rqmt*self.land_area*land.farmed_fraction[t], self.hh_size) # ppl = ppl/ha*ha
         # farm_frac = np.minimum(self.hh_size / (self.ag_labor_rqmt * self.land_area), np.full(self.N,1)) # ppl / (ppl/ha*ha)
         ## livestock labor
         # destock if required (assume they are sold)
@@ -272,7 +276,7 @@ class Agents():
 
         ## different income sources
         self.ls_income[t] += self.livestock[t] * self.all_inputs['livestock']['income']
-        self.farm_income[t] = self.crop_sell_price*self.crop_production[t]
+        self.farm_income[t] = self.crop_sell_price*self.crop_production[t] - self.farm_cost * land.farmed_fraction[t]
         self.salary_income[t] = (self.salary_labor[t] * self.labor_salary).astype(int)
         
         # net income = crop_sales - living_cost - adap_costs + livestock_milk

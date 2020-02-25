@@ -84,6 +84,7 @@ def agents():
         
         ##### socio-environmental condns #####
         'crop_sell_price' : 2.17, # 2.17 birr/kg. mean 2015 maize price (FAO)
+        'farm_cost' : 100, # birr/ha. arbitrary
         'fertilizer_cost' : 13.2, # 13.2 birr/kg. median from 2015 LSMS
         'labor_salary' : 70*365*5/7, # birr/person/year: 70 birr/day * 5 days per week all year
         'labor_wage' : 70*365*5/7, # birr/person/year: 70 birr/day * 5 days per week all year

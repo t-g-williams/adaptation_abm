@@ -46,6 +46,7 @@ def main():
         ['agents', 'livestock_init', 0, 6, True], # converted to integer
         ['agents', 'n_yr_smooth', 1, 6, True], # converted to integer. if 6 is max then in model max will be 5
         ['agents', 'living_cost_pp', 500, 4000, True],
+        ['agents', 'farm_cost', 0, 1000, True],
         ['agents', 'living_cost_min_frac', 0.2, 0.8, False],
         ['agents', 'salary_jobs_availability', 0.01, 0.1, False],
         ['agents', 'wage_jobs_availability', 0.01, 0.1, False],
