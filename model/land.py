@@ -33,6 +33,7 @@ class Land():
         ##### crop yields #####
         self.yields = np.full([self.T, self.n_plots], -9999) # kg
         self.yields_unconstrained = np.full([self.T, self.n_plots], -9999)# kg
+        self.max_with_nutrients = np.full([self.T, self.n_plots], -9999)# kg
         self.nutrient_factors = np.full([self.T, self.n_plots], np.nan)
         self.rf_factors = np.full([self.T, self.n_plots], np.nan)
         self.farmed_fraction = np.full([self.T, self.n_plots], np.nan)
@@ -89,7 +90,6 @@ class Land():
         ### save final values
         self.inorganic[t] = inorganic # end of this year (for yields)
         self.organic[t+1] = organic # start of next year
-        # code.interact(local=dict(globals(), **locals()))
 
     def crop_residue_input(self):
         '''
@@ -120,7 +120,7 @@ class Land():
         else:       
             external_ls_per_ha = agents.livestock[self.t[0],pos] / agents.land_area[pos] * (1-ls_inp['frac_crops'])
         
-        N_per_ha = external_ls_per_ha * ls_inp['N_production']  # head/ha * kgN/head * __ = kgN/ha
+        N_per_ha = external_ls_per_ha * ls_inp['N_production'] * ls_inp['frac_N_import']  # head/ha * kgN/head * __ = kgN/ha
         return N_per_ha
 
     def cover_crop_input(self, agents, adap_properties):
@@ -160,8 +160,8 @@ class Land():
             ixs = self.crop_type[t] == crop_type
             self.yields_unconstrained[t, ixs] = max_yield * self.rf_factors[t, ixs] # kg/ha
         # factor in nutrient contraints
-        max_with_nutrients = self.inorganic[t] / (1/self.crop_CN_conversion+self.residue_multiplier/self.residue_CN_conversion) # kgN/ha / (kgN/kgC_yield) = kgC/ha ~= yield(perha
-        self.yields[t] = np.minimum(self.yields_unconstrained[t], max_with_nutrients) * self.errors[t] # kg/ha
+        self.max_with_nutrients[t] = self.inorganic[t] / (1/self.crop_CN_conversion+self.residue_multiplier/self.residue_CN_conversion) # kgN/ha / (kgN/kgC_yield) = kgC/ha ~= yield(perha
+        self.yields[t] = np.minimum(self.yields_unconstrained[t], self.max_with_nutrients[t]) * self.errors[t] # kg/ha
         with np.errstate(invalid='ignore'):
             self.nutrient_factors[t] = self.yields[t] / self.yields_unconstrained[t]
             self.nutrient_factors[t] = np.minimum(self.nutrient_factors[t], 1)

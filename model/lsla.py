@@ -55,10 +55,14 @@ class LSLA:
 
         ## give these agents technology
         t = land.t[0]
-        land.irrigation[t:, ixs] = True # no cost for irrigation
-        agents.apply_fert[t:, ixs] = True # assume they apply at the maximum required rate
-        land.fertilizer[t:, ixs] = self.fert_amt
         land.crop_type[t:, ixs] = 1 # 1 = cash crop
+        if self.irrig:
+            land.irrigation[t:, ixs] = True # no cost for irrigation
+        if self.fert_amt > 0:
+            agents.apply_fert[t:, ixs] = True # assume they apply at the maximum required rate
+            land.fertilizer[t:, ixs] = self.fert_amt
+        if self.no_fallow:
+            agents.fallow[t:, ixs] = False
 
     def init_non_outgrower(self, agents, land, rangeland):
         ## change employment

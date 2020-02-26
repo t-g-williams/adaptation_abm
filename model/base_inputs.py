@@ -112,8 +112,8 @@ def land():
         'organic_N_min_init' : 4000, # kgN/ha. similar to initial value in Li2004
         'organic_N_max_init' : 4000, # NOTE: CURRENTLY THE MODEL SETS THIS TO BE THE SAME AS MIN
         # soil model
-        'max_organic_N' : 8000, # kgN/ha. arbitrary (set in relation to the initial value)
-        'fast_mineralization_rate' : 0.1, # 0.6, # what fraction of applied organic matter mineralizes straight away. 0.1 in POM for CC-ins
+        'max_organic_N' : 6000, # kgN/ha. arbitrary (set in relation to the initial value)
+        'fast_mineralization_rate' : 0.5, # 0.6, # what fraction of applied organic matter mineralizes straight away. 0.1 in POM for CC-ins
         'slow_mineralization_rate' : 0.02, # 0.02 rate of mineralization from organic->inorganic (assume linear decay). taken from schmidt2011 -- 50year turnover time of bulk SOM
         'loss_max' : 0.5, # 0.5 inorganic loss fraction with no SOM. Di2002 data had ~50% maximum leaching rates of N. giller1997 says up to 50% in high-rainfall environments
         'loss_min' : 0.05, # 0.05 inorganic loss fraction with maximum SOM. Di2002 had ~5% minimum leaching.
@@ -174,6 +174,7 @@ def rangeland():
 
 def livestock():
     d = {
+        'frac_N_import' : 0, # amount of N from rangeland that can be imported to the farm
         'N_production' : 78.3, # kg N/year/cattle. see CC_Ins paper for derivation
         'frac_crops' : 0.5, # IF rangeland_dynamics==True, this parameter is unnecessary. fraction of livestock feed that comes from crops (in an ~average year). this influences the nitrogen input to farmland and the maximum herdsize attainable
         'income' : 125, # birr/year/head represents the value of milk production: taken directly from Redda2002 -- 240-480birr/year with local cow. assume 350 and 50% are female --> 125 birr/year/animal
@@ -190,7 +191,9 @@ def LSLA():
         'outgrower' : True, # has implications for other params
         
         ## outgrower params ##
-        'fert_amt' : 100, # kg/ha -- constant over time
+        'fert_amt' : 100, # kg/ha -- constant over time. set to 0 for no fertilizer
+        'irrig' : True,
+        'no_fallow' : True, # if true, agents w outgrower don't fallow their land
 
         ## non-outgrower params ##
         'employment' : 2, # jobs/ha taken

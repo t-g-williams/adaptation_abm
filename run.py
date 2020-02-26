@@ -10,16 +10,16 @@ import sys
 st1 = time.time()
 
 f = '../outputs/2020_2_5_10/POM/200000_20reps/input_params_0.pkl'
-f = '../outputs/2020_2_12_8/POM/10000_10reps/input_params_0.pkl'
+f = '../outputs/2020_2_12_11/POM/100000_10reps/input_params_0.pkl'
 inputs_pom = pickle.load(open(f, 'rb'))
 
 inputs = base_inputs.compile()
-# for k, v in inputs_pom.items():
-#     for k2, v2 in v.items():
-#         inputs[k][k2] = v2
+for k, v in inputs_pom.items():
+    for k2, v2 in v.items():
+        inputs[k][k2] = v2
 
 ## change any params
-inputs['model']['T'] = 10
+inputs['model']['T'] = 1000
 inputs['model']['n_agents'] = 20
 # inputs['agents']['read_from_file'] = False
 # inputs['livestock']['consumption'] = 5
@@ -29,6 +29,19 @@ inputs['model']['n_agents'] = 20
 inputs['land']['max_yield'] = {0 : 6590, 1 : 6590}
 inputs['model']['lsla_simulation'] = True
 inputs['LSLA']['outgrower'] = True
+inputs['livestock']['N_production'] = 0
+inputs['land']['fast_mineralization_rate'] = 0.5
+inputs['land']['residue_CN_conversion'] = 200
+inputs['land']['loss_max'] = 0.5
+inputs['land']['max_organic_N'] = 5000
+
+inputs['market']['fertilizer_cost'] = 0
+inputs['land']['random_effect_sd'] = 0
+# inputs['land']['fallow_N_add'] = 100000
+inputs['livestock']['N_production'] = 0
+inputs['land']['fast_mineralization_rate'] = 0.5
+inputs['land']['loss_max'] = 0.5
+inputs['climate']['rain_sd'] = 0
 
 
 # initialize the model

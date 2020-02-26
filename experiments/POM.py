@@ -30,7 +30,7 @@ def main():
     N_samples = 100000
     ncores = 40
     nreps = 10
-    exp_name = '2020_2_12_11/POM'
+    exp_name = '2020_2_26/2/POM'
     inputs = {
         'model' : {'n_agents' : 200, 'T' : 50, 'exp_name' : exp_name}
     }
@@ -40,9 +40,9 @@ def main():
     calib_vars = pd.DataFrame(
         # id, key1, key2, min, max
         [['land', 'rain_cropfail_low_SOM', 0, 0.5, False],
-        ['land', 'fast_mineralization_rate', 0.4, 0.95, False],
-        ['land', 'residue_CN_conversion', 25, 200, False],
-        ['land', 'loss_max', 0.05, 0.95, False],
+        # ['land', 'fast_mineralization_rate', 0.4, 0.95, False],
+        # ['land', 'residue_CN_conversion', 25, 200, False],
+        # ['land', 'loss_max', 0.05, 0.95, False],
         ['agents', 'livestock_init', 0, 6, True], # converted to integer
         ['agents', 'n_yr_smooth', 1, 6, True], # converted to integer. if 6 is max then in model max will be 5
         ['agents', 'living_cost_pp', 500, 4000, True],
@@ -60,7 +60,7 @@ def main():
         ['rangeland', 'rain_use_eff', 0.1, 10, False],
         ['rangeland', 'R_max', 1000, 7000, False],
         ['livestock', 'birth_rate', 0, 0.8, False],
-        ['livestock', 'N_production', 30, 150, False],
+        # ['livestock', 'N_production', 30, 150, False],
         ['livestock', 'consumption', 300, 3000, True]],
         # ['climate', 'rain_mu', 0.4, 0.8, False]],
         columns = ['key1','key2','min_val','max_val','as_int'])
@@ -260,7 +260,7 @@ def plot_ex_post(exp_name, N, nreps, rvs, calib_vars, fit_threshold):
     ax.xaxis.grid(True)
     ax.yaxis.grid(False)
     # ax.legend(ncol=3)
-    fig.savefig(outdir + 'param_vals_ex_post.png')
+    fig.savefig(outdir + 'param_vals_ex_post.png', dpi=500)
     # code.interact(local=dict(globals(), **locals()))
 
 def process_fits(fits, rvs, calib_vars, inputs, nreps, exp_name, fit_threshold):
@@ -289,7 +289,7 @@ def process_fits(fits, rvs, calib_vars, inputs, nreps, exp_name, fit_threshold):
     i = max(vals.index)
     ax.text(i, vals.loc[i]+1, '{} patterns\n{} model(s)'.format(np.round(i, 1), vals.loc[i]), horizontalalignment='center')
     ax.set_xlim([0, fits.shape[1]])
-    fig.savefig(outdir + 'histogram.png')
+    fig.savefig(outdir + 'histogram.png', dpi=500)
     # write outputs
     fit_pd = fit_pd.sort_values(by='sum', axis=0, ascending=False)
     fit_pd['sim_number'] = fit_pd.index
@@ -317,7 +317,7 @@ def process_fits(fits, rvs, calib_vars, inputs, nreps, exp_name, fit_threshold):
     ax.xaxis.grid(True)
     ax.yaxis.grid(False)
     ax.legend()
-    fig.savefig(outdir + 'param_vals.png')
+    fig.savefig(outdir + 'param_vals.png', dpi=500)
 
     # run and plot one of them
     inp_all = base_inputs.compile()
