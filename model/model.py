@@ -40,7 +40,7 @@ class Model():
         advance the simulation by one year
         '''
         if (self.lsla_simulation and self.t[0]==self.all_inputs['LSLA']['tstart']):
-            self.lsla = LSLA(self.all_inputs, self.agents, self.land, self.rangeland) # implement the LSLA
+            self.lsla = LSLA(self.all_inputs, self.agents, self.land, self.rangeland, self.market) # implement the LSLA
         self.agents.labor_allocation(self.land, self.market)
         self.land.update_soil(self.agents, self.adap_properties)
         self.land.crop_yields(self.agents, self.climate)
@@ -120,7 +120,7 @@ class Model():
         rain_facs = np.full(rains.shape, np.nan)
         for r, rain in enumerate(rains):
             rain_facs[r] = self.land.calculate_rainfall_factor(rain, virtual=True)
-        exp_yield = np.mean(rain_facs) * self.land.max_yield * 0.5 # 0.5 assumed mean nutrient factor
+        exp_yield = np.mean(rain_facs) * self.land.max_yield[0] * 0.5 # 0.5 assumed mean nutrient factor
         exp_crop_income = exp_yield * self.agents.crop_sell_price # birr/ha
         payout = exp_crop_income * props['payout_magnitude'] # birr/ha
         cost = payout * props['climate_percentile'] # birr/ha

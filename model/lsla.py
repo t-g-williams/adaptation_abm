@@ -8,7 +8,7 @@ import sys
 from collections import Counter
 
 class LSLA:
-    def __init__(self, inputs, agents, land, rangeland):
+    def __init__(self, inputs, agents, land, rangeland, market):
         '''
         implement the LSLA
         '''
@@ -38,7 +38,7 @@ class LSLA:
         if self.outgrower:
             self.init_outgrower(agents, land, rangeland)
         else:
-            self.init_non_outgrower(agents, land, rangeland)
+            self.init_non_outgrower(agents, land, rangeland, market)
         
 
         np.random.seed(rand_int)
@@ -64,10 +64,10 @@ class LSLA:
         if self.no_fallow:
             agents.fallow[t:, ixs] = False
 
-    def init_non_outgrower(self, agents, land, rangeland):
+    def init_non_outgrower(self, agents, land, rangeland, market):
         ## change employment
-        self.tot_salary_jobs = round_down(self.employment * self.size, agents.salary_job_increment)
-        agents.salary_job_avail_total += self.tot_salary_jobs
+        self.tot_salary_jobs = round_down(self.employment * self.size, market.salary_job_increment)
+        market.salary_job_avail_total += self.tot_salary_jobs
 
         ## direct LUC
         if self.LUC == 'commons':

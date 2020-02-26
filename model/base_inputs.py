@@ -33,7 +33,7 @@ def adaptation():
         # 'fertilizer_fixed' : {
         #     'application_rate' : 147.2, # kg/ha. median from LSMS (ALL fertilizer. i assume this equals Nitrogen)
         #     },
-        'burnin_period' : 10, # years before adaptation options come into effect
+        'burnin_period' : 15, # years before adaptation options come into effect
         'insurance' : {
             'climate_percentile' : 0.1,
             'payout_magnitude' : 1, # relative to the expected yield (assuming perfect soil quality). if =1.5, then payout = 1.5*expected_yield
@@ -91,7 +91,7 @@ def agents():
 
 def market():
     d = {
-    'crop_sell_params' : {0 : [2.17,0,0], 1 : [3,0.2,0.5]}, # [x,x,x]=[mean,sd,rho] 2.17 birr/kg. mean 2015 maize price (FAO)
+    'crop_sell_params' : {0 : [2.17,0,0], 1 : [2.17,0,0]}, # [x,x,x]=[mean,sd,rho] 2.17 birr/kg. mean 2015 maize price (FAO)
     'farm_cost' : 100, # birr/ha. arbitrary
     'fertilizer_cost' : 13.2, # 13.2 birr/kg. median from 2015 LSMS
     'labor_salary' : 70*365*5/7, # birr/person/year: 70 birr/day * 5 days per week all year
@@ -188,15 +188,15 @@ def LSLA():
         ## for all simulations ##
         'tstart' : 5, # e.g. 5 means start of 6th year of simulation
         'size' : 0.25, # ha per agent
-        'outgrower' : True, # has implications for other params
+        'outgrower' : False, # has implications for other params
         
         ## outgrower params ##
-        'fert_amt' : 100, # kg/ha -- constant over time. set to 0 for no fertilizer
+        'fert_amt' : 50, # kg/ha -- constant over time. set to 0 for no fertilizer
         'irrig' : True,
         'no_fallow' : True, # if true, agents w outgrower don't fallow their land
 
         ## non-outgrower params ##
-        'employment' : 2, # jobs/ha taken
+        'employment' : 0.153, # jobs/ha taken. scheidel2013 has values. 153 jobs / 1000 ha
         'LUC' : 'farm', # 'farm' or 'commons'' or ?'none'?
         'encroachment' : 'farm', # where do displaced HHs encroach on? 'farm' or 'commons'
         'frac_retain' : 0.5, # fraction of land that was originally taken that HHs retain (on average)
