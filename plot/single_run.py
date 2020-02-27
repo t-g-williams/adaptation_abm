@@ -5,6 +5,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import code
 import brewer2mpl
+import warnings
+warnings.filterwarnings("ignore", category=RuntimeWarning)
 import os
 from . import plot_style
 plot_type = 'paper'#'presentation_black_bg'
@@ -22,27 +24,26 @@ def main(mod, save=True):
         savedir = False
 
     qs = [1,5,50,95,99]
-    # inputs(mod, savedir)
 
     # separate plots
-    separate(mod)
+    separate(mod, savedir)
 
     # plotting by agent type
-    # type_combined(mod, save)
-    # type_wealth(mod, savedir)
-    # type_coping(mod, savedir)
-    # type_nutrients(mod, savedir)
-    # type_yields(mod, savedir)
+    type_combined(mod, save)
+    type_wealth(mod, savedir)
+    type_coping(mod, savedir)
+    type_nutrients(mod, savedir)
+    type_yields(mod, savedir)
 
-    # band and original plots
-    # adaptation(mod, savedir)
+    # other plots
+    adaptation(mod, savedir)
+    inputs(mod, savedir)
+    soil(mod, qs, savedir)
+    yields(mod, qs, savedir)
+    coping(mod, qs, savedir)
+    plt.close('all')    
 
-    ## soil(mod, qs, savedir)
-    ## yields(mod, qs, savedir)
-    ## coping(mod, qs, savedir)
-    ## plt.close('all')    
-
-def separate(mod):
+def separate(mod, savedir=False):
     '''
     plot each agent type separately
     '''
@@ -84,6 +85,11 @@ def separate(mod):
     axs[2,0].set_ylabel('Climate\ncondition')
     axs[0,1].text(0.5,1.2, 'A: Baseline', 
                   transform=axs[0,1].transAxes, fontsize=23, ha='center')
+    
+    if isinstance(savedir, bool):
+        return fig
+    else:
+        fig.savefig(savedir + 'separate_plots.png')
 
 def inputs(mod, savedir):
     '''
@@ -352,7 +358,7 @@ def band_plot(d, qs, ax, title, ylim=False):
     create a plot with median and std deviations
     '''
     color = 'b'
-    vals = np.percentile(d, q=qs, axis=1)
+    vals = np.nanpercentile(d, q=qs, axis=1)
     xs = np.arange(vals.shape[1])
     ax.plot(xs, vals[2], color=color, marker='o')
     ax.fill_between(xs, vals[0], vals[-1], alpha=0.2, color=color)
@@ -384,8 +390,8 @@ def agent_trajectories(d, ax):
     # add to plot
     for i, en in enumerate(ends):
         ax.text(en[0], en[1]+0.3, str(counts[i]), horizontalalignment='center')
-    # code.interact(local=dict(globals(), **locals()))
     ax.plot(xs, ys, color='b')
     mx = max(xs.max(), ys.max()) + 1.5
     ax.set_ylim([0, mx])
     ax.set_xlim([0, mx])
+    # code.interact(local=dict(globals(), **locals()))

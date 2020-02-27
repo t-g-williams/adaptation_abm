@@ -7,7 +7,6 @@ import pickle
 import numpy as np
 import sys
 
-st1 = time.time()
 # compile the inputs
 inp = inputs.compile()
 
@@ -17,29 +16,20 @@ inp = inputs.compile()
 f = '../outputs/2019_10_10/POM/100000_10reps/input_params_0.pkl'
 inp = pickle.load(open(f, 'rb'))
 
-
-## change any params
-inp['model']['adaptation_option'] = 'insurance'
-inp['model']['shock'] = False
+## change any params, e.g.
 inp['model']['T'] = 60
-inp['model']['n_agents'] = 3
-# inp['climate']['shock_years'] = [15]
-# inp['climate']['shock_rain'] = 0.15
+inp['model']['n_agents'] = 30
 inp['model']['exp_name'] = 'test'
-inp['climate']['rain_mu'] = 0.5
+inp['agents']['land_area_multiplier'] = 1
 
 # initialize the model
+print('running model....')
 m = Model(inp)
 # run the model
 for t in range(m.T):
     m.step()
 
-st2 = time.time()
-print(st2-st1)
-# sys.exit()
 # plot
+print('plotting....')
 plt.main(m)
-code.interact(local=dict(globals(), **locals()))
-
-st3 = time.time()
-# print(st3-st2)
+# code.interact(local=dict(globals(), **locals()))
