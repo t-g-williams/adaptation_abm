@@ -23,6 +23,7 @@ plt.style.use(styles[plot_type])
 from model import base_inputs
 from model import model
 import plot.single as plt_single
+from . import trajectories
 
 
 def main():
@@ -37,43 +38,49 @@ def main():
     fit_threshold = 0.8
 
     # define the variables for calibration
+    calib_vars = define_calib_vars()
+
+    # generate set of RVs
+    rvs = hypercube_sample(N_samples, calib_vars)
+
+    # # run the model and calculate fitting metrics
+    fits = run_model(rvs, inputs, calib_vars, ncores, nreps, load=False)
+    
+    # # process the fit data
+    process_fits(fits, rvs, calib_vars, inputs, nreps, exp_name, fit_threshold)
+    plot_ex_post(exp_name, N_samples, nreps, rvs, calib_vars, fit_threshold)
+
+def define_calib_vars():
     calib_vars = pd.DataFrame(
         # id, key1, key2, min, max
         [['land', 'rain_cropfail_low_SOM', 0, 0.5, False],
-        # ['land', 'fast_mineralization_rate', 0.4, 0.95, False],
+        ['land', 'fast_mineralization_rate', 0.25, 0.75, False],
         # ['land', 'residue_CN_conversion', 25, 200, False],
         # ['land', 'loss_max', 0.05, 0.95, False],
         ['agents', 'livestock_init', 0, 6, True], # converted to integer
         ['agents', 'n_yr_smooth', 1, 6, True], # converted to integer. if 6 is max then in model max will be 5
-        ['agents', 'living_cost_pp', 500, 4000, True],
-        ['agents', 'farm_cost', 0, 1000, True],
+        ['agents', 'living_cost_pp', 50, 2000, True],
         ['agents', 'living_cost_min_frac', 0.2, 0.8, False],
-        ['agents', 'salary_jobs_availability', 0.01, 0.1, False],
-        ['agents', 'wage_jobs_availability', 0.01, 0.1, False],
-        ['agents', 'labor_salary', 5000, 30000, True],
-        ['agents', 'wage_salary', 5000, 30000, True],
         ['agents', 'ag_labor_rqmt', 0.5, 3, False],
         ['agents', 'ls_labor_rqmt', 0.02, 1, False],
         ['agents', 'savings_acct', 0, 2, True], # binary
+        ['market', 'farm_cost', 0, 1000, True],
+        ['market', 'salary_jobs_availability', 0.01, 0.1, False],
+        ['market', 'wage_jobs_availability', 0.01, 0.1, False],
+        ['market', 'labor_salary', 5000, 30000, True],
+        ['market', 'wage_salary', 5000, 30000, True],
         ['rangeland', 'range_farm_ratio', 0.1, 1, False],
         ['rangeland', 'gr2', 0, 0.2, False],
         ['rangeland', 'rain_use_eff', 0.1, 10, False],
         ['rangeland', 'R_max', 1000, 7000, False],
         ['livestock', 'birth_rate', 0, 0.8, False],
         # ['livestock', 'N_production', 30, 150, False],
+        ['livestock', 'frac_N_import', 0, 1, False],
         ['livestock', 'consumption', 300, 3000, True]],
         # ['climate', 'rain_mu', 0.4, 0.8, False]],
         columns = ['key1','key2','min_val','max_val','as_int'])
 
-    # generate set of RVs
-    rvs = hypercube_sample(N_samples, calib_vars)
-
-    # # run the model and calculate fitting metrics
-    fits = run_model(rvs, inputs, calib_vars, ncores, nreps)
-    
-    # # process the fit data
-    process_fits(fits, rvs, calib_vars, inputs, nreps, exp_name, fit_threshold)
-    plot_ex_post(exp_name, N_samples, nreps, rvs, calib_vars, fit_threshold)
+    return calib_vars
 
 def fitting_metrics(mod):
     '''
@@ -165,7 +172,7 @@ def hypercube_sample(N, calib_vars):
 
     return rvs
 
-def run_model(rvs, inputs, calib_vars, ncores, nreps):
+def run_model(rvs, inputs, calib_vars, ncores, nreps, trajectory=False, load=False):
     '''
     run the model for each of the RV combinations
     '''
@@ -176,8 +183,8 @@ def run_model(rvs, inputs, calib_vars, ncores, nreps):
     if not os.path.isdir(outdir):
         os.makedirs(outdir)
     outname = 'fits_raw.npz'
-    if os.path.isfile(outdir + outname):
-        return np.load(outdir+outname)['data']
+    if os.path.isfile(outdir + outname) and load:
+        return np.load(outdir+outname, allow_pickle=True)['data']
 
     # run the model
     N = rvs.shape[0]
@@ -189,23 +196,30 @@ def run_model(rvs, inputs, calib_vars, ncores, nreps):
         if nreps > 1:
             print('rep {} / {} ...........'.format(r+1, nreps))
         if ncores > 1:
-            fits_par = Parallel(n_jobs=ncores)(delayed(run_chunk_sims)(sim_chunks[i], rvs, inp_all, calib_vars) for i in range(len(sim_chunks)))
+            fits_par = Parallel(n_jobs=ncores)(delayed(run_chunk_sims)(sim_chunks[i], rvs, inp_all, calib_vars, trajectory) for i in range(len(sim_chunks)))
             fits = {}
             for fit in fits_par:
                 for k, v in fit.items():
                     fits[k] = v
         else:
-            fits = run_chunk_sims(sim_chunks[0], rvs, inp_all, calib_vars)
+            fits = run_chunk_sims(sim_chunks[0], rvs, inp_all, calib_vars, trajectory)
         fits_all.append(fits)
-        fits_all_np.append(np.array(pd.DataFrame.from_dict(fits, orient='index')))
-    
-    # average over all reps
-    fits_all_np = np.array(fits_all_np)
-    fits_avg = np.mean(fits_all_np, axis=0)
-    np.savez_compressed(outdir+outname, data=fits_avg)
-    return fits_avg
+        fits_all_np.append(np.array(pd.DataFrame.from_dict(fits, orient='index')))    
 
-def run_chunk_sims(ixs, rvs, inp_all, calib_vars):
+    fits_all_np = np.array(fits_all_np)
+
+    if trajectory:
+        # return all fits
+        np.savez_compressed(outdir+outname, data=fits_all_np)
+        return fits_all_np
+    else:
+        ## POM
+        # average over all reps
+        fits_avg = np.mean(fits_all_np, axis=0)
+        np.savez_compressed(outdir+outname, data=fits_avg)
+        return fits_avg
+
+def run_chunk_sims(ixs, rvs, inp_all, calib_vars, trajectory):
     '''
     run the "ixs" rows of rvs simulations
     '''
@@ -222,7 +236,10 @@ def run_chunk_sims(ixs, rvs, inp_all, calib_vars):
             m.step()
 
         # calculate model fitting metrics
-        fits[ix] = fitting_metrics(m)
+        if trajectory:
+            fits[ix] = trajectories.fitting_metrics(m)
+        else:
+            fits[ix] = fitting_metrics(m)
 
     return fits
 
@@ -354,9 +371,10 @@ def overwrite_inputs(all_inputs, changes):
     return all_inp
 
 def overwrite_rv_inputs(all_inputs, rv_inputs, names1, names2):
+    tmp = copy.deepcopy(all_inputs)
     for i, rv in enumerate(rv_inputs):
-        all_inputs[names1[i]][names2[i]] = rv
-    return all_inputs
+        tmp[names1[i]][names2[i]] = rv
+    return tmp
 
 def chunkIt(seq, n):
     '''

@@ -270,6 +270,7 @@ class Agents():
         self.wage_labor[t] = market.allocate_wage_labor(self, lbr_amts)
         self.wage_income[t] = self.wage_labor[t] * market.labor_wage
         self.savings[t+1] += self.wage_income[t]
+        # code.interact(local=dict(globals(), **locals()))
 
         ## 4. STRESS DESTOCKING
         # sell livestock if food requirements still haven't been met
@@ -285,7 +286,6 @@ class Agents():
         # assume that debts can't carry over
         self.cant_cope[t, self.savings[t+1]<0] = True # record
         self.savings[t+1, self.cant_cope[t]] = 0
-        # code.interact(local=dict(globals(), **locals()))
         
         if np.sum(self.livestock[t]<0)>0:
             print('ERROR: negative livestock in agents.coping_measures()')
