@@ -39,6 +39,7 @@ def main():
 
     # define the variables for calibration
     calib_vars = define_calib_vars()
+    calib_vars.to_csv('../outputs/{}/calib_vars.csv'.format(exp_name))
 
     # generate set of RVs
     rvs = hypercube_sample(N_samples, calib_vars)

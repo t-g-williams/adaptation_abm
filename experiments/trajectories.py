@@ -70,6 +70,7 @@ def identify_models(exp_name_overall):
 
     # define the variables for sampling
     calib_vars = POM.define_calib_vars()
+    calib_vars.to_csv('../outputs/{}/calib_vars.csv'.format(exp_name))
 
     # generate set of RVs
     rvs = POM.hypercube_sample(N_samples, calib_vars)
@@ -110,7 +111,7 @@ def fitting_metrics(m):
     ## social outcomes
     thresh = 0.5
     p_livestock = np.mean(m.agents.livestock > 0) # over all time / agents
-    p_coping = np.mean(m.agents.cons_red_rqd) # over all time / agents
+    p_no_coping = np.mean(~m.agents.cons_red_rqd) # over all time / agents (high values are good)
     ## environmental outcomes
     frac_val = 0.8 # times the initial value
     som_frac = np.mean(m.land.organic[-1]) / m.land.organic_N_min_init # fraction relative to initial
@@ -118,7 +119,7 @@ def fitting_metrics(m):
     R_frac = (m.rangeland.R.min() / m.rangeland.R_max) / m.rangeland.R0_frac # fraction relative to initial fraction
     stable_R = True if R_frac >= frac_val else False
     # combine
-    if np.all([p_livestock>=thresh, p_coping<thresh]): # s+ outcome
+    if np.all([p_livestock>=thresh, p_no_coping>=thresh]): # s+ outcome
         if np.all([stable_som, stable_R]): # e+ outcome
             cat = 0
         elif np.logical_or(~stable_som, ~stable_R): # e- outcome -- either one is under limit
@@ -134,7 +135,7 @@ def fitting_metrics(m):
             cat = -1
 
     # return [feas, cat]
-    return [feas, cat, feas_a, feas_b, p_livestock, p_coping, som_frac, R_frac]
+    return [feas, cat, feas_a, feas_b, p_livestock, p_no_coping, som_frac, R_frac]
 
 def select_parameterizations(fits, rvs, exp_name, N_per_class, outdir):
     '''
