@@ -195,6 +195,60 @@ def plot_baseline(mods, exps, exp_name):
     '''
     create baseline plots showing agent-level and model-level dynamics
     '''
+    plot_individs(mods, exps, exp_name)
+    plot_model_avgs(mods, exps, exp_name)
+
+    code.interact(local=dict(globals(), **locals()))
+
+def plot_individs(mods, exps, exp_name, N=10):
+    '''
+    plot N individual agent trajectories for each model
+    '''
+    cat_names = ['s+e+', 's+e-', 's-e+', 's-e-']
+
+    for ag_i in range(N):
+        fig, axs = plt.subplots(9,4,figsize=(21, 12), sharex=True, sharey='row')
+        for i, exp in enumerate(exps.keys()):
+            ax_col = int(exp[0])
+            # select the objects to plot
+            m = mods[i]
+            ag = m.agents
+            objs = [ag.livestock, ag.savings, ag.income, ag.wage_labor>0, ag.salary_labor>0, m.rangeland.R, m.land.organic, m.land.yields]
+            names = ['livestock','savings','income','wage lbr','salary lbr','grass','SOM','yield']
+            for o, obj in enumerate(objs):
+                ax = axs[o, ax_col]
+                # extract the plot vals
+                if names[o] == 'grass':
+                    plot_vals = obj
+                else:
+                    plot_vals = obj[:,ag_i] # the ith agent
+                # plot
+                ax.plot(plot_vals, lw=1, color='b')
+
+                ## formatting
+                if ax_col == 0:
+                    ax.set_ylabel(names[o])
+                if o == 0:
+                    ax.set_title(cat_names[ax_col], fontsize=30)
+                if names[o] == 'income':
+                    ax.axhline(0, color='k', lw=0.75)
+
+            # add the rainfall
+            axs[-1,ax_col].plot(m.climate.rain, color='r', lw=1)
+        
+        ## FORMATTING
+        axs[-1,0].set_ylabel('rain')
+        for axi in axs[-1]:
+            # axi.set_xticks(np.arange(m.T+1))
+            axi.set_xlim([0, m.T])
+            axi.set_xlabel('year')
+        ax_flat = axs.flatten()
+        for ax in ax_flat:
+            ax.grid(which='major', axis='y')
+
+        fig.savefig('../outputs/{}/trajectories_agent_{}_{}ha_{}ppl.png'.format(exp_name, ag_i, ag.land_area[ag_i], ag.hh_size[ag_i]), dpi=200)
+
+def plot_model_avgs(mods, exps, exp_name):
     cat_names = ['s+e+', 's+e-', 's-e+', 's-e-']
     ### 1. model-level averages for each type
     fig, axs = plt.subplots(9,4,figsize=(21, 12), sharex=True, sharey='row')
@@ -226,7 +280,6 @@ def plot_baseline(mods, exps, exp_name):
         # add the rainfall
         axs[-1,ax_col].plot(m.climate.rain, color='r', lw=1)
     
-    
     ## FORMATTING
     axs[-1,0].set_ylabel('rain')
     for axi in axs[-1]:
@@ -238,9 +291,6 @@ def plot_baseline(mods, exps, exp_name):
         ax.grid(which='major', axis='y')
 
     fig.savefig('../outputs/{}/model_averages.png'.format(exp_name), dpi=200)
-    sys.exit()
-    code.interact(local=dict(globals(), **locals()))
-
 
 if __name__ == '__main__':
     main()
