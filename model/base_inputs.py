@@ -187,7 +187,7 @@ def LSLA():
     d = {
         ## for all simulations ##
         'tstart' : 5, # e.g. 5 means start of 6th year of simulation
-        'size' : 0.25, # ha per agent
+        'size' : 0.1, # ha per ha of farmland. note: the maximum feasible value for this is the same as the range:farm ratio
         'outgrower' : False, # has implications for other params
         
         ## outgrower params ##

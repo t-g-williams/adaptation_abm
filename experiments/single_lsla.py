@@ -152,7 +152,7 @@ def main():
         print(name)
         mods[name] = []
         # change the params
-        params = copy.copy(inputs)
+        params = copy.deepcopy(inputs)
         for k, v in vals.items():
             for k2, v2 in v.items():
                 params[k][k2] = v2

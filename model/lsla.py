@@ -31,7 +31,7 @@ class LSLA:
 
 
         ## calculate area and displacement stats
-        self.area = self.size * agents.N # ha = ha/agent * agents
+        self.area = self.size * land.tot_area # ha = ha_lsla/ha_farmland * ha_farmland
         self.area_encroach = round_down(self.area * self.frac_retain, land.plot_size) if (self.LUC=='farm' and self.outgrower==False) else 0
         self.area_checks(land, rangeland, agents)
         
@@ -118,6 +118,7 @@ class LSLA:
         ## 2. determine where this new land comes from
         if self.encroachment == 'farm':
             self.encroach_ha_lost, som_removed = self.farmland_encroachment(agents, land.plot_size, land)
+            print(self.encroach_ha_lost.max())
         elif self.encroachment == 'commons':
             self.encroach_ha_lost = np.full(agents.N, 0.) # for the agents
             som_removed = np.full(int(self.area_encroach/land.plot_size), rangeland.SOM) # inherit the SOM of the rangeland
@@ -229,6 +230,10 @@ class LSLA:
                 size_i -= plot_size
             # save
             encroach_ha_lost = self.area_after_disp - new_areas_tmp
+            if encroach_ha_lost.max() == 11:
+                print('in this function!!')
+                code.interact(local=dict(globals(), **locals()))
+
             som_rmv = np.array([item for sublist in som_taken for item in sublist])
         else:
             print('ERROR: unknown land taking type : {}'.format(self.land_taking_type))
