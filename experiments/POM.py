@@ -173,7 +173,7 @@ def hypercube_sample(N, calib_vars):
 
     return rvs
 
-def run_model(rvs, inputs, calib_vars, ncores, nreps, trajectory=False, load=False):
+def run_model(rvs, inputs, calib_vars, ncores, nreps, trajectory=False, load=False, threshs=False):
     '''
     run the model for each of the RV combinations
     '''
@@ -197,7 +197,7 @@ def run_model(rvs, inputs, calib_vars, ncores, nreps, trajectory=False, load=Fal
         if nreps > 1:
             print('rep {} / {} ...........'.format(r+1, nreps))
         if ncores > 1:
-            fits_par = Parallel(n_jobs=ncores)(delayed(run_chunk_sims)(sim_chunks[i], rvs, inp_all, calib_vars, trajectory) for i in range(len(sim_chunks)))
+            fits_par = Parallel(n_jobs=ncores)(delayed(run_chunk_sims)(sim_chunks[i], rvs, inp_all, calib_vars, trajector, threshs) for i in range(len(sim_chunks)))
             fits = {}
             for fit in fits_par:
                 for k, v in fit.items():
@@ -220,7 +220,7 @@ def run_model(rvs, inputs, calib_vars, ncores, nreps, trajectory=False, load=Fal
         np.savez_compressed(outdir+outname, data=fits_avg)
         return fits_avg
 
-def run_chunk_sims(ixs, rvs, inp_all, calib_vars, trajectory):
+def run_chunk_sims(ixs, rvs, inp_all, calib_vars, trajectory, threshs):
     '''
     run the "ixs" rows of rvs simulations
     '''
@@ -238,7 +238,7 @@ def run_chunk_sims(ixs, rvs, inp_all, calib_vars, trajectory):
 
         # calculate model fitting metrics
         if trajectory:
-            fits[ix] = trajectories.fitting_metrics(m)
+            fits[ix] = trajectories.fitting_metrics(m, threshs)
         else:
             fits[ix] = fitting_metrics(m)
 

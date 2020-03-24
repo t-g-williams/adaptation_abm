@@ -22,17 +22,22 @@ plt.style.use('fivethirtyeight')
 plt.style.use(styles[plot_type])
 
 from . import POM
+from . import sensitivity_POM
 from model import base_inputs
 from model import model
 # import plot.single as plt_single
 
 def main():
     exp_name = 'trajectories_test'
+    threshs = [0.8, 0.8] # S, E
 
     ## 1. identify the model parameterizations
-    params, calib_vars = identify_models(exp_name)
+    params, calib_vars, fits, rvs = identify_models(exp_name, threshs)
 
-    ## 2. run and plot baseline simulations
+    ## 2. sensitivity analysis on the fitting
+    sensitivity_POM.main(fits, calib_vars, rvs, threshs, exp_name)
+
+    ## 3. run and plot baseline simulations
     run_baseline_sims(params, calib_vars, exp_name)
 
 def run_baseline_sims(params, calib_vars, exp_name):
@@ -57,7 +62,7 @@ def run_baseline_sims(params, calib_vars, exp_name):
     ### 3. plot the results
     plot_baseline(mods, exps, exp_name)
 
-def identify_models(exp_name_overall):
+def identify_models(exp_name_overall, threshs):
     # specify experimental settings
     N_samples = 10000
     ncores = 40
@@ -80,13 +85,14 @@ def identify_models(exp_name_overall):
     np.savez_compressed('{}/rvs.npz'.format(outdir), data=rvs)
 
     # # run the model and calculate fitting metrics
-    fits = POM.run_model(rvs, inputs, calib_vars, ncores, nreps, trajectory=True, load=True)
+    fits = POM.run_model(rvs, inputs, calib_vars, ncores, nreps, trajectory=True, threshs=threshs, load=True)
 
+    # select N parameterizations for each class
     params = select_parameterizations(fits, rvs, exp_name, N_per_class, outdir)
 
-    return params, calib_vars
+    return params, calib_vars, fits, rvs
 
-def fitting_metrics(m):
+def fitting_metrics(m, threshs):
     '''
     determine the feasibility of the model
         0 = infeasible, 1 = feasible
@@ -109,17 +115,15 @@ def fitting_metrics(m):
 
     #### TRAJECTORIES ####
     ## social outcomes
-    thresh = 0.5
     p_livestock = np.mean(m.agents.livestock > 0) # over all time / agents
     p_no_coping = np.mean(~m.agents.cons_red_rqd) # over all time / agents (high values are good)
     ## environmental outcomes
-    frac_val = 0.8 # times the initial value
     som_frac = np.mean(m.land.organic[-1]) / m.land.organic_N_min_init # fraction relative to initial
-    stable_som = True if som_frac >= frac_val else False
+    stable_som = True if som_frac >= threshs[1] else False
     R_frac = (m.rangeland.R.min() / m.rangeland.R_max) / m.rangeland.R0_frac # fraction relative to initial fraction
-    stable_R = True if R_frac >= frac_val else False
+    stable_R = True if R_frac >= threshs[1] else False
     # combine
-    if np.all([p_livestock>=thresh, p_no_coping>=thresh]): # s+ outcome
+    if np.all([p_livestock>=threshs[0], p_no_coping>=threshs[0]]): # s+ outcome
         if np.all([stable_som, stable_R]): # e+ outcome
             cat = 0
         elif np.logical_or(~stable_som, ~stable_R): # e- outcome -- either one is under limit
