@@ -5,22 +5,37 @@ import code
 import time
 import pickle
 import numpy as np
+import pandas as pd
 import sys
 
 st1 = time.time()
 
-f = '../outputs/2020_2_5_10/POM/200000_20reps/input_params_0.pkl'
-f = '../outputs/2020_2_12_11/POM/100000_10reps/input_params_0.pkl'
-inputs_pom = pickle.load(open(f, 'rb'))
 
+## POM - trajectories
+exp_name = 'trajectories_test/pom_10000_10rep'
+f = '../outputs/{}/selected_params.pkl'.format(exp_name)
+inp_all = pickle.load(open(f, 'rb'))
+calib_vars = pd.read_csv('../outputs/{}/calib_vars.csv'.format(exp_name), index_col=0)
+
+se = '0' # s+e+, s+e-, s-e+, s-e-
 inputs = base_inputs.compile()
-for k, v in inputs_pom.items():
-    for k2, v2 in v.items():
-        inputs[k][k2] = v2
+for i in range(inp_all[se].shape[1]):
+    inputs[calib_vars.loc[i, 'key1']][calib_vars.loc[i,'key2']] = inp_all[se][0,i]
+
+
+# f = '../outputs/2020_2_5_10/POM/200000_20reps/input_params_0.pkl'
+# # f = '../outputs/2020_2_12_11/POM/100000_10reps/input_params_0.pkl'
+# f = '../outputs/2020_2_12_10/POM/10000_10reps/input_params_0.pkl'
+# inputs_pom = pickle.load(open(f, 'rb'))
+
+# inputs = base_inputs.compile()
+# for k, v in inputs_pom.items():
+#     for k2, v2 in v.items():
+#         inputs[k][k2] = v2
 
 ## change any params
-inputs['model']['T'] = 1000
-inputs['model']['n_agents'] = 20
+inputs['model']['T'] = 30
+inputs['model']['n_agents'] = 200
 # inputs['agents']['read_from_file'] = False
 # inputs['livestock']['consumption'] = 5
 # inputs['rangeland']['gr2'] = 0.9

@@ -75,12 +75,13 @@ class Rangeland():
         simulate the consumption of on-farm crop residues
         as well as green and reserve biomass
         '''
+        ls_consumption = self.all_inputs['livestock']['consumption']
         # livestock consumption is achieved via a mix of on-farm residues and the communal rangeland
-        agents.herds_on_residue[t] = np.floor(np.minimum(herds, land.residue_production / self.all_inputs['livestock']['consumption'])).astype(int) # kg / (kg/head) = head
+        agents.herds_on_residue[t] = np.floor(np.minimum(herds, land.residue_production / ls_consumption)).astype(int) # kg / (kg/head) = head
+        # print(land.residue_production / ls_consumption)
         # agents.herds_on_residue[t] = np.minimum(herds, land.residue_production / self.all_inputs['livestock']['consumption'])
         # ^ take the floor of this. keep as integer
         # demand for the rangeland
-        ls_consumption = self.all_inputs['livestock']['consumption']
         agents.herds_on_rangeland[t] = herds - agents.herds_on_residue[t]
         self.demand_intensity[t] = np.sum(agents.herds_on_rangeland[t]) * ls_consumption / self.size_ha # unit = kg/ha
         # how is this demand satisfied...?

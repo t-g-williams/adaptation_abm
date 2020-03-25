@@ -221,7 +221,7 @@ class Agents():
         self.ls_income[t] += self.livestock[t] * self.all_inputs['livestock']['income']
         for crop_type, prices in market.crop_sell.items():
             ixs = land.crop_type[t] == crop_type
-            self.farm_income[t, ixs] = prices[t]*self.crop_production[t,ixs] - market.farm_cost * land.farmed_fraction[t,ixs]
+            self.farm_income[t, ixs] = prices[t]*self.crop_production[t,ixs] - market.farm_cost * land.farmed_fraction[t,ixs] * self.land_area[ixs]
         self.salary_income[t] = (self.salary_labor[t] * market.labor_salary).astype(int)
 
         ## other costs
