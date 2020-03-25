@@ -24,8 +24,9 @@ class Rangeland():
         self.G[0] = self.R[0] * self.G_R_ratio # assume it starts saturated
         self.G_no_cons = np.full(self.T, -99) # store as integer (kg/ha)
         self.destocking_rqd = np.full(self.T, False)
-        self.demand_intensity = np.full(self.T, np.nan)
-        self.livestock_supported = np.full(self.T, -99)
+        val = -99 if self.integer_consumption else np.nan
+        self.demand_intensity = np.full(self.T, val)
+        self.livestock_supported = np.full(self.T, val)
 
     def update(self, climate, agents, land):
         '''
@@ -58,7 +59,10 @@ class Rangeland():
         ## 3. livestock consumption and destocking
         destocking_total = self.consumption(agents, land, herds, t)
         self.apportion_destocking(destocking_total, agents.herds_on_rangeland[t])
-        agents.livestock[t] = agents.herds_on_residue[t] + agents.herds_on_rangeland[t]
+        # add together the livestock on residue and rangeland
+        # if there's been a "partial destocking" required on the rangeland, the whole animal must be destocked
+        # hence, take the floor of this sum
+        agents.livestock[t] = np.floor(agents.herds_on_residue[t] + agents.herds_on_rangeland[t]).astype(int)
         agents.ls_destock[t] = copy.deepcopy(agents.livestock[t])
 
         ## 4. reserve biomass growth
@@ -77,8 +81,9 @@ class Rangeland():
         '''
         ls_consumption = self.all_inputs['livestock']['consumption']
         # livestock consumption is achieved via a mix of on-farm residues and the communal rangeland
-        agents.herds_on_residue[t] = np.floor(np.minimum(herds, land.residue_production / ls_consumption)).astype(int) # kg / (kg/head) = head
-        # print(land.residue_production / ls_consumption)
+        agents.herds_on_residue[t] = np.minimum(herds, land.residue_production / ls_consumption) # kg / (kg/head) = head
+        if self.integer_consumption:
+            agents.herds_on_residue[t] = np.floor(agents.herds_on_residue[t]).astype(int)
         # agents.herds_on_residue[t] = np.minimum(herds, land.residue_production / self.all_inputs['livestock']['consumption'])
         # ^ take the floor of this. keep as integer
         # demand for the rangeland
@@ -102,7 +107,7 @@ class Rangeland():
                 # still remaining shortfall
                 self.R[t] -= reserve_limit
                 deficit = reserve_demand - reserve_limit
-                destocking_total = int(np.ceil(deficit * self.size_ha / ls_consumption)) # kg/ha * ha / (kg/head) = head
+                destocking_total = int(np.ceil(deficit * self.size_ha / ls_consumption)) # kg/ha * ha / (kg/head) = head (must be integer)
 
         self.destocking_rqd[t] = True if np.sum(destocking_total)>0 else False
         self.livestock_supported[t] = np.sum(agents.herds_on_rangeland[t])-destocking_total
@@ -124,11 +129,33 @@ class Rangeland():
         rand_int = np.random.randint(1e6)
         if total > 0:
             tot_ls = np.sum(range_herds)
-            total = min(total, tot_ls)
-            destock_ix = np.random.choice(np.arange(tot_ls), size=total, replace=False) # indexes of livestock
-            owner_ix = np.repeat(np.arange(range_herds.shape[0]), range_herds)
-            owner_destocks = owner_ix[destock_ix]
-            destock_counts = np.array(list(Counter(owner_destocks).items()))
-            range_herds[destock_counts[:,0]] -= destock_counts[:,1]
+            total = np.ceil(min(total, tot_ls)).astype(int) # ceiling -- partial livestock can be destocked also
+            
+            if self.integer_consumption:
+                destock_ix = np.random.choice(np.arange(tot_ls), size=total, replace=False) # indexes of livestock
+                owner_ix = np.repeat(np.arange(range_herds.shape[0]), range_herds)
+                owner_destocks = owner_ix[destock_ix]
+                destock_counts = np.array(list(Counter(owner_destocks).items()))
+            else:
+                # create a list of all of the livestock (even partial livestock)
+                # partial livestock have a lower probability of being selected for destocking
+                rounded = np.ceil(range_herds).astype(int)
+                owner_ix = np.repeat(np.arange(rounded.shape[0]), rounded)
+                partial_ls_amt = range_herds - np.floor(range_herds)
+                partial_ixs = np.cumsum(rounded[rounded>0]) - 1 # only consider the agents that have livestock
+                probs = np.full(owner_ix.shape, 1.) # probability of being selected for destocking
+                # the partial ixs includes those with _whole_ numbers of livestock (e.g., 5.)
+                # we want to keep these ixs as a probability of 1, so filter also on partial_ls_amt>0
+                probs[partial_ixs[partial_ls_amt[rounded>0]>0]] = partial_ls_amt[(rounded>0) * (partial_ls_amt>0)]
+                # select the owner ids of the livestock that need to be destocked
+                destock_ixs = np.random.choice(owner_ix.shape[0], size=total, replace=False, p=probs/probs.sum())
+                owner_destocks = owner_ix[destock_ixs]
+                destock_amts = probs[destock_ixs] # some of the destocks can be partial
+                c = Counter()
+                for o, ownr_id in enumerate(owner_destocks):
+                    c.update({ownr_id:destock_amts[o]})
+                destock_counts = np.array(list(c.items()))
+
+            range_herds[destock_counts[:,0].astype(int)] -= destock_counts[:,1]
 
         np.random.seed(rand_int)

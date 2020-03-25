@@ -63,8 +63,9 @@ class Agents():
         self.ls_stress = np.full([self.T, self.N], -9999)
         self.ls_purchase = np.full([self.T, self.N], -9999)
         self.max_ls_purchase = np.full([self.T, self.N], np.nan)
-        self.herds_on_rangeland = np.full([self.T, self.N], -9999)
-        self.herds_on_residue = np.full([self.T, self.N], -9999)
+        val = -99 if self.all_inputs['rangeland']['integer_consumption'] else np.nan
+        self.herds_on_rangeland = np.full([self.T, self.N], val)
+        self.herds_on_residue = np.full([self.T, self.N], val)
         # other
         self.n_yr_smooth = int(self.n_yr_smooth) # in case it's from POM
         self.ag_labor = np.full([self.T, self.N], np.nan)
