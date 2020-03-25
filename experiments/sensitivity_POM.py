@@ -43,13 +43,17 @@ def main(fits, calib_vars, rvs, threshs, exp_name):
     Y_s = ((fits[:,:,4]>=threshs[0]) * (fits[:,:,5]>=threshs[0])).flatten()
     # environmental - P(E+)
     Y_e = ((fits[:,:,6]>=threshs[1]) * (fits[:,:,7]>=threshs[1])).flatten()
+    # social - P(S-)
+    Y_s2 = ((fits[:,:,4]<threshs[0]) | (fits[:,:,5]<threshs[0])).flatten()
+    # environmental - P(E-)
+    Y_e2 = ((fits[:,:,6]<threshs[1]) | (fits[:,:,7]<threshs[1])).flatten()
     # feasibility
     Y_f = fits[:,:,0].flatten().astype(bool)
     # tile the RVs (i.e. there are multiple reps of each outcome)
     rvs = np.tile(rvs, (fits.shape[0],1))
     # combine
-    Ys = [Y_s, Y_e, Y_f]
-    Y_names = ['P(S+)', 'P(E+)', 'P(feas)']
+    Ys = [Y_s, Y_e, Y_f, Y_s2, Y_e2]
+    Y_names = ['P(S+)', 'P(E+)', 'P(feas)', 'P(S-)', 'P(E-)']
 
     ## B: run the regression models
     rf_data = []
