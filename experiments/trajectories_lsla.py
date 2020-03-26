@@ -20,11 +20,11 @@ from . import POM
 
 def main():
     #### define LSLA parameters ####
-    exp_name = 'trajectories_test'
-    pom_exp = 'pom_10000_10rep'
+    exp_name = 'trajectories_const_farmland'
+    pom_exp = 'pom_100000_10rep'
 
     nrep_abm = 20
-    ncores = 1
+    ncores = 20
 
     inputs_base = base_inputs.compile()
     inputs_base['model']['T'] = 30
