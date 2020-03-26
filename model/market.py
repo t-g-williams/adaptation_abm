@@ -37,11 +37,12 @@ class Market():
         (independent of how much work they need)
         with the order randomized at each time step
         '''
+        rndm_num = np.random.randint(1e6)
         # subtract off jobs that have already been allocated to continuing workers
         num_jobs_avail = tot_jobs - np.sum(nonag_lbr)
 
         if np.sum(consider_amt) <= num_jobs_avail:
-            return consider_amt
+            rtn = consider_amt
         else:
             # the order in which agents are considered is randomized each time step
             order_consider = np.random.choice(agents.N, size=agents.N, replace=False)
@@ -57,7 +58,10 @@ class Market():
             # convert back to the regular agent order
             agent_allocs = np.full(agents.N, np.nan)
             agent_allocs[order_consider] = allocs
-            return agent_allocs
+            rtn = agent_allocs
+
+        np.random.seed(rndm_num) # set seed to control stochasticity
+        return rtn
 
     def allocate_wage_labor(self, agents, consider_amt):
         '''

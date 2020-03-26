@@ -156,7 +156,7 @@ def rangeland():
         'integer_consumption' : False, # if true, only an integer number of livestock can be grazed on residues/rangeland
 
         # rangeland size relative to farmland
-        'range_farm_ratio' : 0.2, # eg 0.5 means rangeland is 0.5x the size of the total farmland
+        'range_farm_ratio' : 0.5, # eg 0.5 means rangeland is 0.5x the size of the total farmland
         # initial conditions
         'R0_frac' : 0.5,
         # growth parameters

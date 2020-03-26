@@ -184,6 +184,9 @@ class Agents():
             # and extra labor available
             max_ppl_avail = round_down(self.hh_size - self.ag_labor[t] - self.ls_labor[t] - nonag_lbr, market.salary_job_increment)
             consider_amt = np.minimum(ppl_req_cash, max_ppl_avail)
+            # print(np.mean(self.savings_post_cons_smooth[yrs], axis=0))
+            # print(consider_amt.sum())
+            # code.interact(local=dict(globals(), **locals()))  
 
             # allocate the jobs between those that want them
             new_allocations = market.allocate_salary_labor(self, consider_amt, nonag_lbr, market.salary_job_avail_total)
@@ -197,7 +200,6 @@ class Agents():
                 print('ERROR: negative livestock in agents.labor_allocation()')
                 code.interact(local=dict(globals(), **locals()))  
 
-        # code.interact(local=dict(globals(), **locals()))  
 
     def calculate_income(self, land, climate, adap_properties, market):
         '''
@@ -259,7 +261,7 @@ class Agents():
         # increase expenditure up towards the desird living cost level if possible
         extra_spending = np.maximum(np.minimum(self.living_cost * (1-self.living_cost_min_frac), self.savings[t+1]), 0).astype(int)
         self.savings[t+1] -= extra_spending
-        self.cons_red_rqd[t, extra_spending==0] = True
+        self.cons_red_rqd[t, self.savings[t+1]==0] = True # ppl that couldn't spend the FULL desired living costs
         self.savings_post_cons_smooth[t] = copy.deepcopy(self.savings[t+1])
 
         ## 3. CASUAL LABOR

@@ -17,7 +17,7 @@ f = '../outputs/{}/selected_params.pkl'.format(exp_name)
 inp_all = pickle.load(open(f, 'rb'))
 calib_vars = pd.read_csv('../outputs/{}/calib_vars.csv'.format(exp_name), index_col=0)
 
-se = '0' # s+e+, s+e-, s-e+, s-e-
+se = '3' # s+e+, s+e-, s-e+, s-e-
 inputs = base_inputs.compile()
 for i in range(inp_all[se].shape[1]):
     inputs[calib_vars.loc[i, 'key1']][calib_vars.loc[i,'key2']] = inp_all[se][0,i]

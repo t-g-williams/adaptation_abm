@@ -28,19 +28,20 @@ from model import model
 # import plot.single as plt_single
 
 def main():
-    exp_name = 'trajectories_test'
+    exp_name = 'trajectories_const_farmland'
     threshs = [0.8, 0.8] # S, E
+    ncores = 30
 
     ## 1. identify the model parameterizations
-    params, calib_vars, fits, rvs = identify_models(exp_name, threshs)
+    params, calib_vars, fits, rvs = identify_models(exp_name, threshs, ncores)
 
     ## 2. sensitivity analysis on the fitting
     sensitivity_POM.main(fits, calib_vars, rvs, threshs, exp_name)
 
     ## 3. run and plot baseline simulations
-    run_baseline_sims(params, calib_vars, exp_name)
+    run_baseline_sims(params, calib_vars, exp_name, ncores)
 
-def run_baseline_sims(params, calib_vars, exp_name):
+def run_baseline_sims(params, calib_vars, exp_name, ncores):
     '''
     run baseline simulations (single replication)
     and plot model-level and agent-level differences
@@ -56,16 +57,14 @@ def run_baseline_sims(params, calib_vars, exp_name):
             exps[name] = POM.overwrite_rv_inputs(inp_all, param_array[ni], calib_vars.key1, calib_vars.key2)
     
     ### 2. run the models
-    ncores = 40
     mods = Parallel(n_jobs=ncores)(delayed(run_model)(i, exps) for i in range(len(exps)))
 
     ### 3. plot the results
     plot_baseline(mods, exps, exp_name)
 
-def identify_models(exp_name_overall, threshs):
+def identify_models(exp_name_overall, threshs, ncores):
     # specify experimental settings
-    N_samples = 10000
-    ncores = 40
+    N_samples = 100000
     nreps = 10
     N_per_class = 10
     exp_name = '{}/pom_{}_{}rep'.format(exp_name_overall, N_samples, nreps)
@@ -75,7 +74,10 @@ def identify_models(exp_name_overall, threshs):
 
     # define the variables for sampling
     calib_vars = POM.define_calib_vars()
-    calib_vars.to_csv('../outputs/{}/calib_vars.csv'.format(exp_name))
+    outdir = '../outputs/{}'.format(exp_name)
+    if not os.path.isdir(outdir):
+        os.makedirs(outdir)
+    calib_vars.to_csv('{}/calib_vars.csv'.format(outdir))
 
     # generate set of RVs
     rvs = POM.hypercube_sample(N_samples, calib_vars)

@@ -70,7 +70,7 @@ def define_calib_vars():
         ['market', 'wage_jobs_availability', 0.01, 0.1, False],
         ['market', 'labor_salary', 5000, 30000, True],
         ['market', 'wage_salary', 5000, 30000, True],
-        ['rangeland', 'range_farm_ratio', 0.1, 1, False],
+        # ['rangeland', 'range_farm_ratio', 0.1, 1, False],
         ['rangeland', 'gr2', 0, 0.2, False],
         ['rangeland', 'rain_use_eff', 0.1, 10, False],
         ['rangeland', 'R_max', 1000, 7000, False],
@@ -197,13 +197,13 @@ def run_model(rvs, inputs, calib_vars, ncores, nreps, trajectory=False, load=Fal
         if nreps > 1:
             print('rep {} / {} ...........'.format(r+1, nreps))
         if ncores > 1:
-            fits_par = Parallel(n_jobs=ncores)(delayed(run_chunk_sims)(sim_chunks[i], rvs, inp_all, calib_vars, trajector, threshs) for i in range(len(sim_chunks)))
+            fits_par = Parallel(n_jobs=ncores)(delayed(run_chunk_sims)(sim_chunks[i], rvs, inp_all, calib_vars, trajectory, threshs) for i in range(len(sim_chunks)))
             fits = {}
             for fit in fits_par:
                 for k, v in fit.items():
                     fits[k] = v
         else:
-            fits = run_chunk_sims(sim_chunks[0], rvs, inp_all, calib_vars, trajectory)
+            fits = run_chunk_sims(sim_chunks[0], rvs, inp_all, calib_vars, trajectory, threshs)
         fits_all.append(fits)
         fits_all_np.append(np.array(pd.DataFrame.from_dict(fits, orient='index')))    
 
