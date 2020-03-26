@@ -31,7 +31,7 @@ class LSLA:
 
 
         ## calculate area and displacement stats
-        self.area = self.size * land.tot_area # ha = ha_lsla/ha_farmland * ha_farmland
+        self.area = round_down(self.size * land.tot_area, land.plot_size) # ha = ha_lsla/ha_farmland * ha_farmland
         self.area_encroach = round_down(self.area * self.frac_retain, land.plot_size) if (self.LUC=='farm' and self.outgrower==False) else 0
         self.area_checks(land, rangeland, agents)
         
@@ -118,7 +118,7 @@ class LSLA:
         ## 2. determine where this new land comes from
         if self.encroachment == 'farm':
             self.encroach_ha_lost, som_removed = self.farmland_encroachment(agents, land.plot_size, land)
-            print(self.encroach_ha_lost.max())
+            # print(self.encroach_ha_lost.max())
         elif self.encroachment == 'commons':
             self.encroach_ha_lost = np.full(agents.N, 0.) # for the agents
             som_removed = np.full(int(self.area_encroach/land.plot_size), rangeland.SOM) # inherit the SOM of the rangeland
@@ -133,7 +133,7 @@ class LSLA:
             rangeland.size_ha -= self.assign_ha.sum() # displaced to rangeland
         self.net_change = -self.area_lost + self.assign_ha - self.encroach_ha_lost
         self.lost_land = self.net_change < 0
-        self.affected = np.maximum(self.assign_ha!=0, self.area_lost!=0, self.encroach_ha_lost!=0)
+        self.affected = np.maximum(np.maximum(self.assign_ha!=0, self.area_lost!=0), self.encroach_ha_lost!=0)
         agents.land_area += self.net_change
         agents.has_land = agents.land_area > 0     
         land.positive_area = agents.has_land
@@ -209,6 +209,7 @@ class LSLA:
             new_areas_tmp = copy.deepcopy(self.area_after_disp)
             som_taken = [] # track the SOM of the land that is taken
             while ha_remaining > 0:
+                # print(size_i)
                 # print('{} remaining, size={}'.format(ha_remaining, size_i))
                 # identify who has this much land
                 has_size_i = new_areas_tmp==size_i

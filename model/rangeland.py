@@ -88,26 +88,34 @@ class Rangeland():
         # ^ take the floor of this. keep as integer
         # demand for the rangeland
         agents.herds_on_rangeland[t] = herds - agents.herds_on_residue[t]
-        self.demand_intensity[t] = np.sum(agents.herds_on_rangeland[t]) * ls_consumption / self.size_ha # unit = kg/ha
-        # how is this demand satisfied...?
-        if self.G[t+1] > self.demand_intensity[t]:
-            # green biomass satisfies demand
-            self.G[t+1] -= self.demand_intensity[t]
-            destocking_total = 0 # no destocking rqd
-        else:
-            # need to use reserve biomass
-            reserve_demand = self.demand_intensity[t] - self.G[t+1]
-            reserve_limit = self.gr2 * self.R[t]
+
+        if self.size_ha == 0:
+            # clause if there is NO rangeland left (due to LSLA)
+            self.demand_intensity[t] = np.inf
             self.G[t+1] = 0
-            if reserve_demand < reserve_limit:
-                # reserve can supply the demand
-                self.R[t] -= reserve_demand
+            self.R[t] = 0
+            destocking_total = int(np.ceil(agents.herds_on_rangeland[t].sum()))
+        else:
+            self.demand_intensity[t] = np.sum(agents.herds_on_rangeland[t]) * ls_consumption / self.size_ha # unit = kg/ha
+            # how is this demand satisfied...?
+            if self.G[t+1] > self.demand_intensity[t]:
+                # green biomass satisfies demand
+                self.G[t+1] -= self.demand_intensity[t]
                 destocking_total = 0 # no destocking rqd
             else:
-                # still remaining shortfall
-                self.R[t] -= reserve_limit
-                deficit = reserve_demand - reserve_limit
-                destocking_total = int(np.ceil(deficit * self.size_ha / ls_consumption)) # kg/ha * ha / (kg/head) = head (must be integer)
+                # need to use reserve biomass
+                reserve_demand = self.demand_intensity[t] - self.G[t+1]
+                reserve_limit = self.gr2 * self.R[t]
+                self.G[t+1] = 0
+                if reserve_demand < reserve_limit:
+                    # reserve can supply the demand
+                    self.R[t] -= reserve_demand
+                    destocking_total = 0 # no destocking rqd
+                else:
+                    # still remaining shortfall
+                    self.R[t] -= reserve_limit
+                    deficit = reserve_demand - reserve_limit
+                    destocking_total = int(np.ceil(deficit * self.size_ha / ls_consumption)) # kg/ha * ha / (kg/head) = head (must be integer)
 
         self.destocking_rqd[t] = True if np.sum(destocking_total)>0 else False
         self.livestock_supported[t] = np.sum(agents.herds_on_rangeland[t])-destocking_total
