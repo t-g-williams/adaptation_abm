@@ -81,10 +81,10 @@ class Rangeland():
         '''
         ls_consumption = self.all_inputs['livestock']['consumption']
         # livestock consumption is achieved via a mix of on-farm residues and the communal rangeland
-        agents.herds_on_residue[t] = np.minimum(herds, land.residue_production / ls_consumption) # kg / (kg/head) = head
+        agents.herds_on_residue[t] = np.minimum(herds, land.residue_production[t] / ls_consumption) # kg / (kg/head) = head
         if self.integer_consumption:
             agents.herds_on_residue[t] = np.floor(agents.herds_on_residue[t]).astype(int)
-        # agents.herds_on_residue[t] = np.minimum(herds, land.residue_production / self.all_inputs['livestock']['consumption'])
+        # agents.herds_on_residue[t] = np.minimum(herds, land.residue_production[t] / self.all_inputs['livestock']['consumption'])
         # ^ take the floor of this. keep as integer
         # demand for the rangeland
         agents.herds_on_rangeland[t] = herds - agents.herds_on_residue[t]

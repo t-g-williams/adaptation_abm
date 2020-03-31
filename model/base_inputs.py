@@ -12,6 +12,8 @@ def compile():
     d['livestock'] = livestock()
     d['LSLA'] = LSLA()
     d['market'] = market()
+    d['beliefs'] = beliefs()
+    d['decisions'] = decisions()
     return d
 
 def model():
@@ -39,11 +41,16 @@ def adaptation():
             'payout_magnitude' : 1, # relative to the expected yield (assuming perfect soil quality). if =1.5, then payout = 1.5*expected_yield
             'cost_factor' : 1, # multiplier on insurance cost
             },
-        'cover_crop' : {
+        'diversify' : {
             'N_fixation_min' : 80, # (with full organic matter) 80kg/ha representative of values reported in the literature. wittwer2017, buechi, couedel2018
             'N_fixation_max' : 80, # (with no organic matter) could do 50 and 200 if making them different
-            'cost_factor' : 1, # assume the cost is the same as the annual cost of insurance multiplied by this factor
-        }
+            'cost_factor_ag' : 0.1, # relative to normal agricultural cost per ha
+            'labor_req' : 0.1, # ppl per ha
+        },
+        'intensify' : {
+            'fertilizer_app_rate' : 80, # kgN/ha
+            'fallow' : False,
+        },
     }
     return d
 
@@ -84,15 +91,35 @@ def agents():
         'livestock_init' : 1,# 0,
         
         ##### socio-environmental condns #####
-        'ag_labor_rqmt' : 1.5, # ppl/ha
+        'ag_labor_rqmt' : {'trad' : 1.5, 'int' : 1.5, 'div' : 1.5}, # ppl/ha
         'ls_labor_rqmt' : 0.2, # ppl/head
+    }
+    return d
+
+def beliefs():
+    d = {
+        # units : $/person(lbr) -- i.e., labor productivity
+        # note: for farming, _land_ productivity might be better, but this allows consistent units
+        'quantities' : ['ag_trad','ag_int','ag_div','non_farm'],
+        'n0' : [1,1,1,1], # prior strength on the mean
+        'alpha0' : [1,1,1,1], # prior strength on the variance
+        'beta0' : [100,500,500,500], # E[variance0]
+        'mu0' : [1000,1000,1000,1000], # E[mu0]
+    }
+    return d
+
+def decisions():
+    d = {
+        'actions' : ['nothing','ext_ag','incr_int_ag','incr_div_ag',
+            'incr_trad_ag','incr_nf_labor','decr_nf_labor'],
+
     }
     return d
 
 def market():
     d = {
-    'crop_sell_params' : {0 : [2.17,0,0], 1 : [2.17,0,0]}, # [x,x,x]=[mean,sd,rho] 2.17 birr/kg. mean 2015 maize price (FAO)
-    'farm_cost' : 100, # birr/ha. arbitrary
+    'crop_sell_params' : {'trad' : [2.17,0,0], 'int' : [2.17,0,0], 'div' : [2.17,0,0]}, # [x,x,x]=[mean,sd,rho] 2.17 birr/kg. mean 2015 maize price (FAO)
+    'farm_cost' : {'trad' : 100, 'int' : 150, 'div' : 110}, # birr/ha. arbitrary
     'fertilizer_cost' : 13.2, # 13.2 birr/kg. median from 2015 LSMS
     'labor_salary' : 70*365*5/7, # birr/person/year: 70 birr/day * 5 days per week all year
     'labor_wage' : 70*365*5/7, # birr/person/year: 70 birr/day * 5 days per week all year
@@ -123,7 +150,8 @@ def land():
         'fallow_N_add' : 60/0.3, # FOR NOW TRY TO GET NEUTRAL SOIL N BALANCE. this is unrealistic # 40, # kg N/ha. lower limit from N-fixing legumes https://www.tandfonline.com/doi/pdf/10.1080/01904160009382074
 
         ##### yield #####
-        'max_yield' : {0 : 6590, 1 : 6590}, #(0=subsistence, 1=cash crop) 6590 kg/ha. maximum, unconstrained yield. 95%ile for Ethiopia-wide LSMS (all 3 years) maize yields
+        'ag_types' : ['trad','int','div'],
+        'max_yield' : {'trad' : 6590, 'int' : 6590, 'div' : 6590}, # 6590 kg/ha. maximum, unconstrained yield. 95%ile for Ethiopia-wide LSMS (all 3 years) maize yields
         'rain_crit' : 0.8, # value at which rainfall starts to be limiting. 0.8 in CENTURY
         'rain_cropfail_high_SOM' : 0, # rainfall value at which crop yields are 0 with highest SOM. arbitrary
         'rain_cropfail_low_SOM' : 0.1, # rainfall value at which crop yields are 0 with lowest SOM. arbitrary

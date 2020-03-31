@@ -41,8 +41,8 @@ class Model():
         '''
         if (self.lsla_simulation and self.t[0]==self.all_inputs['LSLA']['tstart']):
             self.lsla = LSLA(self.all_inputs, self.agents, self.land, self.rangeland, self.market) # implement the LSLA
-        self.agents.labor_allocation(self.land, self.market)
-        self.land.update_soil(self.agents, self.adap_properties)
+        self.agents.decision_making(self.land, self.market)
+        self.land.update_soil(self.agents)
         self.land.crop_yields(self.agents, self.climate)
         self.agents.calculate_income(self.land, self.climate, self.adap_properties, self.market)
         self.rangeland.update(self.climate, self.agents, self.land)
@@ -119,7 +119,7 @@ class Model():
         rains = np.random.normal(self.climate.rain_mu, self.climate.rain_sd, 1000)
         rain_facs = np.full(rains.shape, np.nan)
         for r, rain in enumerate(rains):
-            rain_facs[r] = self.land.calculate_rainfall_factor(rain, virtual=True)
+            rain_facs[r] = self.land.calculate_rainfall_factor(rain, 'trad', virtual=True)
         exp_yield = np.mean(rain_facs) * self.land.max_yield[0] * 0.5 # 0.5 assumed mean nutrient factor
         exp_crop_income = exp_yield * self.agents.crop_sell_price # birr/ha
         payout = exp_crop_income * props['payout_magnitude'] # birr/ha

@@ -5,6 +5,9 @@ import code
 import copy
 import sys
 
+from . import beliefs
+from . import decision
+
 class Agents():
     def __init__(self, inputs, market):
         # attribute the parameters to the object
@@ -20,8 +23,11 @@ class Agents():
 
         # generate land ownership
         self.land_area = self.init_farm_size()
-        self.has_land = self.land_area>0     
-        self.crop_production = np.full([self.T, self.N], -9999)
+        self.has_land = self.land_area>0
+        self.crop_production = {}
+        for crop in self.all_inputs['land']['ag_types']:
+            self.crop_production[crop] = np.full([self.T, self.N], 0) # kg
+        self.tot_crop_production = np.full([self.T, self.N], 0) # kg
         # household size
         self.hh_size = np.full(self.N, self.hh_size_init) # all same size for now
         self.living_cost =  self.living_cost_pp * self.hh_size
@@ -39,7 +45,7 @@ class Agents():
         self.wealth[0] = self.savings[0] + self.livestock[0]*market.livestock_cost
         # money
         self.income = np.full([self.T, self.N], -9999)
-        self.farm_income = np.full([self.T, self.N], -9999)
+        self.farm_income = np.full([self.T, self.N], 0)
         self.ls_income = np.full([self.T, self.N], 0)
         self.salary_income = np.full([self.T, self.N], -9999)
         self.wage_income = np.full([self.T, self.N], -9999)
@@ -50,11 +56,6 @@ class Agents():
         self.destocking_rqd = np.full([self.T, self.N], False)
         self.stress_ls_sell_rqd = np.full([self.T, self.N], False)
         self.cant_cope = np.full([self.T, self.N], False)
-        # adaptation option decisions
-        self.adapt = np.full([self.T+1, self.N], False)
-        # agricultural decisions
-        self.fallow = np.full([self.T+1, self.N], True)
-        self.apply_fert = np.full([self.T, self.N], False) # assume these agents apply fert at maximum rate
         # other livestock values for record keeping
         self.ls_start = np.full([self.T, self.N], -9999)
         self.ls_num_lbr = np.full([self.T, self.N], -9999)
@@ -66,9 +67,12 @@ class Agents():
         val = -99 if self.all_inputs['rangeland']['integer_consumption'] else np.nan
         self.herds_on_rangeland = np.full([self.T, self.N], val)
         self.herds_on_residue = np.full([self.T, self.N], val)
-        # other
+        # labor
         self.n_yr_smooth = int(self.n_yr_smooth) # in case it's from POM
-        self.ag_labor = np.full([self.T, self.N], np.nan)
+        self.ag_labor = {}
+        for crop in self.all_inputs['land']['ag_types']:
+            self.ag_labor[crop] = np.full([self.T, self.N], np.nan)
+        self.tot_ag_labor = np.full([self.T, self.N], 0.) # sum over all crops
         self.salary_labor = np.full([self.T, self.N], np.nan)
         self.wage_labor = np.full([self.T, self.N], np.nan)
         self.ls_labor = np.full([self.T, self.N], np.nan)
@@ -77,6 +81,15 @@ class Agents():
         # this overwrites the previous things if necessary
         if self.read_from_file:
             self.init_from_file()
+
+        # initialize beliefs
+        self.blf = beliefs.Beliefs(self, self.all_inputs)
+
+        # DECISIONS
+        self.choices = {}
+        for choice in self.all_inputs['decisions']['actions']:
+            self.choices[choice] = np.full([self.T, self.N], False)
+        self.fallow = np.full([self.T+1, self.N], True)
 
     def init_from_file(self):
         d_in = pd.read_csv(self.file_name, index_col=0)
@@ -128,6 +141,16 @@ class Agents():
                 qualifies *= eval('self.{}'.format(ki)) == vi
             self.type[qualifies] = name
 
+    def decision_making(self, land, market):
+        '''
+        make decisions at the start of year: labor allocation and adaptation options
+        '''
+        ## select adaptation option(s)
+
+
+        ## allocate labor
+        self.labor_allocation(land, market)
+
     def labor_allocation(self, land, market):
         '''
         start-of-year labor allocation to ag and non-ag activities
@@ -136,16 +159,21 @@ class Agents():
         '''
         t = self.t[0]
         self.ls_start[t] = copy.deepcopy(self.livestock[t])
-        ## fallow decisions
-        # assume nothing for now
+        ## fallow and crop type allocation
+        # fallow: assume it by default (except LSLA outgrowers)
+        # (note: amt of land farmed can be a fraction of a field - i.e., part of a field can be fallowed)
         land.farmed_fraction[t] = 1 - land.fallow_frac * self.fallow[t]
+        # ag type allocation: assume all are traditional
+        land.ha_farmed['trad'][t, ~land.outgrower[t]] = (self.land_area * land.farmed_fraction[t])[~land.outgrower[t]]
 
         ## farm labor
-        self.ag_labor[t] = np.minimum(self.ag_labor_rqmt*self.land_area*land.farmed_fraction[t], self.hh_size) # ppl = ppl/ha*ha
+        for crop in land.ag_types:
+            self.ag_labor[crop][t] = np.minimum(self.ag_labor_rqmt[crop]*land.ha_farmed[crop][t], self.hh_size) # ppl = ppl/ha*ha
+            self.tot_ag_labor[t] += self.ag_labor[crop][t] # add to total
         # farm_frac = np.minimum(self.hh_size / (self.ag_labor_rqmt * self.land_area), np.full(self.N,1)) # ppl / (ppl/ha*ha)
         ## livestock labor
         # destock if required (assume they are sold)
-        max_ls = np.floor(np.minimum((self.hh_size - self.ag_labor[t]) / self.ls_labor_rqmt, self.livestock[t])).astype(int) # head = ppl / (ppl/head)
+        max_ls = np.floor(np.minimum((self.hh_size - self.tot_ag_labor[t]) / self.ls_labor_rqmt, self.livestock[t])).astype(int) # head = ppl / (ppl/head)
         destock_amt = np.ceil(np.maximum(self.livestock[t] - max_ls, 0)).astype(int)
         self.livestock[t] -= destock_amt
         ls_inc = destock_amt * market.livestock_cost
@@ -168,7 +196,7 @@ class Agents():
             if t > 1:
                 # agents decrease their non-farm labor when
                 # (they don't have enough labor any more - e.g. b/c new livestock)
-                reductions_lbr = -np.minimum(self.hh_size - self.ag_labor[t] - self.ls_labor[t] - nonag_lbr, 0)
+                reductions_lbr = -np.minimum(self.hh_size - self.tot_ag_labor[t] - self.ls_labor[t] - nonag_lbr, 0)
                 # but mainly when their average income over the past N years (smoothing) allows
                 # for expenditure beyond the minimum value
                 yrs = np.arange(0,t) if (t-1)<self.n_yr_smooth else np.arange(t-self.n_yr_smooth,t)
@@ -182,7 +210,7 @@ class Agents():
             yrs = np.arange(0,t) if (t-1)<self.n_yr_smooth else np.arange(t-self.n_yr_smooth,t)
             ppl_req_cash = round_up(np.maximum(-np.mean(self.savings_post_cons_smooth[yrs], axis=0) / market.labor_salary, 0), market.salary_job_increment) # ppl = $ / ($/ppl)
             # and extra labor available
-            max_ppl_avail = round_down(self.hh_size - self.ag_labor[t] - self.ls_labor[t] - nonag_lbr, market.salary_job_increment)
+            max_ppl_avail = round_down(self.hh_size - self.tot_ag_labor[t] - self.ls_labor[t] - nonag_lbr, market.salary_job_increment)
             consider_amt = np.minimum(ppl_req_cash, max_ppl_avail)
             # print(np.mean(self.savings_post_cons_smooth[yrs], axis=0))
             # print(consider_amt.sum())
@@ -219,21 +247,28 @@ class Agents():
                 self.insurance_payout_year = True
         elif adap_properties['type'] == 'cover_crop':
             adap_costs[self.adapt[t]] = adap_properties['cost'] * self.land_area[self.adapt[t]]
-
-        ## income sources
+        
+        # livestock
         self.ls_income[t] += self.livestock[t] * self.all_inputs['livestock']['income']
-        for crop_type, prices in market.crop_sell.items():
-            ixs = land.crop_type[t] == crop_type
-            self.farm_income[t, ixs] = prices[t]*self.crop_production[t,ixs] - market.farm_cost * land.farmed_fraction[t,ixs] * self.land_area[ixs]
+        
+        ## farming
+        for crop in land.ag_types:
+            # crop sales
+            self.farm_income[t] += (market.crop_sell[crop][t]*self.crop_production[crop][t]).astype(int)
+            # base cost
+            self.farm_income[t] -= (land.ha_farmed[crop][t] * market.farm_cost[crop]).astype(int)
+            # fertilizer cost # note: this assumes outgrower agents are given free fertilizer then cost charged at harvest
+            self.farm_income[t] -= (land.ha_farmed[crop][t] * land.fertilizer[crop][t] * market.fertilizer_cost).astype(int)
+
+        # non-farm
         self.salary_income[t] = (self.salary_labor[t] * market.labor_salary).astype(int)
 
         ## other costs
         living_cost = (self.living_cost*self.living_cost_min_frac).astype(int)
-        fert_cost = land.fertilizer[t] * market.fertilizer_cost # note: this assumes outgrower agents are given free fertilizer then cost charged at harvest
-        
+
         # assume the baseline living costs with consumption smoothing here
         self.income[t] = self.farm_income[t] + self.ls_income[t] + self.salary_income[t] - \
-                living_cost - adap_costs - fert_cost
+                living_cost - adap_costs
 
         if self.insurance_payout_year:
             # assume that agents first use their payout to neutralize their income
@@ -268,7 +303,7 @@ class Agents():
         # agents that cannot meet their immediate food requirements (min living costs) with their income and savings
         # try to engage in casual labor
         lbr_rqmt = round_up(np.maximum(-self.savings[t+1]/market.labor_wage, 0), market.wage_job_increment) # calculate amt rqd: $ / ($/person) = person
-        max_ppl_avail = round_down(self.hh_size-self.ag_labor[t]-self.ls_labor[t]-self.salary_labor[t], market.wage_job_increment)
+        max_ppl_avail = round_down(self.hh_size-self.tot_ag_labor[t]-self.ls_labor[t]-self.salary_labor[t], market.wage_job_increment)
         lbr_amts = np.minimum(lbr_rqmt, max_ppl_avail)
         self.wage_labor[t] = market.allocate_wage_labor(self, lbr_amts)
         self.wage_income[t] = self.wage_labor[t] * market.labor_wage
@@ -311,11 +346,11 @@ class Agents():
         ## A: how many can be purchased
         self.max_ls_purchase[t] = np.floor(self.savings[t+1] / market.livestock_cost)
         ## B: how many is there labor available for (given current employment and farming)
-        max_labor_tot = np.floor((self.hh_size-self.ag_labor[t]-self.salary_labor[t]) / self.ls_labor_rqmt) # head = ppl / ppl/head
+        max_labor_tot = np.floor((self.hh_size-self.tot_ag_labor[t]-self.salary_labor[t]) / self.ls_labor_rqmt) # head = ppl / ppl/head
         ## C: how many can be grazed on-farm
         # average the production over the past n years
         yrs = np.arange(0,t+1) if t<self.n_yr_smooth else np.arange(t-self.n_yr_smooth+1,t+1)
-        max_on_farm = np.mean(self.crop_production[yrs], axis=0) * land.residue_multiplier * land.residue_loss_factor / \
+        max_on_farm = np.mean(self.tot_crop_production[yrs], axis=0) * land.residue_multiplier * land.residue_loss_factor / \
                 (ls_inp['consumption']) # TLU = kgCrop * kgDM/kgCrop / kgDM/TLU
         ## D: how many can be grazed off-farm
         if rangeland.rangeland_dynamics:

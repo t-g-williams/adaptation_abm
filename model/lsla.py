@@ -53,16 +53,17 @@ class LSLA:
         self.outgrower_frmr[0:(crit_ix+1)] = True
         ixs = self.outgrower_frmr
 
-        ## give these agents technology
+        ## give these agents technology and intensive crop type
         t = land.t[0]
-        land.crop_type[t:, ixs] = 1 # 1 = cash crop
+        land.outgrower[t:, ixs] = True
         if self.irrig:
-            land.irrigation[t:, ixs] = True # no cost for irrigation
+            land.irrigation['int'][t:, ixs] = True # no cost for irrigation
         if self.fert_amt > 0:
-            agents.apply_fert[t:, ixs] = True # assume they apply at the maximum required rate
-            land.fertilizer[t:, ixs] = self.fert_amt
+            land.fertilizer['int'][t:, ixs] = self.fert_amt
         if self.no_fallow:
             agents.fallow[t:, ixs] = False
+        # farming area, accounting for fallow
+        land.ha_farmed['int'][t:, ixs] = agents.land_area[ixs] * (1 - land.fallow_frac * agents.fallow[t, ixs])
 
     def init_non_outgrower(self, agents, land, rangeland, market):
         ## change employment
