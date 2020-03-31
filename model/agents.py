@@ -86,14 +86,22 @@ class Agents():
         if self.read_from_file:
             self.init_from_file()
 
+        # DECISIONS and BELIEFS
+        inp = self.all_inputs['decisions']
         # initialize beliefs
         self.blf = beliefs.Beliefs(self, self.all_inputs)
-
-        # DECISIONS
+        # initialize decisions
         self.choices = {}
-        for choice in self.all_inputs['decisions']['actions']:
+        for choice in inp['actions']:
             self.choices[choice] = np.full([self.T, self.N], False)
         self.fallow = np.full([self.T+1, self.N], True)
+        # decision-related agent properties
+        rand_int = np.random.randint(1e6) # generate random integer to control stochasticity
+        if inp['risk_aversion']:
+            self.risk_aversion = np.random.normal(loc=inp['risk_aversion_params'][0], scale=inp['risk_aversion_params'][1], size=self.N)
+            self.risk_aversion[self.risk_aversion<1] = 1 # for instability in the exponential function
+            self.rndm_Zs = np.random.normal(size=(self.T, inp['nsim_utility']))
+        np.random.seed(rand_int)
 
     def init_from_file(self):
         d_in = pd.read_csv(self.file_name, index_col=0)
@@ -166,13 +174,13 @@ class Agents():
         ## fallow and crop type allocation
         # fallow: assume it by default (except LSLA outgrowers)
         # (note: amt of land farmed can be a fraction of a field - i.e., part of a field can be fallowed)
-        land.farmed_fraction[t] = 1 - land.fallow_frac * self.fallow[t]
         # ag type allocation: assume all are traditional
-        land.ha_farmed['trad'][t, ~land.outgrower[t]] = (self.land_area * land.farmed_fraction[t])[~land.outgrower[t]]
+        land.ha_farmed['trad'][t, ~land.outgrower[t]] = self.land_area[~land.outgrower[t]]
 
         ## farm labor
         for crop in land.ag_types:
-            self.ag_labor[crop][t] = np.minimum(self.ag_labor_rqmt[crop]*land.ha_farmed[crop][t], self.hh_size) # ppl = ppl/ha*ha
+            lbr_rqmt = self.ag_labor_rqmt[crop]*land.ha_farmed[crop][t] * (1-land.fallow_frac * self.fallow[t])
+            self.ag_labor[crop][t] = np.minimum(lbr_rqmt, self.hh_size) # ppl = ppl/ha*ha
             self.tot_ag_labor[t] += self.ag_labor[crop][t] # add to total
         # farm_frac = np.minimum(self.hh_size / (self.ag_labor_rqmt * self.land_area), np.full(self.N,1)) # ppl / (ppl/ha*ha)
         ## livestock labor

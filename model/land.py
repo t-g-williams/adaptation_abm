@@ -157,7 +157,7 @@ class Land():
             fields = self.cover_crop[crop][self.t[0]] # for ag_type=='div' cover crop should be true
             amt_per_ha = adap_properties['N_fixation_min'] + \
                 (1-self.organic[self.t[0],fields] / self.max_organic_N) * (adap_properties['N_fixation_max']-adap_properties['N_fixation_min']) # kg/ha
-            inputs[fields] += amt_per_ha * self.ha_farmed[crop][self.t[0],fields] / self.land_area[fields] # kg /ha of total farmland
+            inputs[fields] += amt_per_ha * self.ha_farmed[crop][self.t[0],fields] / self.land_area[fields] # kg /ha of total farmland (including fallow)
         return inputs # kg N
 
     def fallow_input(self, agents):
@@ -190,7 +190,7 @@ class Land():
                 self.nutrient_factors[crop][t,ixs] = np.minimum(self.nutrient_factors[crop][t,ixs], 1)
 
             # attribute to agents -- adjust for their fallowing fractions
-            agents.crop_production[crop][t,ixs] = self.yields[crop][t,ixs] * self.ha_farmed[crop][t,ixs] # kg
+            agents.crop_production[crop][t,ixs] = self.yields[crop][t,ixs] * self.ha_farmed[crop][t,ixs] * (1 - self.fallow_frac*agents.fallow[t,ixs]) # kg
 
         agents.tot_crop_production[t] = np.sum(np.array([agents.crop_production[crop][t] for crop in self.ag_types]), axis=0)
         self.residue_production[t] = agents.tot_crop_production[t] * self.residue_multiplier * self.residue_loss_factor # kg total

@@ -55,6 +55,7 @@ class Beliefs():
             'ag_int' : [agents.farm_income['int'][t], land.ha_farmed['int'][t] * agents.ag_labor_rqmt['int']],
             'ag_div' : [agents.farm_income['div'][t], land.ha_farmed['div'][t] * agents.ag_labor_rqmt['div']],
             'non_farm' : [agents.salary_income[t], agents.salary_tot_consider_amt[t]], # [$, ppl]
+            'livestock' : [agents.ls_income[t], agents.ls_labor[t]]
         }
 
         # loop over the different beliefs

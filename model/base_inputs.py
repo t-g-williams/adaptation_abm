@@ -68,7 +68,7 @@ def agents():
         # adaptation / decision-making
         'adap_type' : 'always', # coping, switching, affording, or always
         'n_yr_smooth' : 3, # number of smoothing years for livestock management decisions (fodder availability assumption)
-        
+
         ##### land #####
         'land_area_init' : [1, 1.5, 2], # ha. uniformly sample from each
         'land_area_multiplier' : 1, # for sensitivity analysis
@@ -100,18 +100,22 @@ def beliefs():
     d = {
         # units : $/person(lbr) -- i.e., labor productivity
         # note: for farming, _land_ productivity might be better, but this allows consistent units
-        'quantities' : ['ag_trad','ag_int','ag_div','non_farm'],
-        'n0' : [1,1,1,1], # prior strength on the mean
-        'alpha0' : [1,1,1,1], # prior strength on the variance
-        'beta0' : [100,500,500,500], # E[variance0]
-        'mu0' : [1000,1000,1000,1000], # E[mu0]
+        'quantities' : ['ag_trad','ag_int','ag_div','non_farm','livestock'],
+        'n0' : [1,1,1,1,1], # prior strength on the mean
+        'alpha0' : [1,1,1,1,1], # prior strength on the variance
+        'beta0' : [100,500,500,500,500], # E[variance0]
+        'mu0' : [1000,1000,1000,1000,1000], # E[mu0]
     }
     return d
 
 def decisions():
     d = {
-        'actions' : ['nothing','ext_ag','incr_int_ag','incr_div_ag',
-            'incr_trad_ag','incr_nf_labor','decr_nf_labor'],
+        'framework' : 'util_max',
+        'actions' : ['nothing','incr_int_ag','incr_div_ag',
+            'incr_trad_ag','incr_nf_labor','decr_nf_labor','ext_ag'],
+        'risk_aversion' : True,
+        'risk_aversion_params' : [3000,300], # [mu, sigma] for a normal distribution
+        'nsim_utility' : 10, # number of sims from beliefs when calculating utility
 
     }
     return d
