@@ -8,6 +8,7 @@ outputs/**
 *.ini
 .ipynb_checkpoints/
 venv/**
+*.png
 
 # exceptions
 !.gitkeep

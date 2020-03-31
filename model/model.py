@@ -7,6 +7,7 @@ from .land import Land
 from .climate import Climate
 from .rangeland import Rangeland
 from .market import Market
+from .decision import Decision
 from.lsla import LSLA
 import code
 
@@ -41,7 +42,8 @@ class Model():
         '''
         if (self.lsla_simulation and self.t[0]==self.all_inputs['LSLA']['tstart']):
             self.lsla = LSLA(self.all_inputs, self.agents, self.land, self.rangeland, self.market) # implement the LSLA
-        self.agents.decision_making(self.land, self.market)
+        Decision.annual_decisions(self.agents, self.land, self.market)
+        # self.agents.decision_making(self.land, self.market)
         self.land.update_soil(self.agents)
         self.land.crop_yields(self.agents, self.climate)
         self.agents.calculate_income(self.land, self.climate, self.adap_properties, self.market)

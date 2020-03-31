@@ -62,8 +62,8 @@ class LSLA:
             land.fertilizer['int'][t:, ixs] = self.fert_amt
         if self.no_fallow:
             agents.fallow[t:, ixs] = False
-        # farming area, accounting for fallow
-        land.ha_farmed['int'][t:, ixs] = agents.land_area[ixs] * (1 - land.fallow_frac * agents.fallow[t, ixs])
+        # farming area
+        land.ha_farmed['int'][t:, ixs] = agents.land_area[ixs]# * (1 - land.fallow_frac * agents.fallow[t, ixs])
 
     def init_non_outgrower(self, agents, land, rangeland, market):
         ## change employment

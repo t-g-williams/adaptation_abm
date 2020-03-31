@@ -52,11 +52,11 @@ def beliefs(m, savedir, ext):
         axs[0,b].plot(q_m[2], color='k', lw=2)
 
         # variances
-        varz = m.agents.blf.var[blf]
-        v_m = np.percentile(varz, q=[5,25,50,75,95], axis=1)
-        axs[1,b].fill_between(np.arange(m.T+1), v_m[0], v_m[-1], color='0.7')
-        axs[1,b].fill_between(np.arange(m.T+1), v_m[1], v_m[-2], color='0.5')
-        axs[1,b].plot(v_m[2], color='k', lw=2)
+        sdz = np.sqrt(m.agents.blf.var[blf])
+        s_m = np.percentile(sdz, q=[5,25,50,75,95], axis=1)
+        axs[1,b].fill_between(np.arange(m.T+1), s_m[0], s_m[-1], color='0.7')
+        axs[1,b].fill_between(np.arange(m.T+1), s_m[1], s_m[-2], color='0.5')
+        axs[1,b].plot(s_m[2], color='k', lw=2)
 
         axs[0,b].set_title(blf)
 
@@ -66,7 +66,7 @@ def beliefs(m, savedir, ext):
     for a, ax in enumerate(axs[1]):
         ax.set_xlabel('year')
     axs[0,0].set_ylabel('Expected value')
-    axs[1,0].set_ylabel('Variance')
+    axs[1,0].set_ylabel('Std. deviation')
 
     fig.savefig(savedir + 'beliefs{}.png'.format(ext))
 
