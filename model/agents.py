@@ -45,7 +45,10 @@ class Agents():
         self.wealth[0] = self.savings[0] + self.livestock[0]*market.livestock_cost
         # money
         self.income = np.full([self.T, self.N], -9999)
-        self.farm_income = np.full([self.T, self.N], 0)
+        self.tot_farm_income = np.full([self.T, self.N], 0)
+        self.farm_income = {}
+        for crop in self.all_inputs['land']['ag_types']:
+            self.farm_income[crop] = np.full([self.T, self.N], 0)
         self.ls_income = np.full([self.T, self.N], 0)
         self.salary_income = np.full([self.T, self.N], -9999)
         self.wage_income = np.full([self.T, self.N], -9999)
@@ -74,6 +77,7 @@ class Agents():
             self.ag_labor[crop] = np.full([self.T, self.N], np.nan)
         self.tot_ag_labor = np.full([self.T, self.N], 0.) # sum over all crops
         self.salary_labor = np.full([self.T, self.N], np.nan)
+        self.salary_tot_consider_amt = np.full([self.T, self.N], 0.)
         self.wage_labor = np.full([self.T, self.N], np.nan)
         self.ls_labor = np.full([self.T, self.N], np.nan)
 
@@ -214,11 +218,12 @@ class Agents():
             consider_amt = np.minimum(ppl_req_cash, max_ppl_avail)
             # print(np.mean(self.savings_post_cons_smooth[yrs], axis=0))
             # print(consider_amt.sum())
-            # code.interact(local=dict(globals(), **locals()))  
 
             # allocate the jobs between those that want them
             new_allocations = market.allocate_salary_labor(self, consider_amt, nonag_lbr, market.salary_job_avail_total)
             self.salary_labor[t] = nonag_lbr + new_allocations  
+            self.salary_tot_consider_amt[t] = nonag_lbr + consider_amt
+            # code.interact(local=dict(globals(), **locals()))  
             # spare_labor = self.hh_size - self.ag_labor[t] - self.ls_labor[t] - self.salary_labor[t]
             # if spare_labor.min() < 0:
             #     print('neg labor!!')
@@ -254,11 +259,13 @@ class Agents():
         ## farming
         for crop in land.ag_types:
             # crop sales
-            self.farm_income[t] += (market.crop_sell[crop][t]*self.crop_production[crop][t]).astype(int)
+            self.farm_income[crop][t] += (market.crop_sell[crop][t]*self.crop_production[crop][t]).astype(int)
             # base cost
-            self.farm_income[t] -= (land.ha_farmed[crop][t] * market.farm_cost[crop]).astype(int)
+            self.farm_income[crop][t] -= (land.ha_farmed[crop][t] * market.farm_cost[crop]).astype(int)
             # fertilizer cost # note: this assumes outgrower agents are given free fertilizer then cost charged at harvest
-            self.farm_income[t] -= (land.ha_farmed[crop][t] * land.fertilizer[crop][t] * market.fertilizer_cost).astype(int)
+            self.farm_income[crop][t] -= (land.ha_farmed[crop][t] * land.fertilizer[crop][t] * market.fertilizer_cost).astype(int)
+            # add to total farm income obj
+            self.tot_farm_income[t] += self.farm_income[crop][t]
 
         # non-farm
         self.salary_income[t] = (self.salary_labor[t] * market.labor_salary).astype(int)
@@ -267,7 +274,7 @@ class Agents():
         living_cost = (self.living_cost*self.living_cost_min_frac).astype(int)
 
         # assume the baseline living costs with consumption smoothing here
-        self.income[t] = self.farm_income[t] + self.ls_income[t] + self.salary_income[t] - \
+        self.income[t] = self.tot_farm_income[t] + self.ls_income[t] + self.salary_income[t] - \
                 living_cost - adap_costs
 
         if self.insurance_payout_year:

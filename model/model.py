@@ -49,6 +49,7 @@ class Model():
         ls_obj = self.agents.coping_measures(self.land, self.rangeland, self.market)
         self.agents.livestock_stocking(self.land, ls_obj, self.rangeland, self.market)
         self.agents.adaptation(self.land, self.adap_properties)
+        self.agents.blf.update(self.agents, self.land)
         # increment the year
         self.t[0] += 1        
         # BINARY SWITCHES

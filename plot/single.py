@@ -28,11 +28,47 @@ def main(mod, save=True):
     ext = '_' + mod.exp_name.split('/')[-1] if '/' in mod.exp_name else ''
     tplot = 15
 
+    beliefs(mod, savedir, ext)
     rangeland(mod, savedir, ext)
     time_trajectories(mod, savedir, ext)
     income_dists(mod, savedir, tplot, ext)
     labor_dists(mod, savedir, tplot, ext)
     plt.close('all')
+
+def beliefs(m, savedir, ext):
+    ## plot the beliefs over time
+    blfs = m.agents.blf.quantities
+    n_blf = len(blfs)
+    fig, axs = plt.subplots(2, n_blf, figsize=(4*n_blf, 8), sharex=True, sharey='row')
+    ax_flat = axs.flatten()
+
+
+    for b, blf in enumerate(blfs):
+        # mean values
+        means = m.agents.blf.mu[blf]
+        q_m = np.percentile(means, q=[5,25,50,75,95], axis=1)
+        axs[0,b].fill_between(np.arange(m.T+1), q_m[0], q_m[-1], color='0.7')
+        axs[0,b].fill_between(np.arange(m.T+1), q_m[1], q_m[-2], color='0.5')
+        axs[0,b].plot(q_m[2], color='k', lw=2)
+
+        # variances
+        varz = m.agents.blf.var[blf]
+        v_m = np.percentile(varz, q=[5,25,50,75,95], axis=1)
+        axs[1,b].fill_between(np.arange(m.T+1), v_m[0], v_m[-1], color='0.7')
+        axs[1,b].fill_between(np.arange(m.T+1), v_m[1], v_m[-2], color='0.5')
+        axs[1,b].plot(v_m[2], color='k', lw=2)
+
+        axs[0,b].set_title(blf)
+
+    for a, ax in enumerate(ax_flat):
+        ax.grid(False)
+        ax.axhline(0, color='k', lw=0.7)
+    for a, ax in enumerate(axs[1]):
+        ax.set_xlabel('year')
+    axs[0,0].set_ylabel('Expected value')
+    axs[1,0].set_ylabel('Variance')
+
+    fig.savefig(savedir + 'beliefs{}.png'.format(ext))
 
     
 def rangeland(m, savedir, ext):
@@ -119,7 +155,7 @@ def income_dists(m, savedir, tplot, ext):
     ## agent income distribution
     bins = np.arange(0,1.1,0.1)
     fig, axs = plt.subplots(2,4,figsize=(15,8))
-    objs = [m.agents.farm_income, m.agents.ls_income, m.agents.salary_income, m.agents.wage_income]
+    objs = [m.agents.tot_farm_income, m.agents.ls_income, m.agents.salary_income, m.agents.wage_income]
     tot_income = np.sum(np.array(objs), axis=0)
     titles = ['Farm income','Livestock income','Salary income', 'Wage income']
     for o, obj in enumerate(objs):
@@ -144,7 +180,7 @@ def labor_dists(m, savedir, tplot, ext):
     ## agent labor distribution
     bins = np.arange(0,1.1,0.1)
     fig, axs = plt.subplots(2,4,figsize=(15,8))
-    objs = [m.agents.ag_labor, m.agents.ls_labor, m.agents.salary_labor, m.agents.wage_labor]
+    objs = [m.agents.tot_ag_labor, m.agents.ls_labor, m.agents.salary_labor, m.agents.wage_labor]
     tot_labor = np.sum(np.array(objs), axis=0)
     titles = ['Farm labor','Livestock labor','Salary labor', 'Wage labor']
     for o, obj in enumerate(objs):

@@ -34,8 +34,8 @@ inputs = base_inputs.compile()
 #         inputs[k][k2] = v2
 
 ## change any params
-inputs['model']['T'] = 30
-inputs['model']['n_agents'] = 200
+inputs['model']['T'] = 6
+inputs['model']['n_agents'] = 10
 # inputs['agents']['read_from_file'] = False
 # inputs['livestock']['consumption'] = 5
 # inputs['rangeland']['gr2'] = 0.9
@@ -67,9 +67,9 @@ for t in range(m.T):
 
 st2 = time.time()
 print(st2-st1)
-sys.exit()
 # plot
-code.interact(local=dict(globals(), **locals()))
+sys.exit()
+# code.interact(local=dict(globals(), **locals()))
 plt.main(m)
 
 st3 = time.time()
