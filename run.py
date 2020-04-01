@@ -35,7 +35,11 @@ inputs = base_inputs.compile()
 
 ## change any params
 inputs['model']['T'] = 6
+<<<<<<< HEAD
 inputs['model']['n_agents'] = 8
+=======
+inputs['model']['n_agents'] = 200
+>>>>>>> e513af15f94292d9acf79fa8d9869a8d345f2773
 # inputs['agents']['read_from_file'] = False
 # inputs['livestock']['consumption'] = 5
 # inputs['rangeland']['gr2'] = 0.9
