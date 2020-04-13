@@ -14,13 +14,22 @@ class Decision():
         wrapper function for decision-making
         '''
         # different behavior in 1st year
-        if agents.t[0] == 0:
+        t = agents.t[0]
+        if t == 0:
             Decision.init_allocations(agents, land, market)
-
         else:
             inp = agents.all_inputs['decisions']
             if inp['framework'] == 'util_max':
                 Decision.utility_max(agents, land, market, inp)
+
+            # allocate the non-farm labor
+            # first, determine who already has jobs (from last time)
+            # take the minimum of their previous labor and their current allocation
+            continuing_lbr = np.min(agents.salary_labor[(t-1):(t+1)], axis=0)
+            # then, allocate the remaining
+            agents.salary_tot_consider_amt[t] = agents.salary_labor[t]
+            new_allocations = market.allocate_salary_labor(agents, agents.salary_labor[t], continuing_lbr)
+            agents.salary_labor[t] = continuing_lbr + new_allocations  
 
     def init_allocations(agents,land,market):
         '''
@@ -50,10 +59,11 @@ class Decision():
         agents.savings[t] += ls_inc
         agents.ls_num_lbr[t] = copy.deepcopy(agents.livestock[t])
         agents.ls_labor[t] = agents.livestock[t] * agents.ls_labor_rqmt
-        agents.ls_income[t] += ls_inc
+        agents.ls_sell_income[t] += ls_inc
 
         # only allocating labor as coping mechanism so don't do in first period
         agents.salary_labor[t] = 0
+        agents.choice_ixs[t] = 0
         # code.interact(local=dict(globals(), **locals()))    
     
     def utility_max(agents, land, market, inp):
@@ -85,7 +95,10 @@ class Decision():
         sd_np = np.sqrt(np.array([agents.blf.var[i][t] for i in keyz]))
 
         # init objects for saving the data
-        utils = np.full((len(inp['actions']), agents.N), np.nan)
+        utils = np.full((len(inp['actions']), agents.N), -99.99)
+        action_lbrs = OrderedDict()
+        action_ha = OrderedDict()
+        ls_sold = OrderedDict()
 
         # loop over the options
         for a, act in enumerate(inp['actions']):
@@ -103,7 +116,7 @@ class Decision():
                 [ixs_1, ha] = Decision.change_ag_type(agents, ha, lbr_constrained, incr_ha, t, act, crops)
                 # update labor allocations
                 for crop in crops:
-                    lbrs['ag_'+crop] = ha[crop] * agents.ag_labor_rqmt[crop] * (1-land.fallow_frac*agents.fallow[t]) # scale for fallowing
+                    lbr['ag_'+crop] = ha[crop] * agents.ag_labor_rqmt[crop] * (1-land.fallow_frac*agents.fallow[t]) # scale for fallowing
 
             elif act == 'incr_nf_labor':
                 ixs_1 = np.full(agents.N, True) # issues will be sorted out in labor balancing
@@ -126,11 +139,9 @@ class Decision():
             # reduce livestock if necessary
             lbr_rem = agents.hh_size[ixs_1] - np.sum(np.array([lbr[l][ixs_1] for l in list(lbr.keys())]), axis=0)
             negs = lbr_rem<0
-            if np.sum(negs)>0:
-                print('please check this code')
-                code.interact(local=dict(globals(), **locals()))
             ls_rmv = np.full(n1, 0.)
-            ls_rmv[negs] = np.minimum(-lbr_rem[negs], lbr['livestock'][ixs_1][negs])
+            ls_red_rqd = -round_down(lbr_rem[negs], agents.ls_labor_rqmt)
+            ls_rmv[negs] = np.minimum(ls_red_rqd, lbr['livestock'][ixs_1][negs])
             lbr['livestock'][ixs_1] -= ls_rmv
             lbr_rem += ls_rmv
             # ^ note: these objects only contain ixs_1, so their size is different
@@ -144,12 +155,13 @@ class Decision():
 
             # final agents to include
             ids = agents.id[ixs_1][ixs_2]
-            ixs = np.in1d(ids, agents.id)
-            print(act)
-            print(ixs)
+            ixs = np.in1d(agents.id, ids)
+            n2 = ixs.sum()
+            if n2 == 0:
+                continue
 
             # check
-            if ((ixs.sum()<agents.N) and (act=='nothing')):
+            if ((n2<agents.N) and (act=='nothing')):
                 print('Some agents can not carry out "nothing" option')
                 code.interact(local=dict(globals(), **locals()))
 
@@ -158,22 +170,29 @@ class Decision():
             # we do not analytically calculate the "expected" return
             # rather, we simulate over the uncertainty of the beliefs
             # (assuming that each belief is perfectly correlated - i.e., a shock in trad_ag is a shock in int_ag)
-            if ixs.sum() > 0:
-                # 2a: convert to arrays to make the math easier
-                lbr_np = np.array([lbr[i][ixs] for i in keyz]) # dimension: activity, agents
-                # 2b: combine the beliefs (mu, sigma) with randomly-generated values to generate a sample of "random productivites"
-                rndm_productivities = agents.rndm_Zs[t] * sd_np[:,ixs,None] + mu_np[:,ixs,None] # dimension: (activity, agent, simulation)
-                # 2c: weight each probability by the allocated labor (sum over the activities)
-                rndm_incomes = np.sum(lbr_np[:,:,None] * rndm_productivities, axis=0) # dimension: (agent, simulation)
-                # 2d: convert to utility -- exponential function
-                rndm_utils = 1 - np.exp(-rndm_incomes / agents.risk_aversion[ixs,None])
-                # import matplotlib.pyplot as plt
-                # fig, ax = plt.subplots()
-                # ax.scatter(rndm_incomes.flatten(),rndm_utils.flatten())
-                # fig.savefig('utils_{}.png'.format(agents.all_inputs['decisions']['risk_aversion_params'][0]))
-                # 2e: calculate expected utility
-                utils[a,ixs] = np.mean(rndm_utils, axis=1) # dimension : (agent)
+            # 2a: convert to arrays to make the math easier
+            lbr_np = np.array([lbr[i][ixs] for i in keyz]) # dimension: activity, agents
+            # 2b: combine the beliefs (mu, sigma) with randomly-generated values to generate a sample of "random productivites"
+            rndm_productivities = agents.rndm_Zs[t,ixs] * sd_np[:,ixs,None] + mu_np[:,ixs,None] # dimension: (activity, agent, simulation)
+            # 2c: weight each probability by the allocated labor (sum over the activities)
+            rndm_incomes = np.sum(lbr_np[:,:,None] * rndm_productivities, axis=0) # dimension: (agent, simulation)
+            # 2d: convert to utility -- exponential function
+            rndm_utils = 1 - np.exp(-rndm_incomes / agents.risk_aversion[ixs,None])
+            # import matplotlib.pyplot as plt
+            # fig, ax = plt.subplots()
+            # ax.scatter(rndm_incomes.flatten(),rndm_utils.flatten())
+            # fig.savefig('utils_{}.png'.format(agents.all_inputs['decisions']['risk_aversion_params'][0]))
+            # 2e: calculate expected utility
+            utils[a,ixs] = np.mean(rndm_utils, axis=1) # dimension : (agent)
 
+            # save the labor and land
+            action_lbrs[act] = lbr
+            action_ha[act] = ha
+            ls_sold[act] = np.full(agents.N, 0.)
+            ls_sold[act][ixs_1] = ls_rmv
+
+        # choose the best option
+        Decision.select_max_utility(agents, land, market, utils, action_lbrs, action_ha, ls_sold, inp['actions'], crops, t)
 
     def change_ag_type(agents,ha,lbr_constrained,incr_ha,t,act,crops):
         '''
@@ -246,6 +265,33 @@ class Decision():
             ixs_2 = lbr_rem_new >= 0
 
             return lbr, ixs_2
+
+    def select_max_utility(agents, land, market, utils, action_lbrs, action_ha, ls_sold, actions, crops, t):
+        '''
+        select the option for each agent with the highest utility
+        and attribute the choice to the agents object
+        '''
+        agents.choice_ixs[t] = np.argmax(utils, axis=0) # identify index of maximum utility
+        ls_orig = copy.deepcopy(agents.livestock[t])
+
+        for a, act in enumerate(actions):
+            ixs = agents.choice_ixs[t]==a # agents for which this is the best choice
+
+            if np.sum(ixs)>0:
+                # update the labor and ha farmed
+                for crop in crops:
+                    agents.ag_labor[crop][t, ixs] = action_lbrs[act]['ag_'+crop][ixs]
+                    land.ha_farmed[crop][t, ixs] = action_ha[act][crop][ixs]
+                    # add to totals
+                    agents.tot_ag_labor[t,ixs] += action_lbrs[act]['ag_'+crop][ixs]
+
+                # salary labor -- this is just allocations
+                agents.salary_labor[t,ixs] = action_lbrs[act]['non_farm'][ixs]
+                
+                # livestock -- allocate labor and pay agent if they sold them
+                agents.livestock[t,ixs] = np.floor(action_lbrs[act]['livestock'][ixs] / agents.ls_labor_rqmt).astype(int)
+                agents.ls_labor[t,ixs] = agents.livestock[t,ixs] * agents.ls_labor_rqmt
+                agents.ls_sell_income[t,ixs] += (ls_sold[act][ixs] / agents.ls_labor_rqmt * market.livestock_cost).astype(int)
 
 def round_up(amts, stepsize):
     '''

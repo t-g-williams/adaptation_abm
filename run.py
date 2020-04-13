@@ -34,12 +34,8 @@ inputs = base_inputs.compile()
 #         inputs[k][k2] = v2
 
 ## change any params
-inputs['model']['T'] = 6
-<<<<<<< HEAD
-inputs['model']['n_agents'] = 8
-=======
+inputs['model']['T'] = 30
 inputs['model']['n_agents'] = 200
->>>>>>> e513af15f94292d9acf79fa8d9869a8d345f2773
 # inputs['agents']['read_from_file'] = False
 # inputs['livestock']['consumption'] = 5
 # inputs['rangeland']['gr2'] = 0.9
@@ -53,6 +49,8 @@ inputs['model']['n_agents'] = 200
 # inputs['land']['residue_CN_conversion'] = 200
 # inputs['land']['loss_max'] = 0.5
 # inputs['land']['max_organic_N'] = 5000
+inputs['market']['crop_sell_params'] = {'trad' : [2.17,0,0], 'int' : [4,0.5,0], 'div' : [2.17,0,0]}
+inputs['market']['salary_jobs_availability'] = 0
 
 # inputs['market']['fertilizer_cost'] = 0
 # inputs['land']['random_effect_sd'] = 0
@@ -72,7 +70,7 @@ for t in range(m.T):
 st2 = time.time()
 print(st2-st1)
 # plot
-# code.interact(local=dict(globals(), **locals()))
+code.interact(local=dict(globals(), **locals()))
 plt.main(m)
 sys.exit()
 

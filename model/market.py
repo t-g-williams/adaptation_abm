@@ -30,7 +30,7 @@ class Market():
         self.salary_job_avail_total = round_down(self.salary_jobs_availability * N, self.salary_job_increment)
         self.wage_job_avail_total = round_down(self.wage_jobs_availability * N, self.wage_job_increment)
 
-    def allocate_salary_labor(self, agents, consider_amt, nonag_lbr, tot_jobs):
+    def allocate_salary_labor(self, agents, consider_amt, nonag_lbr):
         '''
         allocate the available salary jobs between the agents that want them
         assume that agents are considered successively
@@ -39,7 +39,7 @@ class Market():
         '''
         rndm_num = np.random.randint(1e6)
         # subtract off jobs that have already been allocated to continuing workers
-        num_jobs_avail = tot_jobs - np.sum(nonag_lbr)
+        num_jobs_avail = self.salary_job_avail_total - np.sum(nonag_lbr)
 
         if np.sum(consider_amt) <= num_jobs_avail:
             rtn = consider_amt

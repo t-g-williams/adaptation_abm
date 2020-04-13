@@ -50,6 +50,7 @@ class Agents():
         for crop in self.all_inputs['land']['ag_types']:
             self.farm_income[crop] = np.full([self.T, self.N], 0)
         self.ls_income = np.full([self.T, self.N], 0)
+        self.ls_sell_income = np.full([self.T, self.N], 0) # from selling livestock
         self.salary_income = np.full([self.T, self.N], -9999)
         self.wage_income = np.full([self.T, self.N], -9999)
         self.savings_post_cons_smooth = np.full([self.T, self.N], -9999)
@@ -94,13 +95,14 @@ class Agents():
         self.choices = {}
         for choice in inp['actions']:
             self.choices[choice] = np.full([self.T, self.N], False)
+        self.choice_ixs = np.full([self.T, self.N], -1)
         self.fallow = np.full([self.T+1, self.N], True)
         # decision-related agent properties
         rand_int = np.random.randint(1e6) # generate random integer to control stochasticity
         if inp['risk_aversion']:
             self.risk_aversion = np.random.normal(loc=inp['risk_aversion_params'][0], scale=inp['risk_aversion_params'][1], size=self.N)
             self.risk_aversion[self.risk_aversion<1] = 1 # for instability in the exponential function
-            self.rndm_Zs = np.random.normal(size=(self.T, inp['nsim_utility']))
+            self.rndm_Zs = np.random.normal(size=(self.T, self.N, inp['nsim_utility']))
         np.random.seed(rand_int)
 
     def init_from_file(self):
@@ -189,10 +191,10 @@ class Agents():
         destock_amt = np.ceil(np.maximum(self.livestock[t] - max_ls, 0)).astype(int)
         self.livestock[t] -= destock_amt
         ls_inc = destock_amt * market.livestock_cost
-        self.savings[t] += ls_inc
+        # self.savings[t] += ls_inc # note -- this is being double-counted if this is turned on????!!!
         self.ls_num_lbr[t] = copy.deepcopy(self.livestock[t])
         self.ls_labor[t] = self.livestock[t] * self.ls_labor_rqmt
-        self.ls_income[t] += ls_inc
+        self.ls_sell_income[t] += ls_inc
 
         ## non-farm labor
         if t == 0:
@@ -228,7 +230,7 @@ class Agents():
             # print(consider_amt.sum())
 
             # allocate the jobs between those that want them
-            new_allocations = market.allocate_salary_labor(self, consider_amt, nonag_lbr, market.salary_job_avail_total)
+            new_allocations = market.allocate_salary_labor(self, consider_amt, nonag_lbr)
             self.salary_labor[t] = nonag_lbr + new_allocations  
             self.salary_tot_consider_amt[t] = nonag_lbr + consider_amt
             # code.interact(local=dict(globals(), **locals()))  
@@ -282,7 +284,7 @@ class Agents():
         living_cost = (self.living_cost*self.living_cost_min_frac).astype(int)
 
         # assume the baseline living costs with consumption smoothing here
-        self.income[t] = self.tot_farm_income[t] + self.ls_income[t] + self.salary_income[t] - \
+        self.income[t] = self.tot_farm_income[t] + self.ls_income[t] + self.ls_sell_income[t] + self.salary_income[t] - \
                 living_cost - adap_costs
 
         if self.insurance_payout_year:
@@ -331,7 +333,7 @@ class Agents():
         sell_amt = np.minimum(ls_obj, sell_rqmt) # restricted by available livestock
         ls_obj -= sell_amt # reduce the herdsize
         self.savings[t+1] += sell_amt * market.livestock_cost # add to income
-        self.ls_income[t] += sell_amt * market.livestock_cost
+        self.ls_sell_income[t] += sell_amt * market.livestock_cost
         self.stress_ls_sell_rqd[t, sell_rqmt>0] = True # record
         self.ls_stress[t] = copy.deepcopy(ls_obj)
 
@@ -422,7 +424,7 @@ class Agents():
         self.savings[t+1] -= ls_change * market.livestock_cost # attribute to savings
         self.destocking_rqd[t,ls_change<0] = True # record
         self.ls_purchase[t] = copy.deepcopy(ls_obj)
-        self.ls_income[t, self.destocking_rqd[t]] += -ls_change[self.destocking_rqd[t]]*market.livestock_cost
+        self.ls_sell_income[t, self.destocking_rqd[t]] += -ls_change[self.destocking_rqd[t]]*market.livestock_cost
 
         # save for next time step
         if t < (self.T-1):
