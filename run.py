@@ -34,8 +34,8 @@ inputs = base_inputs.compile()
 #         inputs[k][k2] = v2
 
 ## change any params
-inputs['model']['T'] = 10
-inputs['model']['n_agents'] = 8
+inputs['model']['T'] = 30
+inputs['model']['n_agents'] = 200
 # inputs['agents']['read_from_file'] = False
 # inputs['livestock']['consumption'] = 5
 # inputs['rangeland']['gr2'] = 0.9
@@ -49,7 +49,7 @@ inputs['model']['n_agents'] = 8
 # inputs['land']['residue_CN_conversion'] = 200
 # inputs['land']['loss_max'] = 0.5
 # inputs['land']['max_organic_N'] = 5000
-inputs['market']['crop_sell_params'] = {'trad' : [2.17,0,0], 'int' : [4,0.5,0], 'div' : [2.17,0,0]}
+# inputs['market']['crop_sell_params'] = {'trad' : [2.17,0,0], 'int' : [4,0.5,0], 'div' : [2.17,0,0]}
 inputs['market']['salary_jobs_availability'] = 0
 
 # inputs['market']['fertilizer_cost'] = 0

@@ -75,8 +75,9 @@ def agents():
                     'land-rich' : {'land_area' : 2, 'hh_size' : 3}},
 
         # living costs
-        'living_cost_pp' : 2000, # birr/yr. "desired living costs". 17261 median (hh) value from 2015 LSMS
-        'living_cost_min_frac' : 0.5, # fraction of the living costs that must be spent
+        'living_cost_pp' : 1000, # birr/yr. "desired living costs" not including food consumption. 17261 median (hh) value from 2015 LSMS
+        'living_cost_min_frac' : 0.5, # fraction of the living costs that must be spent (ie they will sell livestock to do this)
+        'food_rqmt_pp' : 18*12, # kg/yr. from resilience paper
 
         # decision-making
         'n_yr_smooth' : 3, # number of smoothing years for livestock management decisions (fodder availability assumption)
@@ -88,7 +89,7 @@ def agents():
         'livestock_init' : 1,# 0, (homogeneous for all agents)
         
         ##### socio-environmental condns #####
-        'ag_labor_rqmt' : {'trad' : 1.5, 'int' : 1.5, 'div' : 1.5}, # ppl/ha
+        'ag_labor_rqmt' : {'subs' : 1.5, 'mkt' : 1.5}, # ppl/ha
         'ls_labor_rqmt' : 0.2, # ppl/head
     }
     return d
@@ -97,19 +98,19 @@ def beliefs():
     d = {
         # units : $/person(lbr) -- i.e., labor productivity
         # note: for farming, _land_ productivity might be better, but this allows consistent units
-        'quantities' : ['ag_trad','ag_int','ag_div','non_farm','livestock'],
-        'n0' : [1,1,1,1,1], # prior strength on the mean
-        'alpha0' : [1,1,1,1,1], # prior strength on the variance
-        'beta0' : [500,500,500,500,500], # E[variance0]
-        'mu0' : [1000,1000,1000,1000,1000], # E[mu0]
+        'quantities' : ['rain','price_subs','price_mkt'],
+        'n0' : [1,1,1], # prior strength on the mean
+        'alpha0' : [1,1,1], # prior strength on the variance
+        'beta0' : [0.25,0.5,0.5], # E[variance0]
+        'mu0' : [0.5,2,2], # E[mu0]
     }
     return d
 
 def decisions():
     d = {
-        'framework' : 'util_max',
-        'actions' : ['nothing','incr_int_ag','incr_div_ag',
-            'incr_trad_ag','incr_nf_labor','decr_nf_labor'],#,'ext_ag'],
+        'framework' : 'none', # util_max or none
+        'actions' : ['nothing'],#,'incr_int_ag','incr_div_ag',
+            # 'incr_trad_ag','incr_nf_labor','decr_nf_labor'],#,'ext_ag'],
         'risk_aversion' : True,
         'risk_aversion_params' : [3000,300], # [mu, sigma] for a normal distribution
         'nsim_utility' : 10, # number of sims from beliefs when calculating utility
@@ -119,8 +120,8 @@ def decisions():
 
 def market():
     d = {
-    'crop_sell_params' : {'trad' : [2.17,0,0], 'int' : [2.17,0,0], 'div' : [2.17,0,0]}, # [x,x,x]=[mean,sd,rho] 2.17 birr/kg. mean 2015 maize price (FAO)
-    'farm_cost' : {'trad' : 100, 'int' : 150, 'div' : 110}, # birr/ha. arbitrary
+    'crop_sell_params' : {'subs' : [2.17,0,0], 'mkt' : [2.17,0,0]}, # [x,x,x]=[mean,sd,rho] 2.17 birr/kg. mean 2015 maize price (FAO)
+    'farm_cost' : {'subs' : 100, 'mkt' : 150}, # birr/ha. arbitrary
     'fertilizer_cost' : 13.2, # 13.2 birr/kg. median from 2015 LSMS
     'labor_salary' : 70*365*5/7, # birr/person/year: 70 birr/day * 5 days per week all year
     'labor_wage' : 70*365*5/7, # birr/person/year: 70 birr/day * 5 days per week all year
@@ -151,8 +152,8 @@ def land():
         'fallow_N_add' : 60/0.3, # FOR NOW TRY TO GET NEUTRAL SOIL N BALANCE. this is unrealistic # 40, # kg N/ha. lower limit from N-fixing legumes https://www.tandfonline.com/doi/pdf/10.1080/01904160009382074
 
         ##### yield #####
-        'ag_types' : ['trad','int','div'],
-        'max_yield' : {'trad' : 6590, 'int' : 6590, 'div' : 6590}, # 6590 kg/ha. maximum, unconstrained yield. 95%ile for Ethiopia-wide LSMS (all 3 years) maize yields
+        'ag_types' : ['subs','mkt'],
+        'max_yield' : {'subs' : 6590, 'mkt' : 6590}, # 6590 kg/ha. maximum, unconstrained yield. 95%ile for Ethiopia-wide LSMS (all 3 years) maize yields
         'rain_crit' : 0.8, # value at which rainfall starts to be limiting. 0.8 in CENTURY
         'rain_cropfail_high_SOM' : 0, # rainfall value at which crop yields are 0 with highest SOM. arbitrary
         'rain_cropfail_low_SOM' : 0.1, # rainfall value at which crop yields are 0 with lowest SOM. arbitrary

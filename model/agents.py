@@ -31,6 +31,7 @@ class Agents():
         # household size
         self.hh_size = np.full(self.N, self.hh_size_init) # all same size for now
         self.living_cost =  self.living_cost_pp * self.hh_size
+        self.food_rqmt = self.food_rqmt_pp * self.hh_size
         # define agent types
         self.init_types()
 
@@ -46,6 +47,7 @@ class Agents():
         # money
         self.income = np.full([self.T, self.N], -9999)
         self.tot_farm_income = np.full([self.T, self.N], 0)
+        self.food_cost = np.full([self.T, self.N], 0)
         self.farm_income = {}
         for crop in self.all_inputs['land']['ag_types']:
             self.farm_income[crop] = np.full([self.T, self.N], 0)
@@ -176,7 +178,7 @@ class Agents():
         # fallow: assume it by default (except LSLA outgrowers)
         # (note: amt of land farmed can be a fraction of a field - i.e., part of a field can be fallowed)
         # ag type allocation: assume all are traditional
-        land.ha_farmed['trad'][t, ~land.outgrower[t]] = self.land_area[~land.outgrower[t]]
+        land.ha_farmed['subs'][t, ~land.outgrower[t]] = self.land_area[~land.outgrower[t]]
 
         ## farm labor
         for crop in land.ag_types:
@@ -242,12 +244,55 @@ class Agents():
                 code.interact(local=dict(globals(), **locals()))  
 
 
-    def calculate_income(self, land, climate, adap_properties, market):
+    def income_and_food_consumption(self, land, climate, adap_properties, market):
         '''
         calculate end-of-year income
         '''
         t = self.t[0]
         # costs and payouts for adaptation option
+        adap_costs = self.adaptation_costs(adap_properties, climate)
+        
+        # livestock
+        self.ls_income[t] += self.ls_obj * self.all_inputs['livestock']['income']
+        # non-farm
+        self.salary_income[t] = (self.salary_labor[t] * market.labor_salary).astype(int)
+        # other costs
+        living_cost = (self.living_cost*self.living_cost_min_frac).astype(int)
+        
+        ## farming
+        # (a) sell excess subsistence food production
+        food_prod = self.crop_production['subs'][t]
+        sell_amt = np.maximum(food_prod-self.food_rqmt,0)
+        self.farm_income['subs'][t] += (market.crop_sell['subs'][t]*sell_amt).astype(int)
+        # (b) buy food if there is a deficit in subsistence production (assume buying costs the same as selling) (this is non-negotiable food consumption)
+        cons_deficit = np.maximum(self.food_rqmt-food_prod,0)
+        self.food_cost[t] = (market.crop_sell['subs'][t]*cons_deficit).astype(int)
+        # (c) sell market-oriented production
+        self.farm_income['mkt'][t] += (market.crop_sell['mkt'][t]*self.crop_production['mkt'][t]).astype(int)
+        # (d) subtract farming costs (NOTE: this assumes there were no credit constraints at the start of year)
+        for crop in land.ag_types:
+            # base cost
+            self.farm_income[crop][t] -= (land.ha_farmed[crop][t] * market.farm_cost[crop]).astype(int)
+            # fertilizer cost # note: this assumes outgrower agents are given free fertilizer then cost charged at harvest
+            self.farm_income[crop][t] -= (land.ha_farmed[crop][t] * land.fertilizer[crop][t] * market.fertilizer_cost).astype(int)
+            # add to total farm income obj
+            self.tot_farm_income[t] += self.farm_income[crop][t]
+        
+        # assume the baseline living costs with consumption smoothing here
+        self.income[t] = self.tot_farm_income[t] + self.ls_income[t] + self.ls_sell_income[t] + self.salary_income[t] - \
+                living_cost - adap_costs - self.food_cost[t]
+
+        if self.insurance_payout_year:
+            # assume that agents first use their payout to neutralize their income
+            # and any left over, they use to buy fodder
+            # which will increase their maximum wealth capacity
+            self.remaining_payout = np.minimum(np.maximum(self.payouts+self.income[t], 0), self.payouts) # outer "minimum" is in case their income is +ve --> they can only use the payout for fodder
+            self.income[t] += self.payouts.astype(int)
+
+    def adaptation_costs(self, adap_properties, climate):
+        '''
+        calculate annual costs for the adaptation option:
+        '''
         adap_costs = np.full(self.N, 0.)
         self.insurance_payout_year = False
         if adap_properties['type'] == 'insurance':
@@ -255,42 +300,13 @@ class Agents():
             adap_costs[self.adapt[t]] = adap_properties['cost'] * self.land_area[self.adapt[t]]
             # payouts
             if climate.rain[t] < adap_properties['magnitude']:
-                payouts = np.full(self.N, 0.)
-                payouts[self.adapt[t]] = adap_properties['payout'] * self.land_area[self.adapt[t]]
+                self.payouts = np.full(self.N, 0.)
+                self.payouts[self.adapt[t]] = adap_properties['payout'] * self.land_area[self.adapt[t]]
                 self.insurance_payout_year = True
         elif adap_properties['type'] == 'cover_crop':
             adap_costs[self.adapt[t]] = adap_properties['cost'] * self.land_area[self.adapt[t]]
-        
-        # livestock
-        self.ls_income[t] += self.ls_obj * self.all_inputs['livestock']['income']
-        
-        ## farming
-        for crop in land.ag_types:
-            # crop sales
-            self.farm_income[crop][t] += (market.crop_sell[crop][t]*self.crop_production[crop][t]).astype(int)
-            # base cost
-            self.farm_income[crop][t] -= (land.ha_farmed[crop][t] * market.farm_cost[crop]).astype(int)
-            # fertilizer cost # note: this assumes outgrower agents are given free fertilizer then cost charged at harvest
-            self.farm_income[crop][t] -= (land.ha_farmed[crop][t] * land.fertilizer[crop][t] * market.fertilizer_cost).astype(int)
-            # add to total farm income obj
-            self.tot_farm_income[t] += self.farm_income[crop][t]
 
-        # non-farm
-        self.salary_income[t] = (self.salary_labor[t] * market.labor_salary).astype(int)
-
-        ## other costs
-        living_cost = (self.living_cost*self.living_cost_min_frac).astype(int)
-
-        # assume the baseline living costs with consumption smoothing here
-        self.income[t] = self.tot_farm_income[t] + self.ls_income[t] + self.ls_sell_income[t] + self.salary_income[t] - \
-                living_cost - adap_costs
-
-        if self.insurance_payout_year:
-            # assume that agents first use their payout to neutralize their income
-            # and any left over, they use to buy fodder
-            # which will increase their maximum wealth capacity
-            self.remaining_payout = np.minimum(np.maximum(payouts+self.income[t], 0), payouts) # outer "minimum" is in case their income is +ve --> they can only use the payout for fodder
-            self.income[t] += payouts.astype(int)
+        return adap_costs
 
     def coping_measures(self, land, market):
         '''
@@ -303,7 +319,7 @@ class Agents():
 
         ## 1. ADD INCOME TO SAVINGS
         # this proxies using savings to buffer income and expenditure
-        self.savings[t+1] = self.savings[t] + self.income[t]
+        self.savings[t+1] = self.savings[t] + self.income[t] # money pot
         self.neg_income[t, self.income[t] < 0] = True # record those with -ve income
 
         ## 2. DESIRED LIVING COSTS

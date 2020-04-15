@@ -46,12 +46,12 @@ class Model():
         # self.agents.decision_making(self.land, self.market)
         self.land.update_soil(self.agents)
         self.land.crop_yields(self.agents, self.climate)
-        self.agents.calculate_income(self.land, self.climate, self.adap_properties, self.market)
+        self.agents.income_and_food_consumption(self.land, self.climate, self.adap_properties, self.market)
         self.rangeland.update(self.climate, self.agents, self.land) # includes livestock reproduction
         self.agents.coping_measures(self.land, self.market)
         self.agents.livestock_stocking(self.land, self.rangeland, self.market)
         self.agents.adaptation(self.land, self.adap_properties)
-        self.agents.blf.update(self.agents, self.land)
+        self.agents.blf.update(self.agents, self.land, self.climate, self.market)
         # save for next year
         self.t[0] += 1 
         # code.interact(local=dict(globals(), **locals()))       

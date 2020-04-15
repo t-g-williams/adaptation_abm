@@ -20,7 +20,9 @@ class Decision():
             Decision.init_allocations(agents, land, market)
         else:
             inp = agents.all_inputs['decisions']
-            if inp['framework'] == 'util_max':
+            if inp['framework'] == 'none':
+                Decision.init_allocations(agents, land, market) # no decisions
+            elif inp['framework'] == 'util_max':
                 Decision.utility_max(agents, land, market, inp)
 
             # allocate the non-farm labor
@@ -38,13 +40,13 @@ class Decision():
         '''
         land/labor allocations in first year
         '''
-        t = 0
+        t = agents.t[0]
         ## fallow and crop type allocation
         # assume fallow by default (except LSLA outgrowers)
         # (note: amt of land farmed can be a fraction of a field - i.e., part of a field can be fallowed)
         # land.farmed_fraction[t] = 1 - land.fallow_frac * agents.fallow[t]
         # ag type allocation: assume all are traditional
-        land.ha_farmed['trad'][t, ~land.outgrower[t]] = agents.land_area[~land.outgrower[t]] # represents total area, including fallow
+        land.ha_farmed['subs'][t, ~land.outgrower[t]] = agents.land_area[~land.outgrower[t]] # represents total area, including fallow
 
         ## farm labor
         for crop in land.ag_types:

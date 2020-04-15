@@ -36,7 +36,7 @@ class Beliefs():
             self.n[quant][0] = self.n0[q]
             self.var[quant][0] = self.beta[quant][0] / self.alpha[quant][0] # expected variance, if tau ~ Ga(alpha,beta)
 
-    def update(self, agents, land):
+    def update(self, agents, land, climate, market):
         '''
         update all beliefs at the end of the year
         all beliefs are represented using the normal - inverse gamma conjugate prior
@@ -50,19 +50,18 @@ class Beliefs():
                   i.e., E[mu] = mu0, E[tau] = a/b (so E[sigma2] = b/a since tau = 1/sigma2)
         '''
         t = agents.t[0]
+
         data_objs = {  # [numerator, denominator]
-            'ag_trad' : [agents.farm_income['trad'][t], land.ha_farmed['trad'][t] * agents.ag_labor_rqmt['trad']], # [$, ha * ppl/ha = ppl]
-            'ag_int' : [agents.farm_income['int'][t], land.ha_farmed['int'][t] * agents.ag_labor_rqmt['int']],
-            'ag_div' : [agents.farm_income['div'][t], land.ha_farmed['div'][t] * agents.ag_labor_rqmt['div']],
-            'non_farm' : [agents.salary_income[t], agents.salary_tot_consider_amt[t]], # [$, ppl]
-            'livestock' : [agents.ls_income[t], agents.ls_labor[t]]
+            'rain' : np.full(agents.N, climate.rain[t]), # same for all agents
+            'price_subs' : np.full(agents.N, market.crop_sell['subs'][t]), # same for all agents
+            'price_mkt' : np.full(agents.N, market.crop_sell['mkt'][t]), # same for all agents
         }
 
         # loop over the different beliefs
         for quant, obs_data in data_objs.items():
-            ixs = obs_data[1] > 0 # ixs that have observed this period (i.e., the denominator is > 0)
+            ixs = np.full(agents.N, True) # ixs that have observed this period
             # get the observation (x)
-            x = obs_data[0][ixs] / obs_data[1][ixs] # x = the observation
+            x = obs_data[ixs] # x = the observation
             n = 1 # i.e., a single observation
             # priors
             mu0 = self.mu[quant][t,ixs]
