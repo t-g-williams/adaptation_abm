@@ -33,28 +33,30 @@ class Rangeland():
         simulate the rangeland dynamics
         This model is copied from Gunnar
         '''
+        t = self.t[0]
+
+        ## 1. livestock reproduction
+        # note: we model livestock as integer valued
+        # each animal has the same probability of reproducing
+        # control stochasticity b/c we have variable number of livestock
+        herds = agents.ls_obj
+        birth_rate = self.all_inputs['livestock']['birth_rate']
+        if birth_rate > 0:
+            rndm_num = np.random.randint(1e6)
+            births = np.random.binomial(herds, birth_rate)
+            np.random.seed(rndm_num)
+            herds += births
+        agents.ls_reprod[t] = copy.deepcopy(herds)
+
         if not self.rangeland_dynamics:
             return
 
-        t = self.t[0]
-
-        ## 1. green biomass growth
+        ## 2. green biomass growth
         self.G[t+1] = (1-self.G_mortality) * self.G[t] + \
                 climate.rain[t] * self.rain_use_eff * self.R[t]
         # green biomass constraints
         self.G[t+1] = min(self.G[t+1], self.R[t] * self.G_R_ratio)
         self.G_no_cons[t] = copy.deepcopy(self.G[t+1])
-
-        ## 2. livestock reproduction
-        # note: we model livestock as integer valued
-        # each animal has the same probability of reproducing
-        # control stochasticity b/c we have variable number of livestock
-        herds = agents.livestock[t]
-        rndm_num = np.random.randint(1e6)
-        births = np.random.binomial(herds, self.all_inputs['livestock']['birth_rate'])
-        np.random.seed(rndm_num)
-        herds += births
-        agents.ls_reprod[t] = copy.deepcopy(herds)
 
         ## 3. livestock consumption and destocking
         destocking_total = self.consumption(agents, land, herds, t)
@@ -62,15 +64,15 @@ class Rangeland():
         # add together the livestock on residue and rangeland
         # if there's been a "partial destocking" required on the rangeland, the whole animal must be destocked
         # hence, take the floor of this sum
-        agents.livestock[t] = np.floor(agents.herds_on_residue[t] + agents.herds_on_rangeland[t]).astype(int)
-        agents.ls_destock[t] = copy.deepcopy(agents.livestock[t])
+        agents.ls_obj = np.floor(agents.herds_on_residue[t] + agents.herds_on_rangeland[t]).astype(int)
+        agents.ls_rangeland[t] = copy.deepcopy(agents.ls_obj)
 
         ## 4. reserve biomass growth
         self.R[t+1] = (1-self.R_mortality) * self.R[t] + \
                 self.R_biomass_growth * (self.gr1 * (self.G_no_cons[t] - self.G[t+1]) + self.G[t+1]) * \
                 (1 - self.R[t]/self.R_max)
 
-        if np.sum(agents.livestock[t]<0)>0:
+        if np.sum(agents.ls_obj<0)>0:
             print('ERROR: negative livestock in rangeland.update()')
             code.interact(local=dict(globals(), **locals())) 
 

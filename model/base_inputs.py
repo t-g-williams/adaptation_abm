@@ -36,6 +36,7 @@ def adaptation():
         #     'application_rate' : 147.2, # kg/ha. median from LSMS (ALL fertilizer. i assume this equals Nitrogen)
         #     },
         'burnin_period' : 15, # years before adaptation options come into effect
+        'adap_type' : 'always', # coping, switching, affording, or always
         'insurance' : {
             'climate_percentile' : 0.1,
             'payout_magnitude' : 1, # relative to the expected yield (assuming perfect soil quality). if =1.5, then payout = 1.5*expected_yield
@@ -59,36 +60,32 @@ def agents():
         # binary switches
         'savings_acct' : True, # if false, agents can't carry over extra money between years
 
+        #### DEMOGRAPHICS ####
         # data import
-        'read_from_file' : True,
+        'read_from_file' : False,
         'props_from_file' : ['hh_size','land_area_init'], # the variable names in the file should be equivalent to the names in this file
         'file_name' : '../inputs/lsla_for_abm.csv',
         'data_filter' : 'site=="OR1"',
-
-        # adaptation / decision-making
-        'adap_type' : 'always', # coping, switching, affording, or always
-        'n_yr_smooth' : 3, # number of smoothing years for livestock management decisions (fodder availability assumption)
-
-        ##### land #####
+        # if read_from_file == False:
         'land_area_init' : [1, 1.5, 2], # ha. uniformly sample from each
         'land_area_multiplier' : 1, # for sensitivity analysis
-
-        ##### demographics ######
+        'hh_size_init' : 6,
         'types' : {'land-poor' : {'land_area' : 1, 'hh_size' : 3},
                     'middle' : {'land_area' : 1.5, 'hh_size' : 3},
                     'land-rich' : {'land_area' : 2, 'hh_size' : 3}},
 
-        'hh_size_init' : 6,
+        # living costs
         'living_cost_pp' : 2000, # birr/yr. "desired living costs". 17261 median (hh) value from 2015 LSMS
         'living_cost_min_frac' : 0.5, # fraction of the living costs that must be spent
+
+        # decision-making
+        'n_yr_smooth' : 3, # number of smoothing years for livestock management decisions (fodder availability assumption)
 
         ##### cash + wealth #####
         # initial cash savings (normal distribution)
         'savings_init_mean' : 0,# 15000, # birr
         'savings_init_sd' : 0,
-        # 'max_neg_wealth' : 0, # birr. just for plotting. these ppl cant recover anyway
-        # initial livestock (constant amount)
-        'livestock_init' : 1,# 0,
+        'livestock_init' : 1,# 0, (homogeneous for all agents)
         
         ##### socio-environmental condns #####
         'ag_labor_rqmt' : {'trad' : 1.5, 'int' : 1.5, 'div' : 1.5}, # ppl/ha
@@ -184,9 +181,10 @@ def climate():
 def rangeland():
     d = {
         # binary switches
-        'rangeland_dynamics' : True, # if false, just use the livestock "frac_crops" parameter
+        'rangeland_dynamics' : False, # if false, just use the livestock "frac_crops" parameter
         'integer_consumption' : False, # if true, only an integer number of livestock can be grazed on residues/rangeland
 
+        # the following are only used if rangeland_dynamics == True
         # rangeland size relative to farmland
         'range_farm_ratio' : 0.5, # eg 0.5 means rangeland is 0.5x the size of the total farmland
         # initial conditions
@@ -207,9 +205,12 @@ def rangeland():
 
 def livestock():
     d = {
-        'frac_N_import' : 0, # amount of N from rangeland that can be imported to the farm
-        'N_production' : 78.3, # kg N/year/cattle. see CC_Ins paper for derivation
+        # if rangeland_dynamics == False:
         'frac_crops' : 0.5, # IF rangeland_dynamics==True, this parameter is unnecessary. fraction of livestock feed that comes from crops (in an ~average year). this influences the nitrogen input to farmland and the maximum herdsize attainable
+        
+        # always used 
+        'frac_N_import' : 0, # amount of N from rangeland that can be imported to the farm. controls livestock/SOM feedback
+        'N_production' : 78.3, # kg N/year/cattle. see CC_Ins paper for derivation
         'income' : 125, # birr/year/head represents the value of milk production: taken directly from Redda2002 -- 240-480birr/year with local cow. assume 350 and 50% are female --> 125 birr/year/animal
         'consumption' : 2280, # kg/annum (640 in gunnar. i derived 2280 for cc_ins paper: kg dry matter / TLU / year.(Amsalu2014)). also compare to 2700kgDM in (NOTE: ITS AUSTRALIA HERE NOT BORANA) desta1999 for 400kg animal
         'birth_rate' : 0, # use no birth rate -- livestock aren't for breeding. livestock birth rate (probability) (gunnar has 0.8). see also angassa2007 (~0.5)

@@ -47,16 +47,18 @@ class Model():
         self.land.update_soil(self.agents)
         self.land.crop_yields(self.agents, self.climate)
         self.agents.calculate_income(self.land, self.climate, self.adap_properties, self.market)
-        self.rangeland.update(self.climate, self.agents, self.land)
-        ls_obj = self.agents.coping_measures(self.land, self.rangeland, self.market)
-        self.agents.livestock_stocking(self.land, ls_obj, self.rangeland, self.market)
+        self.rangeland.update(self.climate, self.agents, self.land) # includes livestock reproduction
+        self.agents.coping_measures(self.land, self.market)
+        self.agents.livestock_stocking(self.land, self.rangeland, self.market)
         self.agents.adaptation(self.land, self.adap_properties)
         self.agents.blf.update(self.agents, self.land)
-        # increment the year
-        self.t[0] += 1        
-        # BINARY SWITCHES
+        # save for next year
+        self.t[0] += 1 
+        # code.interact(local=dict(globals(), **locals()))       
+        self.agents.livestock[self.t[0]] = self.agents.ls_obj
         if not self.agents.savings_acct:
             self.agents.savings[self.t[0]] = 0 # agents cannot carry over money to the next year
+        self.agents.wealth[self.t[0]] = self.agents.ls_obj*self.market.livestock_cost + self.agents.savings[self.t[0]]
 
     def init_adaptation_option(self):
         '''
@@ -94,6 +96,7 @@ class Model():
 
         # set burn-in period
         self.adap_properties['burnin_period'] = self.all_inputs['adaptation']['burnin_period']
+        self.adap_properties['adap_type'] = self.all_inputs['adaptation']['adap_type']
 
     def calc_insurance_cost_new(self):
         '''

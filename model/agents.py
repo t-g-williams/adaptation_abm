@@ -36,12 +36,12 @@ class Agents():
 
         # savings and livestock
         # this represents the START of the year
-        self.savings = np.full([self.T+1, self.N], -9999)
+        self.savings = np.full([self.T+1, self.N], -9999) # at start of year
         self.savings[0] = np.random.normal(self.savings_init_mean, self.savings_init_sd, self.N)
         self.savings[0][self.savings[0]<0] = 0 # fix any -ve values
-        self.livestock = np.full([self.T, self.N], -9999)
+        self.livestock = np.full([self.T+1, self.N], -9999) # at start of year
         self.livestock[0] = np.floor(self.livestock_init).astype(int) # constant amount for each agent (same as savings)
-        self.wealth = np.full([self.T, self.N], -9999) # sum of livestock + savings
+        self.wealth = np.full([self.T+1, self.N], -9999) # sum of livestock + savings. represents the value at the START of the year
         self.wealth[0] = self.savings[0] + self.livestock[0]*market.livestock_cost
         # money
         self.income = np.full([self.T, self.N], -9999)
@@ -61,12 +61,11 @@ class Agents():
         self.stress_ls_sell_rqd = np.full([self.T, self.N], False)
         self.cant_cope = np.full([self.T, self.N], False)
         # other livestock values for record keeping
-        self.ls_start = np.full([self.T, self.N], -9999)
-        self.ls_num_lbr = np.full([self.T, self.N], -9999)
-        self.ls_reprod = np.full([self.T, self.N], -9999)
-        self.ls_destock = np.full([self.T, self.N], -9999)
-        self.ls_stress = np.full([self.T, self.N], -9999)
-        self.ls_purchase = np.full([self.T, self.N], -9999)
+        self.ls_decision = np.full([self.T, self.N], -9999) # after the decision-making
+        self.ls_reprod = np.full([self.T, self.N], -9999) # after reproduction
+        self.ls_rangeland = np.full([self.T, self.N], -9999) # after rangeland dynamics
+        self.ls_stress = np.full([self.T, self.N], -9999) # after stress selling
+        self.ls_stocking = np.full([self.T, self.N], -9999) # after stocking
         self.max_ls_purchase = np.full([self.T, self.N], np.nan)
         val = -99 if self.all_inputs['rangeland']['integer_consumption'] else np.nan
         self.herds_on_rangeland = np.full([self.T, self.N], val)
@@ -192,7 +191,6 @@ class Agents():
         self.livestock[t] -= destock_amt
         ls_inc = destock_amt * market.livestock_cost
         # self.savings[t] += ls_inc # note -- this is being double-counted if this is turned on????!!!
-        self.ls_num_lbr[t] = copy.deepcopy(self.livestock[t])
         self.ls_labor[t] = self.livestock[t] * self.ls_labor_rqmt
         self.ls_sell_income[t] += ls_inc
 
@@ -264,7 +262,7 @@ class Agents():
             adap_costs[self.adapt[t]] = adap_properties['cost'] * self.land_area[self.adapt[t]]
         
         # livestock
-        self.ls_income[t] += self.livestock[t] * self.all_inputs['livestock']['income']
+        self.ls_income[t] += self.ls_obj * self.all_inputs['livestock']['income']
         
         ## farming
         for crop in land.ag_types:
@@ -294,7 +292,7 @@ class Agents():
             self.remaining_payout = np.minimum(np.maximum(payouts+self.income[t], 0), payouts) # outer "minimum" is in case their income is +ve --> they can only use the payout for fodder
             self.income[t] += payouts.astype(int)
 
-    def coping_measures(self, land, rangeland, market):
+    def coping_measures(self, land, market):
         '''
         calculate end-of-year income balance
         and simulate coping measures
@@ -302,7 +300,6 @@ class Agents():
         ## 0. calculate livestock limits
         ls_inp = self.all_inputs['livestock']
         t = self.t[0]
-        ls_obj = copy.deepcopy(self.livestock[t])
 
         ## 1. ADD INCOME TO SAVINGS
         # this proxies using savings to buffer income and expenditure
@@ -330,25 +327,23 @@ class Agents():
         ## 4. STRESS DESTOCKING
         # sell livestock if food requirements still haven't been met
         sell_rqmt = np.maximum(np.ceil(-self.savings[t+1]/market.livestock_cost), 0).astype(int) # calculate amt rqd
-        sell_amt = np.minimum(ls_obj, sell_rqmt) # restricted by available livestock
-        ls_obj -= sell_amt # reduce the herdsize
+        sell_amt = np.minimum(self.ls_obj, sell_rqmt) # restricted by available livestock
+        self.ls_obj -= sell_amt # reduce the herdsize
         self.savings[t+1] += sell_amt * market.livestock_cost # add to income
         self.ls_sell_income[t] += sell_amt * market.livestock_cost
         self.stress_ls_sell_rqd[t, sell_rqmt>0] = True # record
-        self.ls_stress[t] = copy.deepcopy(ls_obj)
+        self.ls_stress[t] = copy.deepcopy(self.ls_obj)
 
         ## 5. reset savings for those that have less than zero still
         # assume that debts can't carry over
         self.cant_cope[t, self.savings[t+1]<0] = True # record
         self.savings[t+1, self.cant_cope[t]] = 0
         
-        if np.sum(self.livestock[t]<0)>0:
+        if np.sum(self.ls_obj<0)>0:
             print('ERROR: negative livestock in agents.coping_measures()')
             code.interact(local=dict(globals(), **locals())) 
 
-        return ls_obj
-
-    def livestock_stocking(self, land, ls_obj, rangeland, market):
+    def livestock_stocking(self, land, rangeland, market):
         '''
         calculate stocking/destocking
         stocking 
@@ -391,7 +386,7 @@ class Agents():
                 # OPTION 5: if destocking has been rqd, look at maximum _successful_ herdsize in the previous N years.
                 # else, increase by 1 above the maximum you've had in the past
                 # (note: herds_on_rangeland represents the value after destocking)
-                agent_destocks = self.ls_reprod[yrs] > self.ls_destock[yrs]
+                agent_destocks = self.ls_reprod[yrs] > self.ls_rangeland[yrs]
                 # take the minimum amt of livestock in years that destocking was required (to be conservative)
                 max_off_farm = np.array(np.ma.array(self.herds_on_rangeland[yrs], mask=~agent_destocks).min(axis=0, fill_value=99))
                 # take the maximum amt of livestock in years that destocking was not required
@@ -405,12 +400,12 @@ class Agents():
             # is 20% of your current livestock herds + whatever you can sustain from your crop residues
             # i.e. it's assumed that some fraction of your livestock are fully independent of crop residue
             # rather than all livestock requiring this fraction of feed from fodder
-            max_off_farm = (1-ls_inp['frac_crops']) * ls_obj
+            max_off_farm = (1-ls_inp['frac_crops']) * self.ls_obj
 
         # calculate the required change in livestock
         # if this is positive, fodder availability and cash allow for livestock purchase
         # if this is negative (ONLY POSSIBLE W/O RANGELAND) then this represents lack of fodder availability -> destocking
-        ls_change = np.min(np.array([self.max_ls_purchase[t], max_on_farm + max_off_farm - ls_obj, max_labor_tot - ls_obj]), axis=0)
+        ls_change = np.min(np.array([self.max_ls_purchase[t], max_on_farm + max_off_farm - self.ls_obj, max_labor_tot - self.ls_obj]), axis=0)
         if self.insurance_payout_year:
             # assume that any leftover income from the insurance payout can be put towards livestock
             ls_change += (self.remaining_payout / market.livestock_cost) 
@@ -420,18 +415,13 @@ class Agents():
         # ^^ if it's -ve this represents rqd destocking due to fodder availability (only possible w/o rangeland)
         
         # attribute changes
-        ls_obj += ls_change # attribute to livestock
+        self.ls_obj += ls_change # attribute to livestock
         self.savings[t+1] -= ls_change * market.livestock_cost # attribute to savings
         self.destocking_rqd[t,ls_change<0] = True # record
-        self.ls_purchase[t] = copy.deepcopy(ls_obj)
+        self.ls_stocking[t] = copy.deepcopy(self.ls_obj)
         self.ls_sell_income[t, self.destocking_rqd[t]] += -ls_change[self.destocking_rqd[t]]*market.livestock_cost
 
-        # save for next time step
-        if t < (self.T-1):
-            self.livestock[t+1] = ls_obj # save
-            self.wealth[t+1] = ls_obj*market.livestock_cost + self.savings[t+1]
-
-        if np.sum(self.livestock[t]<0)>0:
+        if np.sum(self.ls_obj<0)>0:
             print('ERROR: negative livestock in agents.destocking()')
             code.interact(local=dict(globals(), **locals())) 
 

@@ -140,8 +140,9 @@ class Land():
                 external_ls_per_ha = np.full(agents.N, 0)
             else:
                 external_ls_per_ha[pos] = agents.herds_on_rangeland[self.t[0]-1, pos] / agents.land_area[pos]
-        else:       
-            external_ls_per_ha = agents.livestock[self.t[0],pos] / agents.land_area[pos] * (1-ls_inp['frac_crops'])
+        else:    
+            # use the amt of livestock grazed on the rangeland (a fraction of herd size)   
+            external_ls_per_ha = agents.ls_obj[pos] / agents.land_area[pos] * (1-ls_inp['frac_crops'])
         
         N_per_ha = external_ls_per_ha * ls_inp['N_production'] * ls_inp['frac_N_import']  # head/ha * kgN/head * __ = kgN/ha
         return N_per_ha

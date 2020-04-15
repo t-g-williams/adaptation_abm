@@ -15,6 +15,7 @@ class Decision():
         '''
         # different behavior in 1st year
         t = agents.t[0]
+        agents.ls_obj = agents.livestock[t] # initialize the temporary object to be worked with
         if t == 0:
             Decision.init_allocations(agents, land, market)
         else:
@@ -29,14 +30,15 @@ class Decision():
             # then, allocate the remaining
             agents.salary_tot_consider_amt[t] = agents.salary_labor[t]
             new_allocations = market.allocate_salary_labor(agents, agents.salary_labor[t], continuing_lbr)
-            agents.salary_labor[t] = continuing_lbr + new_allocations  
+            agents.salary_labor[t] = continuing_lbr + new_allocations
+
+        agents.ls_decision[t] = copy.deepcopy(agents.ls_obj)
 
     def init_allocations(agents,land,market):
         '''
         land/labor allocations in first year
         '''
         t = 0
-        agents.ls_start[t] = copy.deepcopy(agents.livestock[t])
         ## fallow and crop type allocation
         # assume fallow by default (except LSLA outgrowers)
         # (note: amt of land farmed can be a fraction of a field - i.e., part of a field can be fallowed)
@@ -52,13 +54,12 @@ class Decision():
 
         ## livestock labor
         # destock if required (assume they are sold)
-        max_ls = np.floor(np.minimum((agents.hh_size - agents.tot_ag_labor[t]) / agents.ls_labor_rqmt, agents.livestock[t])).astype(int) # head = ppl / (ppl/head)
-        destock_amt = np.ceil(np.maximum(agents.livestock[t] - max_ls, 0)).astype(int)
-        agents.livestock[t] -= destock_amt
+        max_ls = np.floor(np.minimum((agents.hh_size - agents.tot_ag_labor[t]) / agents.ls_labor_rqmt, agents.ls_obj)).astype(int) # head = ppl / (ppl/head)
+        destock_amt = np.ceil(np.maximum(agents.ls_obj - max_ls, 0)).astype(int)
+        agents.ls_obj -= destock_amt
         ls_inc = destock_amt * market.livestock_cost
         agents.savings[t] += ls_inc
-        agents.ls_num_lbr[t] = copy.deepcopy(agents.livestock[t])
-        agents.ls_labor[t] = agents.livestock[t] * agents.ls_labor_rqmt
+        agents.ls_labor[t] = agents.ls_obj * agents.ls_labor_rqmt
         agents.ls_sell_income[t] += ls_inc
 
         # only allocating labor as coping mechanism so don't do in first period
@@ -78,7 +79,7 @@ class Decision():
         # build up baseline dataframes of labor and land allocations
         lbrs = OrderedDict()
         ha_farmed = {} # represents total area, including fallow
-        lbrs['livestock'] = agents.livestock[t] * agents.ls_labor_rqmt # use current livestock amt
+        lbrs['livestock'] = agents.ls_obj * agents.ls_labor_rqmt # use current livestock amt
         lbrs['non_farm'] = agents.salary_labor[t-1] # previous value
         for crop in crops: # use previous values
             lbrs['ag_'+crop] = copy.deepcopy(agents.ag_labor[crop][t-1])
@@ -272,7 +273,7 @@ class Decision():
         and attribute the choice to the agents object
         '''
         agents.choice_ixs[t] = np.argmax(utils, axis=0) # identify index of maximum utility
-        ls_orig = copy.deepcopy(agents.livestock[t])
+        ls_orig = copy.deepcopy(agents.ls_obj)
 
         for a, act in enumerate(actions):
             ixs = agents.choice_ixs[t]==a # agents for which this is the best choice
@@ -289,8 +290,8 @@ class Decision():
                 agents.salary_labor[t,ixs] = action_lbrs[act]['non_farm'][ixs]
                 
                 # livestock -- allocate labor and pay agent if they sold them
-                agents.livestock[t,ixs] = np.floor(action_lbrs[act]['livestock'][ixs] / agents.ls_labor_rqmt).astype(int)
-                agents.ls_labor[t,ixs] = agents.livestock[t,ixs] * agents.ls_labor_rqmt
+                agents.ls_obj[ixs] = np.floor(action_lbrs[act]['livestock'][ixs] / agents.ls_labor_rqmt).astype(int)
+                agents.ls_labor[t,ixs] = agents.ls_obj[ixs] * agents.ls_labor_rqmt
                 agents.ls_sell_income[t,ixs] += (ls_sold[act][ixs] / agents.ls_labor_rqmt * market.livestock_cost).astype(int)
 
 def round_up(amts, stepsize):
