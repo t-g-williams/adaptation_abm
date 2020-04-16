@@ -1,6 +1,8 @@
 '''
 All model input parameters
 '''
+from collections import OrderedDict
+
 def compile():
     d = {}
     d['model'] = model()
@@ -48,9 +50,12 @@ def adaptation():
             'cost_factor_ag' : 0.1, # relative to normal agricultural cost per ha
             'labor_req' : 0.1, # ppl per ha
         },
-        'intensify' : {
-            'fertilizer_app_rate' : 80, # kgN/ha
-            'fallow' : False,
+        'fertilizer' : {
+            'application_rate' : 80, # kgN/ha
+        },
+        'conservation' : {
+            'organic_N_added' : 80, # kgN/ha (~cover cropping)
+            'area_req' : 0.2, # fraction of crop area used for conservation
         },
     }
     return d
@@ -108,11 +113,13 @@ def beliefs():
 
 def decisions():
     d = {
-        'framework' : 'none', # util_max or none
-        'actions' : ['nothing'],#,'incr_int_ag','incr_div_ag',
+        'framework' : 'util_max', # util_max or none
+        'actions' : OrderedDict({'conservation' : [False,True], 'fertilizer' : [False,True]}),#,'incr_int_ag','incr_div_ag',
             # 'incr_trad_ag','incr_nf_labor','decr_nf_labor'],#,'ext_ag'],
         'risk_aversion' : True,
-        'risk_aversion_params' : [3000,300], # [mu, sigma] for a normal distribution
+        'risk_aversion_params' : [3000,1000], # [mu, sigma] for a normal distribution
+        'horizon' : 5, # decision horizon
+        'discount_rate' : 0.706, # fraction. drawn from holden et al 1998 (58.6 = 100/(1+r) --> r = 0.706)
         'nsim_utility' : 10, # number of sims from beliefs when calculating utility
 
     }

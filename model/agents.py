@@ -93,11 +93,13 @@ class Agents():
         # initialize beliefs
         self.blf = beliefs.Beliefs(self, self.all_inputs)
         # initialize decisions
-        self.choices = {}
-        for choice in inp['actions']:
-            self.choices[choice] = np.full([self.T, self.N], False)
+        self.decision_options = []
+        for cons in inp['actions']['conservation']:
+            for fert in inp['actions']['fertilizer']:
+                self.decision_options.append({'conservation':cons,'fertilizer':fert})
         self.choice_ixs = np.full([self.T, self.N], -1)
-        self.fallow = np.full([self.T+1, self.N], True)
+        self.fallow = np.full([self.T+1, self.N], False)
+        self.exp_util = np.full([self.T, len(self.decision_options), self.N], np.nan)
         # decision-related agent properties
         rand_int = np.random.randint(1e6) # generate random integer to control stochasticity
         if inp['risk_aversion']:
@@ -105,6 +107,7 @@ class Agents():
             self.risk_aversion[self.risk_aversion<1] = 1 # for instability in the exponential function
             self.rndm_Zs = np.random.normal(size=(self.T, self.N, inp['nsim_utility']))
         np.random.seed(rand_int)
+        self.npv_vals = np.array([inp['discount_rate']**i for i in range(inp['horizon'])])
 
     def init_from_file(self):
         d_in = pd.read_csv(self.file_name, index_col=0)

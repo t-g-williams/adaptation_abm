@@ -36,7 +36,7 @@ class Beliefs():
             self.n[quant][0] = self.n0[q]
             self.var[quant][0] = self.beta[quant][0] / self.alpha[quant][0] # expected variance, if tau ~ Ga(alpha,beta)
 
-    def update(self, agents, land, climate, market):
+    def update(self, agents, land, market):
         '''
         update all beliefs at the end of the year
         all beliefs are represented using the normal - inverse gamma conjugate prior
@@ -52,7 +52,7 @@ class Beliefs():
         t = agents.t[0]
 
         data_objs = {  # [numerator, denominator]
-            'rain' : np.full(agents.N, climate.rain[t]), # same for all agents
+            'rain' : land.rf_factors[t], # heterogeneous over agents (depends on SOM)
             'price_subs' : np.full(agents.N, market.crop_sell['subs'][t]), # same for all agents
             'price_mkt' : np.full(agents.N, market.crop_sell['mkt'][t]), # same for all agents
         }

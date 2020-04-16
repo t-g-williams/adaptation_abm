@@ -51,7 +51,7 @@ class Model():
         self.agents.coping_measures(self.land, self.market)
         self.agents.livestock_stocking(self.land, self.rangeland, self.market)
         self.agents.adaptation(self.land, self.adap_properties)
-        self.agents.blf.update(self.agents, self.land, self.climate, self.market)
+        self.agents.blf.update(self.agents, self.land, self.market)
         # save for next year
         self.t[0] += 1 
         # code.interact(local=dict(globals(), **locals()))       
