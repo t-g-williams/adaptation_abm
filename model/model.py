@@ -43,7 +43,6 @@ class Model():
         if (self.lsla_simulation and self.t[0]==self.all_inputs['LSLA']['tstart']):
             self.lsla = LSLA(self.all_inputs, self.agents, self.land, self.rangeland, self.market) # implement the LSLA
         Decision.annual_decisions(self.agents, self.land, self.market)
-        # self.agents.decision_making(self.land, self.market)
         self.land.update_soil(self.agents)
         self.land.crop_yields(self.agents, self.climate)
         self.agents.income_and_food_consumption(self.land, self.climate, self.adap_properties, self.market)
@@ -51,7 +50,7 @@ class Model():
         self.agents.coping_measures(self.land, self.market)
         self.agents.livestock_stocking(self.land, self.rangeland, self.market)
         self.agents.adaptation(self.land, self.adap_properties)
-        self.agents.blf.update(self.agents, self.land, self.climate, self.market)
+        self.agents.blf.update(self.agents, self.land, self.market)
         # save for next year
         self.t[0] += 1 
         # code.interact(local=dict(globals(), **locals()))       

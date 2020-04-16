@@ -33,7 +33,7 @@ class Land():
         self.outgrower = np.full([self.T, self.n_plots], False)
         self.ha_farmed = {}
         self.irrigation = {}
-        self.fertilizer = {}
+        self.fertilizer = {} # kg N/ha farmed
         self.cover_crop = {}
         for crop in self.ag_types:
             self.ha_farmed[crop] = np.full([self.T, self.n_plots], 0.)
@@ -43,17 +43,16 @@ class Land():
 
         ##### crop yields #####
         self.residue_production = np.full([self.T, self.n_plots], 0) # for overall fallow practices
+        self.rf_factors = np.full([self.T, self.n_plots], np.nan)
         self.yields = {}
         self.yields_unconstrained = {}
         self.max_with_nutrients = {}
         self.nutrient_factors = {}
-        self.rf_factors = {}
         for crop in self.ag_types:
             self.yields[crop] = np.full([self.T, self.n_plots], -9999) # kg
             self.yields_unconstrained[crop] = np.full([self.T, self.n_plots], -9999)# kg
             self.max_with_nutrients[crop] = np.full([self.T, self.n_plots], -9999)# kg
             self.nutrient_factors[crop] = np.full([self.T, self.n_plots], np.nan)
-            self.rf_factors[crop] = np.full([self.T, self.n_plots], np.nan)
         # random effect -- init at start to control stochasticity -- same for all crop types
         self.errors = np.random.normal(1, self.random_effect_sd, (self.T, self.n_plots))
         self.errors[self.errors < 0] = 0
@@ -85,20 +84,20 @@ class Land():
         ### agent inputs
         residue = self.crop_residue_input()
         livestock = self.livestock_SOM_input(agents) # kgN/ha
+        conservation = self.conservation_input(agents) # kgN/ha
         cover_crop = self.cover_crop_input(agents) # kgN/ha
         fallow = self.fallow_input(agents)
+        fertilizer = self.fertilizer_input(agents)
+        # code.interact(local=dict(globals(), **locals()))
 
         # these additions are split between organic and inorganic matter
-        inorganic += self.fast_mineralization_rate * (residue + livestock + cover_crop + fallow)
-        organic += (1-self.fast_mineralization_rate) * (residue + livestock + cover_crop + fallow)
+        inorganic += self.fast_mineralization_rate * (residue + livestock + cover_crop + fallow + conservation)
+        inorganic += fertilizer
+        organic += (1-self.fast_mineralization_rate) * (residue + livestock + cover_crop + fallow + conservation)
 
         ### constrain to be within bounds
         organic[organic < 0] = 0
         organic[organic > self.max_organic_N] = self.max_organic_N
-
-        # apply fertilizer
-        for crop in self.ag_types:
-            inorganic += self.fertilizer[crop][t] # kgN/ha
 
         ### inorganic losses: loss of inorganic is a linear function of SOM
         inorg_loss_rate = (self.loss_min + (self.max_organic_N-organic)/self.max_organic_N * (self.loss_max - self.loss_min))
@@ -147,6 +146,28 @@ class Land():
         N_per_ha = external_ls_per_ha * ls_inp['N_production'] * ls_inp['frac_N_import']  # head/ha * kgN/head * __ = kgN/ha
         return N_per_ha
 
+    def conservation_input(self, agents):
+        '''
+        calculate the input from conservation actions
+        assume that this is a consistent amount that is independent of climate or SOM
+        as well as the area_req parameter
+        '''
+        inputs = np.full(self.n_plots, 0.)
+        inputs[agents.choices['conservation'][self.t[0]]==True] += self.all_inputs['adaptation']['conservation']['organic_N_added']
+
+        return inputs # kg N/ha
+
+    def fertilizer_input(self, agents):
+        '''
+        calculate the input from fertilizer
+        this amount is applied ONLY to the farmed land (i.e., not any land in conservation)
+        but this has no implications for the soil calculations
+        '''
+        inputs = np.full(self.n_plots, 0.)
+        inputs[agents.choices['fertilizer'][self.t[0]]==True] += self.all_inputs['adaptation']['fertilizer']['application_rate']
+
+        return inputs # kg N/ha
+
     def cover_crop_input(self, agents):
         '''
         calculate the input from legume cover crops
@@ -177,12 +198,12 @@ class Land():
         assume yield = (MAX_VAL * climate_reduction +/- error) * nutrient_reduction
         '''
         t = self.t[0]
+        self.rf_factors[t] = self.calculate_rainfall_factor(climate.rain[t])
         for crop in self.ag_types:
             # rainfall effect
-            self.rf_factors[crop][t] = self.calculate_rainfall_factor(climate.rain[t], crop)
             # nutrient unconstrained yield
             ixs = self.ha_farmed[crop][t] > 0
-            self.yields_unconstrained[crop][t,ixs] = self.max_yield[crop] * self.rf_factors[crop][t,ixs] # kg/ha
+            self.yields_unconstrained[crop][t,ixs] = self.max_yield[crop] * self.rf_factors[t,ixs] # kg/ha
             # factor in nutrient contraints
             self.max_with_nutrients[crop][t,ixs] = self.inorganic[t,ixs] / (1/self.crop_CN_conversion+self.residue_multiplier/self.residue_CN_conversion) # kgN/ha / (kgN/kgC_yield) = kgC/ha ~= yield(perha
             self.yields[crop][t,ixs] = np.minimum(self.yields_unconstrained[crop][t,ixs], self.max_with_nutrients[crop][t,ixs]) * self.errors[t,ixs] # kg/ha
@@ -191,12 +212,12 @@ class Land():
                 self.nutrient_factors[crop][t,ixs] = np.minimum(self.nutrient_factors[crop][t,ixs], 1)
 
             # attribute to agents -- adjust for their fallowing fractions
-            agents.crop_production[crop][t,ixs] = self.yields[crop][t,ixs] * self.ha_farmed[crop][t,ixs] * (1 - self.fallow_frac*agents.fallow[t,ixs]) # kg
+            agents.crop_production[crop][t,ixs] = self.yields[crop][t,ixs] * self.ha_farmed[crop][t,ixs] # * (1 - self.fallow_frac*agents.fallow[t,ixs]) # kg
 
         agents.tot_crop_production[t] = np.sum(np.array([agents.crop_production[crop][t] for crop in self.ag_types]), axis=0)
         self.residue_production[t] = agents.tot_crop_production[t] * self.residue_multiplier * self.residue_loss_factor # kg total
 
-    def calculate_rainfall_factor(self, rain, crop, virtual=False):
+    def calculate_rainfall_factor(self, rain, virtual=False):
         '''
         convert the rainfall value (in 0,1) to a yield reduction factor
         '''
@@ -221,10 +242,7 @@ class Land():
             # now factor in the fields' actual SOM values
             # assume the average of the start and end of the year
             mean_organic = np.mean(self.organic[[self.t[0], self.t[0]+1]], axis=0)
-            rf_effects = eff_max - (1 - mean_organic/self.max_organic_N) * red_max
-
-            # add in effect of irrigation -- makes yields non-water constrained
-            rf_effects[self.irrigation[crop][self.t[0]]] = 1           
+            rf_effects = eff_max - (1 - mean_organic/self.max_organic_N) * red_max         
 
             return np.maximum(rf_effects, 0)
 

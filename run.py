@@ -34,8 +34,8 @@ inputs = base_inputs.compile()
 #         inputs[k][k2] = v2
 
 ## change any params
-inputs['model']['T'] = 30
-inputs['model']['n_agents'] = 200
+inputs['model']['T'] = 8
+inputs['model']['n_agents'] = 6
 # inputs['agents']['read_from_file'] = False
 # inputs['livestock']['consumption'] = 5
 # inputs['rangeland']['gr2'] = 0.9

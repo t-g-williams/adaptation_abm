@@ -93,11 +93,16 @@ class Agents():
         # initialize beliefs
         self.blf = beliefs.Beliefs(self, self.all_inputs)
         # initialize decisions
+        self.decision_options = []
+        for cons in inp['actions']['conservation']:
+            for fert in inp['actions']['fertilizer']:
+                self.decision_options.append({'conservation':cons,'fertilizer':fert})
         self.choices = {}
-        for choice in inp['actions']:
-            self.choices[choice] = np.full([self.T, self.N], False)
+        for act, vals in inp['actions'].items():
+            self.choices[act] = np.full([self.T, self.N], False)
         self.choice_ixs = np.full([self.T, self.N], -1)
-        self.fallow = np.full([self.T+1, self.N], True)
+        self.fallow = np.full([self.T+1, self.N], False)
+        self.exp_util = np.full([self.T, len(self.decision_options), self.N], np.nan)
         # decision-related agent properties
         rand_int = np.random.randint(1e6) # generate random integer to control stochasticity
         if inp['risk_aversion']:
@@ -105,6 +110,7 @@ class Agents():
             self.risk_aversion[self.risk_aversion<1] = 1 # for instability in the exponential function
             self.rndm_Zs = np.random.normal(size=(self.T, self.N, inp['nsim_utility']))
         np.random.seed(rand_int)
+        self.npv_vals = np.array([inp['discount_rate']**i for i in range(inp['horizon'])])
 
     def init_from_file(self):
         d_in = pd.read_csv(self.file_name, index_col=0)
@@ -332,16 +338,16 @@ class Agents():
         ## 3. CASUAL LABOR
         # agents that cannot meet their immediate food requirements (min living costs) with their income and savings
         # try to engage in casual labor
-        lbr_rqmt = round_up(np.maximum(-self.savings[t+1]/market.labor_wage, 0), market.wage_job_increment) # calculate amt rqd: $ / ($/person) = person
-        max_ppl_avail = round_down(self.hh_size-self.tot_ag_labor[t]-self.ls_labor[t]-self.salary_labor[t], market.wage_job_increment)
-        lbr_amts = np.minimum(lbr_rqmt, max_ppl_avail)
-        self.wage_labor[t] = market.allocate_wage_labor(self, lbr_amts)
-        self.wage_income[t] = self.wage_labor[t] * market.labor_wage
-        self.savings[t+1] += self.wage_income[t]
-        # code.interact(local=dict(globals(), **locals()))
+        if market.nonfarm_labor:
+            lbr_rqmt = round_up(np.maximum(-self.savings[t+1]/market.labor_wage, 0), market.wage_job_increment) # calculate amt rqd: $ / ($/person) = person
+            max_ppl_avail = round_down(self.hh_size-self.tot_ag_labor[t]-self.ls_labor[t]-self.salary_labor[t], market.wage_job_increment)
+            lbr_amts = np.minimum(lbr_rqmt, max_ppl_avail)
+            self.wage_labor[t] = market.allocate_wage_labor(self, lbr_amts)
+            self.wage_income[t] = self.wage_labor[t] * market.labor_wage
+            self.savings[t+1] += self.wage_income[t]
 
         ## 4. STRESS DESTOCKING
-        # sell livestock if food requirements still haven't been met
+        # sell livestock if consumption requirements still haven't been met
         sell_rqmt = np.maximum(np.ceil(-self.savings[t+1]/market.livestock_cost), 0).astype(int) # calculate amt rqd
         sell_amt = np.minimum(self.ls_obj, sell_rqmt) # restricted by available livestock
         self.ls_obj -= sell_amt # reduce the herdsize
