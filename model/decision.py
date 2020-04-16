@@ -89,6 +89,13 @@ class Decision():
             crop = 'subs' # for now..
             ha_farmed = agents.land_area*(1-adap_info['conservation']['area_req']) if act['conservation'] else agents.land_area
             
+            ## 0. calculate the start-of-year costs of the option (this is the same each year)
+            start_costs = (market.farm_cost[crop] * ha_farmed).astype(int)
+            if act['fertilizer']:
+                start_costs += (market.fertilizer_cost * ha_farmed * adap_info['fertilizer']['application_rate']).astype(int) # birr/kg * ha * kg/ha = birr
+            # determine feasibility
+            agents.option_feasibility[t,a] = start_costs <= agents.savings[t]
+
             ## 1. estimate the future levels of SOM and available inorganic nutrients
             # initialize
             som = np.full([inp['horizon']+1, agents.N], 0.) # (kgN/ha) at start of year (before mineralization/addition)
@@ -130,12 +137,10 @@ class Decision():
             
             # calculate net income, incorporating price uncertainty
             ag_profits = (crop_yield * ha_farmed[None,:,None] * blfs['price_{}'.format(crop)][None,:,:]).astype(int) # dimension:(horizon,agent,nZ)
+            # other income sources and costs throughout the year
             other_income = agents.ls_obj * agents.all_inputs['livestock']['income'] # dimension:(agent)
-            other_income -= (agents.living_cost * agents.living_cost_min_frac).astype(int)
-            other_income -= (market.farm_cost[crop] * ha_farmed).astype(int)
-            if act['fertilizer']:
-                other_income -= (market.fertilizer_cost * ha_farmed * adap_info['fertilizer']['application_rate']).astype(int) # birr/kg * ha * kg/ha = birr
-            net_income = ag_profits + other_income[None,:,None] # dimension:(horizon,agent,nZ)
+            year_costs = (agents.living_cost * agents.living_cost_min_frac).astype(int)
+            net_income = ag_profits + other_income[None,:,None] - start_costs[None,:,None] - year_costs[None,:,None] # dimension:(horizon,agent,nZ)
             
             # convert to NPV (take the mean rather than the sum. it's like a weighted average income)
             npv = np.mean(net_income * agents.npv_vals[:,None,None], axis=0) # dimension: (agent,nZ)
@@ -154,7 +159,6 @@ class Decision():
 
         # choose the best option
         Decision.select_max_utility(agents, land, exp_util, t, crop, adap_info)
-        # code.interact(local=dict(globals(), **locals()))
 
     def change_ag_type(agents,ha,lbr_constrained,incr_ha,t,act,crops):
         '''

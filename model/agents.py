@@ -111,6 +111,7 @@ class Agents():
             self.rndm_Zs = np.random.normal(size=(self.T, self.N, inp['nsim_utility']))
         np.random.seed(rand_int)
         self.npv_vals = np.array([inp['discount_rate']**i for i in range(inp['horizon'])])
+        self.option_feasibility = np.full((self.T, len(self.decision_options), self.N), False)
 
     def init_from_file(self):
         d_in = pd.read_csv(self.file_name, index_col=0)
