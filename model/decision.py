@@ -66,7 +66,7 @@ class Decision():
         action_names = list(inp['actions'].keys())
         adap_info = agents.all_inputs['adaptation']
         nZ = inp['nsim_utility']
-        risk_aversions = np.repeat(agents.risk_aversion, nZ).reshape(agents.N, nZ)
+        risk_tolerances = np.repeat(agents.risk_tolerance, nZ).reshape(agents.N, nZ)
         
         # format beliefs for utility calculations
         mu_np = np.array([agents.blf.mu[i][t] for i in agents.blf.quantities])
@@ -136,24 +136,30 @@ class Decision():
                         land.land_area / land.residue_CN_conversion # (kg * ha = kg total) *kgN/kgtot /ha_tot
             
             # calculate net income, incorporating price uncertainty
-            ag_profits = (crop_yield * ha_farmed[None,:,None] * blfs['price_{}'.format(crop)][None,:,:]).astype(int) # dimension:(horizon,agent,nZ)
+            # accounting for subsistence requirements
+            crop_prod = crop_yield * ha_farmed[None,:,None] # dimension: (horizon, agent, nZ)
+            mkt_prod = np.maximum(crop_prod - agents.food_rqmt[None,:,None]*(crop=='subs'), 0) # subsistence crop goes first for subsistence
+            cons_deficit = np.maximum(agents.food_rqmt[None,:,None] - crop_prod*(crop=='subs'), 0) # mkt crop can't be used for subsistence
+            ag_profits = (mkt_prod * blfs['price_{}'.format(crop)][None,:,:]).astype(int) # dimension:(horizon,agent,nZ)
+            food_costs = cons_deficit * blfs['price_subs'][None,:,:]
             # other income sources and costs throughout the year
             other_income = agents.ls_obj * agents.all_inputs['livestock']['income'] # dimension:(agent)
             year_costs = (agents.living_cost * agents.living_cost_min_frac).astype(int)
-            net_income = ag_profits + other_income[None,:,None] - start_costs[None,:,None] - year_costs[None,:,None] # dimension:(horizon,agent,nZ)
+            net_income = ag_profits + other_income[None,:,None] - food_costs - start_costs[None,:,None] - year_costs[None,:,None] # dimension:(horizon,agent,nZ)
             
             # convert to NPV (take the mean rather than the sum. it's like a weighted average income)
-            npv = np.mean(net_income * agents.npv_vals[:,None,None], axis=0) # dimension: (agent,nZ)
+            npv = np.mean(net_income * agents.npv_vals[:,:,None], axis=0) # dimension: (agent,nZ)
             pos = npv>0
 
             # convert to utility (dimension: (agent,nZ))
             rndm_utils = np.full(npv.shape, np.nan)
-            rndm_utils[pos] = 1 - np.exp(-npv[pos] / risk_aversions[pos])
-            rndm_utils[~pos] = -(1 - np.exp(npv[~pos] / risk_aversions[~pos])) # assume risk averion = loss aversion (note: this is NOT empirically justified in decision theory)
+            rndm_utils[pos] = 1 - np.exp(-npv[pos] / risk_tolerances[pos])
+            rndm_utils[~pos] = -(1 - np.exp(npv[~pos] / risk_tolerances[~pos])) # assume risk averion = loss aversion (note: this is NOT empirically justified in decision theory)
             # import matplotlib.pyplot as plt
             # fig, ax = plt.subplots()
             # ax.scatter(npv.flatten(),rndm_utils.flatten())
-            # fig.savefig('utils_{}.png'.format(agents.all_inputs['decisions']['risk_aversion_params'][0]))
+            # fig.savefig('utils_{}.png'.format(agents.all_inputs['decisions']['risk_tolerance_params'][0]))
+            # sys.exit()
             # 2e: calculate expected utility
             exp_util[a] = np.mean(rndm_utils, axis=1) # dimension : (agent)
 
@@ -237,8 +243,13 @@ class Decision():
         select the option for each agent with the highest utility
         and attribute the choice to the agents object
         '''
-        agents.exp_util[t] = exp_util
+        # code.interact(local=dict(globals(), **locals()))
+        agents.exp_util[t] = copy.deepcopy(exp_util)
+        # effects of feasbility
+        exp_util[~agents.option_feasibility[t]] = -99999
+        # select the best feasible option
         agents.choice_ixs[t] = np.argmax(exp_util, axis=0) # identify index of maximum utility
+        # ^ note: if all are infeasible, the agent will choose the first index (presume this is the baseline option)
         
         for a, act in enumerate(agents.decision_options):
             ixs = agents.choice_ixs[t]==a # agents for which this is the best choice

@@ -13,6 +13,7 @@ class Market():
 
         # set crop prices
         self.crop_sell = {}
+        self.farm_cost = {}
         for crop_type, params in self.crop_sell_params.items():
             rvs = np.random.normal(params[0], params[1], size=self.T)
 
@@ -21,6 +22,15 @@ class Market():
             for t in range(1,self.T):
                 rvs[t] = params[2] * rvs[t-1] + (1-params[2]) * rvs[t]
             self.crop_sell[crop_type] = rvs
+
+            self.farm_cost[crop_type] = self.farm_cost_baseline * self.farm_cost_factors[crop_type]
+
+        # import matplotlib.pyplot as plt
+        # fig, ax = plt.subplots(1,1,figsize=(8,5))
+        # for crop_type, selling in self.crop_sell.items():
+        #     ax.plot(selling, label=crop_type)
+        # ax.legend()
+        # fig.savefig('crop_selling.png')
 
         # job availability
         self.p_wage_labor = np.full(self.T, np.nan)
