@@ -14,7 +14,7 @@ def compile():
     d['livestock'] = livestock()
     d['LSLA'] = LSLA()
     d['market'] = market()
-    d['beliefs'] = beliefs()
+    d['beliefs'] = beliefs(d['climate'], d['market'])
     d['decisions'] = decisions()
     return d
 
@@ -51,7 +51,7 @@ def adaptation():
             'labor_req' : 0.1, # ppl per ha
         },
         'fertilizer' : {
-            'application_rate' : 80, # kgN/ha
+            'application_rate' : 100, # kgN/ha
         },
         'conservation' : {
             'organic_N_added' : 80, # kgN/ha on overall farm. independent of area_req
@@ -72,7 +72,7 @@ def agents():
         'file_name' : '../inputs/lsla_for_abm.csv',
         'data_filter' : 'site=="OR1"',
         # if read_from_file == False:
-        'land_area_init' : [1, 1.5, 2], # ha. uniformly sample from each
+        'land_area_init' : [0.25,0.5,1, 1.5, 2, 2.5], # ha. uniformly sample from each
         'land_area_multiplier' : 1, # for sensitivity analysis
         'hh_size_init' : 6,
         'types' : {'land-poor' : {'land_area' : 1, 'hh_size' : 3},
@@ -91,7 +91,7 @@ def agents():
         # initial cash savings (normal distribution)
         'savings_init_mean' : 0,# 15000, # birr
         'savings_init_sd' : 0,
-        'livestock_init' : 1,# 0, (homogeneous for all agents)
+        'livestock_init' : 2,# 0, (homogeneous for all agents)
         
         ##### socio-environmental condns #####
         'ag_labor_rqmt' : {'subs' : 1.5, 'mkt' : 1.5}, # ppl/ha
@@ -99,27 +99,27 @@ def agents():
     }
     return d
 
-def beliefs():
+def beliefs(climate, market):
     d = {
-        # units : $/person(lbr) -- i.e., labor productivity
-        # note: for farming, _land_ productivity might be better, but this allows consistent units
         'quantities' : ['rain','price_subs','price_mkt'],
         'n0' : [1,1,1], # prior strength on the mean
         'alpha0' : [1,1,1], # prior strength on the variance
         'beta0' : [0.25,0.5,0.5], # E[variance0]
-        'mu0' : [0.5,2,2], # E[mu0]
+        'mu0' : [climate['rain_mu'],market['crop_sell_params']['subs'][0],market['crop_sell_params']['mkt'][0]], # E[mu0]. the expected value is accurate. this makes the beliefs not affect the results too much
     }
     return d
 
 def decisions():
     d = {
         'framework' : 'util_max', # util_max or imposed
-        'actions' : OrderedDict({'conservation' : [False,True], 'fertilizer' : [False,True]}),
+        'actions' : OrderedDict({'conservation' : [False,True], 'fertilizer' : [False,True]}), # it should be such that the first option to be created is the "baseline"
         'imposed_action' : {'conservation' : True, 'fertilizer' : True}, # only when t==0 or framework==imposed
         'risk_aversion' : True,
-        'risk_aversion_params' : [3000,1000], # [mu, sigma] for a normal distribution
+        'risk_tolerance_mu' : 3000, # mu for a normal distribution (high = more tolerant to risk)
+        'risk_tolerance_cov' : 0.5, # coefficient of variation - i.e., sigma/mu. 0.5 means 50%
         'horizon' : 5, # decision horizon
-        'discount_rate' : 0.586, # fraction. drawn from holden et al 1998 (58.6 = 100/(1+r) --> r = 0.706)
+        'discount_rate_mu' : 0.586, # fraction. drawn from holden et al 1998 (58.6 = 100/(1+r) --> r = 0.706)
+        'discount_rate_sigma' : 0.1,
         'nsim_utility' : 10, # number of sims from beliefs when calculating utility
     }
     return d
@@ -129,8 +129,9 @@ def market():
     # binary switches
     'nonfarm_labor' : False, # if false, exclude wage and salary labor processes
 
-    'crop_sell_params' : {'subs' : [2.17,0,0], 'mkt' : [2.17,0,0]}, # [x,x,x]=[mean,sd,rho] 2.17 birr/kg. mean 2015 maize price (FAO)
-    'farm_cost' : {'subs' : 100, 'mkt' : 150}, # birr/ha. arbitrary
+    'crop_sell_params' : {'subs' : [2.17,0.25,0.5], 'mkt' : [2.17,0.5,0.5]}, # [x,x,x]=[mean,sd,rho] 2.17 birr/kg. mean 2015 maize price (FAO)
+    'farm_cost_baseline' : 100, # birr/ha. arbitrary
+    'farm_cost_factors' : {'subs' : 1, 'mkt' : 1.5}, # multiplier on baseline. arbitrary
     'fertilizer_cost' : 13.2, # 13.2 birr/kg. median from 2015 LSMS
     'labor_salary' : 70*365*5/7, # birr/person/year: 70 birr/day * 5 days per week all year
     'labor_wage' : 70*365*5/7, # birr/person/year: 70 birr/day * 5 days per week all year
@@ -180,7 +181,7 @@ def land():
 def climate():
     d = {
         # annual climate measure -- assume normal distribution (truncated to [0,1])
-        'rain_mu' : 0.5, # 0.5 approximately fits country-wide CYF distribution for maize (BUT this variable is rain not CYF)
+        'rain_mu' : 0.6, # 0.5 approximately fits country-wide CYF distribution for maize (BUT this variable is rain not CYF)
         'rain_sd' : 0.2,
 
         'shock_years' : [30], # starting at 0 (pythonic)

@@ -106,11 +106,15 @@ class Agents():
         # decision-related agent properties
         rand_int = np.random.randint(1e6) # generate random integer to control stochasticity
         if inp['risk_aversion']:
-            self.risk_aversion = np.random.normal(loc=inp['risk_aversion_params'][0], scale=inp['risk_aversion_params'][1], size=self.N)
-            self.risk_aversion[self.risk_aversion<1] = 1 # for instability in the exponential function
+            # high risk tolerance means more tolerant to risk
+            self.risk_tolerance = np.random.normal(loc=inp['risk_tolerance_mu'], scale=inp['risk_tolerance_cov']*inp['risk_tolerance_mu'], size=self.N)
+            self.risk_tolerance[self.risk_tolerance<1] = 1 # for instability in the exponential function
             self.rndm_Zs = np.random.normal(size=(self.T, self.N, inp['nsim_utility']))
         np.random.seed(rand_int)
-        self.npv_vals = np.array([inp['discount_rate']**i for i in range(inp['horizon'])])
+        self.discount_rate = np.random.normal(loc=inp['discount_rate_mu'], scale=inp['discount_rate_sigma'], size=self.N)
+        self.discount_rate[self.discount_rate>1] = 1
+        self.discount_rate[self.discount_rate<0] = 0
+        self.npv_vals = np.array([self.discount_rate**i for i in range(inp['horizon'])])
         self.option_feasibility = np.full((self.T, len(self.decision_options), self.N), False)
 
     def init_from_file(self):
