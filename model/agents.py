@@ -116,6 +116,8 @@ class Agents():
         self.discount_rate[self.discount_rate<0] = 0
         self.npv_vals = np.array([self.discount_rate**i for i in range(inp['horizon'])])
         self.option_feasibility = np.full((self.T, len(self.decision_options), self.N), False)
+        # for POM
+        self.conservation_time_tradeoff = np.full((self.T, self.N), False)
 
     def init_from_file(self):
         d_in = pd.read_csv(self.file_name, index_col=0)

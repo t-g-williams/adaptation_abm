@@ -163,6 +163,12 @@ class Decision():
             # 2e: calculate expected utility
             exp_util[a] = np.mean(rndm_utils, axis=1) # dimension : (agent)
 
+            ## MISCELLANEOUS
+            # Conservation time tradeoff for POM
+            if act['conservation'] and not act['fertilizer']:
+                (net_income[-1] > 0) * (net_income[0] < 0)
+                # code.interact(local=dict(globals(), **locals()))
+
         # choose the best option
         Decision.select_max_utility(agents, land, exp_util, t, crop, adap_info)
 

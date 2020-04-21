@@ -14,6 +14,7 @@ from joblib import Parallel, delayed
 from tqdm import tqdm
 import multiprocessing
 import matplotlib.pyplot as plt
+import scipy.stats
 from plot import plot_style
 plot_type = 'paper'#'presentation_black_bg'
 styles = plot_style.create() # get the plotting styles
@@ -29,18 +30,20 @@ from . import trajectories
 
 def main():
     # specify experimental settings
-    N_samples = 100
-    N_level1 = 30 # also do LHS for level 1 params
-    ncores = 1
+    N_samples = 1000
+    N_level1 = 20 # also do LHS for level 1 params
+    ncores = 30
     nreps = 10 # to account for simulation-level variability (climate and prices)
     exp_name = 'pom_theory'
     inputs = {
         'model' : {'n_agents' : 200, 'T' : 50, 'exp_name' : exp_name},
-        'decisions' : {'framework' : 'imposed'}
+        'decisions' : {}
     }
-    scenarios = {'baseline' : {'decisions' : {'imposed_action' : {'conservation' : False, 'fertilizer' : False}}},
-        'conservation' : {'decisions' : {'imposed_action' : {'conservation' : True, 'fertilizer' : False}}},
-        'fertilizer' : {'decisions' : {'imposed_action' : {'conservation' : False, 'fertilizer' : True}}}}
+    scenarios = {'baseline' : {'decisions' : {'framework' : 'imposed', 'imposed_action' : {'conservation' : False, 'fertilizer' : False}}},
+        'conservation' : {'decisions' : {'framework' : 'imposed', 'imposed_action' : {'conservation' : True, 'fertilizer' : False}}},
+        'fertilizer' : {'decisions' : {'framework' : 'imposed', 'imposed_action' : {'conservation' : False, 'fertilizer' : True}}},
+        'util' : {'decisions' : {'framework' : 'util_max'}}
+        }
     fit_threshold = 0.8
 
     # define the variables for calibration
@@ -85,15 +88,26 @@ def fitting_metrics(mods, nreps):
     '''
     determine whether the model displays the desired patterns
     '''
-    # process data
+    t_frac = 0.5
+    ag_frac = 0.1
+    # extract model data
     income = {}
+    som = {}
+    wealth = {}
     for sc_name, mods_sc in mods.items():
         income[sc_name] = []
+        som[sc_name] = []
+        wealth[sc_name] = []
         for mod_r in mods_sc:
             income[sc_name].append(mod_r.agents.income)
+            som[sc_name].append(mod_r.land.organic)
+            wealth[sc_name].append(mod_r.agents.wealth)
         income[sc_name] = np.mean(np.array(income[sc_name]), axis=0) # (t, agent) averaged over reps
+        som[sc_name] = np.mean(np.array(som[sc_name]), axis=0) # (t, agent) averaged over reps
+        wealth[sc_name] = np.mean(np.array(wealth[sc_name]), axis=0) # (t, agent) averaged over reps
 
     #### 1. fertilizer-SOM-poverty
+    ### (a) fertilizer lock-in
     ## A.  at t=0, income is positive without fertilizer application (i.e., baseline management)
     a = income['baseline'][0] > 0
 
@@ -110,84 +124,83 @@ def fitting_metrics(mods, nreps):
     ## D.  at tb >tf, baseline management yields negative income (tb > tf, which means that fertilizer use makes agents reach this state faster, due to its costs)
     d = ((tb > 0) * (tb > tf)) | (b_all_pos)
     
-    one = a*b*c*d
-    
-    code.interact(local=dict(globals(), **locals()))
+    oneA = np.sum(a*b*c*d) > ag_frac
 
+    ### (b) fertilizer for poverty alleviation 
+    # A.  At t>>0, SOM increases under exclusive inorganic fertilizer application.
+    a = som['fertilizer'][-1] > som['fertilizer'][0]
+    # print(np.mean(a))
+    # B.  At t>>0, poverty is reduced under fertilizer application.
+    b = wealth['fertilizer'][-1] > wealth['baseline'][-1]
 
+    oneB = np.sum(a*b) > ag_frac
 
+    #### 2. conservation-SOM-poverty
+    two_all = (wealth['conservation'][1] < wealth['baseline'][1]) * (wealth['conservation'][-1] > wealth['baseline'][-1])
+    two = np.sum(two_all) > ag_frac
 
+    ######## ADOPTION ########
+    #### 3. fertilizer adoption
+    threes = np.full(nreps, False)
+    fours = np.full(nreps, False)
+    for r in range(nreps):
+        # extract single model data
+        m = mods['util'][r]
+        feas = m.agents.option_feasibility[1:]
+        opts = m.agents.decision_options
+        util = m.agents.exp_util[1:]
+        fert_ix = np.where(np.array([((oi['fertilizer']==True)*(oi['conservation']==False)) for oi in opts])==1)[0][0]
+        fert_choice = np.where(np.array([((oi['fertilizer']==True)) for oi in opts])==1)[0]
+        cons_ix = np.where(np.array([((oi['fertilizer']==False)*(oi['conservation']==True)) for oi in opts])==1)[0][0]
+        cons_choice = np.where(np.array([((oi['conservation']==True)) for oi in opts])==1)[0]
 
+        # a)  Fertilizer improves utility, but some agents can't choose it (i.e., have to choose baseline) because of inadequate cash
+        # a)  For >10% of the agents, fertilizer improves utility but most of the time (>50%) they can't choose it (i.e., have to choose baseline) because of inadequate cash
+        # ^^ justification for this??? maybe say these were arbitrary, but we wanted the process to activate a non-neglibible amount of the time (ie be frequently present in the model)
+        fert_util = util[:,fert_ix,:] > util[:,0,:]
+        a_all = fert_util * ~feas[:,fert_ix] * (m.agents.choice_ixs[1:]==0) # dimension: (T-1, agents)
+        a = np.mean((np.mean(a_all, axis=0) > t_frac)) > ag_frac
 
+        # b)  Less risk averse agents are significantly more likely to choose fertilizer
+        # calculate the probability of choosing fertilizer for each agent
+        p_fert = np.mean(np.in1d(m.agents.choice_ixs, fert_choice).reshape(m.agents.choice_ixs.shape), axis=0) # dimension: agent
+        risk_tol = m.agents.risk_tolerance
+        # import matplotlib.pyplot as plt
+        # fig, ax = plt.subplots()
+        # ax.scatter(risk_tol, p_fert)
+        # fig.savefig('fert_risk.png')
+        if np.max(p_fert) > 0:
+            corr = scipy.stats.pearsonr(risk_tol, p_fert)
+            b = (corr[0] > 0) * (corr[1] < 0.05) # significant, positive correlation
+        else:
+            b = False # if all-zero array
 
+        threes[r] = a*b
 
+        #### 4. conservation adoption
+        # a)    Conservation option improves utility, but households can’t choose it because of short-term negative effects
+        cons_util = util[:,cons_ix,:] > util[:,0,:]
+        a_all = cons_util * ~feas[:,cons_ix] * (m.agents.choice_ixs[1:]==0) # dimension: (T-1,agents)
+        a = np.mean((np.mean(a_all, axis=0) > t_frac)) > ag_frac
 
+        # b)  Under the same asset endowments, households with higher time discounting rates don't choose conservation but those with lower time discounting rates do
+        p_cons = np.mean(np.in1d(m.agents.choice_ixs, cons_choice).reshape(m.agents.choice_ixs.shape), axis=0) # dimension: agent
+        disc = m.agents.discount_rate
+        # import matplotlib.pyplot as plt
+        # fig, ax = plt.subplots()
+        # ax.scatter(disc, p_cons)
+        # fig.savefig('conservation_vs_discount_rate.png')
+        if np.max(p_cons) > 0:
+            corr = scipy.stats.pearsonr(disc, p_cons)
+            b = (corr[0] > 0) * (corr[1] < 0.05) # significant, positive correlation
+        else:
+            b = False # if all-zero array
 
-    # ## 1. wealth/poverty FOR AGENT TYPES (NON-EMPIRICAL)
-    # ## A: one group always has >0 wealth
-    # ## B: one group has a probability of having >0 wealth \in [0.2,0.8]
-    # oneA = False
-    # oneB = False
-    # for t in types:
-    #     ag_type = mod.agents.type == t
-    #     prob = np.mean(mod.agents.cant_cope[-1,ag_type])
-    #     cond1 = prob == 1
-    #     oneA = True if cond1 else oneA
-    #     cond2 = ((prob >= 0.2) and (prob <= 0.8))
-    #     oneB = True if cond2 else oneB
-    # one = bool(oneA * oneB)
+        fours[r] = a*b
 
-    ## VULNERABILITY
-    # %age of Hhs that can't initially meet food requirements (before wage labor or destocking) is \in (30%,45%)
-    # note: it is 31% in OR1 and 44% in OR2
-    p_cope = np.mean(mod.agents.cons_red_rqd[-n_yrs:])
-    one = True if ((p_cope>=0.3) & (p_cope<=0.45)) else False
-    #### NOTE: REMOVING THIS ONE BECAUSE IT CONFLICTS WITH THE WAGE AND SALARY REQUIREMENTS AND LIVESTOCK
-    #### (IE HAVING 30-45% OF PEOPLE NEEDING TO COPE BUT >80% WITH LIVESTOCK AND <15% WITH WAGE IS ROUGH)
-
-    ## 2. land degradation exists
-    # not consistently someone at maximum value
-    # (this is calculated over TIME, not a single AGENT that's at max) 
-    maxs = np.max(mod.land.organic[-n_yrs:], axis=1)
-    two = False if max(maxs) == mod.land.max_organic_N else True
-
-    ## 3. rangeland is not fully degrated
-    ## A: P(regional destocking required) \in [0.1,0.5]
-    prob = np.mean(mod.rangeland.destocking_rqd)
-    threeA = True if ((prob >= 0.05) and (prob <= 0.5)) else False
-    ## B: min(reserve biomass) > 0.2*R_max
-    threeB = True if min(mod.rangeland.R >= 0.2 * mod.rangeland.R_max) else False
-    ## C: there are livestock on the rangeland in the last n_yrs
-    # threeC = True if (min(mod.rangeland.livestock_supported[-n_yrs:]) > 0) else False
-    three = bool(threeA * threeB)
-
-    ## 4. livestock: 
-    # >80% of HHs have livestock on average
-    fourA = np.mean(mod.agents.livestock[-n_yrs:]>0) >= 0.8
-    # 90th%ile agent has less than 10 livestock on average
-    fourB = np.percentile(np.mean(mod.agents.livestock, axis=0), 90) < 10 # take mean over time for each agent
-    # median agent has less than 5 on average
-    fourC = np.percentile(np.mean(mod.agents.livestock, axis=0), 50) < 5
-    # maximum ever is less than 50
-    fourD = np.max(mod.agents.livestock)<50
-    four = bool(fourA*fourB*fourC*fourD)
-    # four = bool(fourA*fourB*fourD)
-
-    ## 5. non-farm income
-    # upper and lower limits on wage and salary income
-    p_wage = np.mean(mod.agents.wage_labor[-n_yrs:] > 0)
-    p_sal = np.mean(mod.agents.salary_labor[-n_yrs:] > 0)
-    # print(p_sal)
-    fiveA = ((p_wage>0.05) & (p_wage<0.15))
-    fiveB = ((p_sal>0.05) & (p_sal<0.15))
-    # fiveA = ((p_wage>0.1) & (p_wage<0.15))
-    # fiveB = ((p_sal>0.05) & (p_sal<0.1))
+    all_fits = [oneA,oneB,two,np.mean(threes),np.mean(fours)]
     # code.interact(local=dict(globals(), **locals()))
-    five = bool(fiveA*fiveB)
-
-    # return [one,two,three,four,fiveA,fiveB]
-    return [two,three,four,fiveA,fiveB]
-    # return [two,three,four,five]
+    return all_fits
 
 def hypercube_sample(N, N1, calib_vars):
     '''
@@ -228,7 +241,7 @@ def run_model(rvs, rvs1, inputs, calib_vars, scenarios, ncores, nreps, load=Fals
     inp_all = base_inputs.compile()
     inp_all = overwrite_inputs(inp_all, inputs)
     outdir = '../outputs/{}/'.format(inputs['model']['exp_name'])
-    outname = 'fits_raw.npz'
+    outname = 'fits_raw_{}n0_{}n1_{}reps.npz'.format(rvs.shape[0], rvs1.shape[0], nreps)
     if os.path.isfile(outdir + outname) and load:
         return np.load(outdir+outname, allow_pickle=True)['data']
 
@@ -238,27 +251,24 @@ def run_model(rvs, rvs1, inputs, calib_vars, scenarios, ncores, nreps, load=Fals
 
     if ncores > 1:
         fits_par = Parallel(n_jobs=ncores)(delayed(run_chunk_sims)(sim_chunks[i], rvs, rvs1, inp_all, calib_vars, scenarios, nreps) for i in range(len(sim_chunks)))
-        fits = {}
-        for fit in fits_par:
-            for k, v in fit.items():
-                fits[k] = v
+        # convert to list of list of list
+        fits = [item for sublist in fits_par for item in sublist]
     else:
-        fits = run_chunk_sims(sim_chunks[0], rvs, rvs1, inp_all, calib_vars, scenarios, nreps)
-    fits_all = fits
-    fits_all_np = np.array(pd.DataFrame.from_dict(fits, orient='index'))
+        fits = run_chunk_sims(sim_chunks[0], rvs, rvs1, inp_all, calib_vars, scenarios, nreps) # result is [level0][level1][pattern]
 
-    fits_all_np = np.array(fits_all_np)
+    # fits_all = fits
+    fits_all_np = np.array(fits)
+    # write
+    np.savez_compressed(outdir + outname, data=fits_all_np)
+    code.interact(local=dict(globals(), **locals()))
+    # fits_all_np = np.array(pd.DataFrame.from_dict(fits, orient='index'))
 
-    if trajectory:
-        # return all fits
-        np.savez_compressed(outdir+outname, data=fits_all_np)
-        return fits_all_np
-    else:
-        ## POM
-        # average over all reps
-        fits_avg = np.mean(fits_all_np, axis=0)
-        np.savez_compressed(outdir+outname, data=fits_avg)
-        return fits_avg
+    # fits_all_np = np.array(fits_all_np)
+    ## POM
+    # average over all reps
+    fits_avg = np.mean(fits_all_np, axis=0)
+    np.savez_compressed(outdir+outname, data=fits_avg)
+    return fits_avg
 
 def run_chunk_sims(ixs, rvs, rvs1, inp_all, calib_vars, scenarios, nreps):
     '''
@@ -266,9 +276,11 @@ def run_chunk_sims(ixs, rvs, rvs1, inp_all, calib_vars, scenarios, nreps):
     '''
     inp_all = copy.deepcopy(inp_all) # just in case there are parallel issues with ids
     fits = OrderedDict()
+    fits = []
 
     for ix in (tqdm(ixs) if (0 in ixs) else ixs): # pbar will be rough
         # loop over the level 1 variables
+        fits_i = []
         for j, rv_j in enumerate(rvs1):
             mods = {}
             for sc_name, sc_params in scenarios.items():
@@ -286,7 +298,10 @@ def run_chunk_sims(ixs, rvs, rvs1, inp_all, calib_vars, scenarios, nreps):
                     mods[sc_name].append(m)
     
             # calculate model fitting metrics
-            fits['{}_{}'.format(ix, j)] = fitting_metrics(mods, nreps)
+            # fits['{}_{}'.format(ix, j)] = fitting_metrics(mods, nreps)
+            fits_i.append(fitting_metrics(mods, nreps))
+
+        fits.append(fits_i)
 
     return fits
 
