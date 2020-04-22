@@ -58,7 +58,7 @@ def adaptation():
             'area_req' : 0.2, # fraction of crop area used for conservation
         },
         'outgrower' : {
-            'active' : False,
+            'active' : True,
             'land_rqmt_type' : 'ha', # {fraction or ha}
             'land_rqmt_amt' : 1,
             'fixed_price' : True,
@@ -117,7 +117,7 @@ def beliefs(climate, market):
 
 def decisions():
     d = {
-        'framework' : 'imposed', # util_max or imposed
+        'framework' : 'util_max', # util_max or imposed
         'actions' : OrderedDict({'conservation' : [False,True], 'fertilizer' : [False,True], 'outgrower' : [False,True]}), # it should be such that the first option to be created is the "baseline"
         'imposed_action' : {'conservation' : True, 'fertilizer' : True, 'outgrower' : False}, # only when t==0 or framework==imposed
         'risk_aversion' : True,
