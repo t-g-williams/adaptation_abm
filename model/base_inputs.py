@@ -57,6 +57,12 @@ def adaptation():
             'organic_N_added' : 80, # kgN/ha on overall farm. independent of area_req
             'area_req' : 0.2, # fraction of crop area used for conservation
         },
+        'outgrower' : {
+            'active' : False,
+            'land_rqmt_type' : 'ha', # {fraction or ha}
+            'land_rqmt_amt' : 1,
+            'fixed_price' : True,
+        },
     }
     return d
 
@@ -111,9 +117,9 @@ def beliefs(climate, market):
 
 def decisions():
     d = {
-        'framework' : 'util_max', # util_max or imposed
-        'actions' : OrderedDict({'conservation' : [False,True], 'fertilizer' : [False,True]}), # it should be such that the first option to be created is the "baseline"
-        'imposed_action' : {'conservation' : True, 'fertilizer' : True}, # only when t==0 or framework==imposed
+        'framework' : 'imposed', # util_max or imposed
+        'actions' : OrderedDict({'conservation' : [False,True], 'fertilizer' : [False,True], 'outgrower' : [False,True]}), # it should be such that the first option to be created is the "baseline"
+        'imposed_action' : {'conservation' : True, 'fertilizer' : True, 'outgrower' : False}, # only when t==0 or framework==imposed
         'risk_aversion' : True,
         'risk_tolerance_mu' : 3000, # mu for a normal distribution (high = more tolerant to risk)
         'risk_tolerance_cov' : 0.5, # coefficient of variation - i.e., sigma/mu. 0.5 means 50%

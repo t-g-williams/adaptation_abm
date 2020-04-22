@@ -66,8 +66,10 @@ class Decision():
         action_names = list(inp['actions'].keys())
         adap_info = agents.all_inputs['adaptation']
         nZ = inp['nsim_utility']
+        outg_info = agents.all_inputs['adaptation']['outgrower']
         risk_tolerances = np.repeat(agents.risk_tolerance, nZ).reshape(agents.N, nZ)
-        
+        mkt_crop_price = market.crop_sell['mkt'][t] # for outgrower
+
         # format beliefs for utility calculations
         mu_np = np.array([agents.blf.mu[i][t] for i in agents.blf.quantities])
         sd_np = np.sqrt(np.array([agents.blf.var[i][t] for i in agents.blf.quantities]))
@@ -86,68 +88,94 @@ class Decision():
 
         # loop over the options
         for a, act in enumerate(agents.decision_options):
-            crop = 'subs' # for now..
-            ha_farmed = agents.land_area*(1-adap_info['conservation']['area_req']) if act['conservation'] else agents.land_area
-            
-            ## 0. calculate the start-of-year costs of the option (this is the same each year)
-            start_costs = (market.farm_cost[crop] * ha_farmed).astype(int)
-            if act['fertilizer']:
-                start_costs += (market.fertilizer_cost * ha_farmed * adap_info['fertilizer']['application_rate']).astype(int) # birr/kg * ha * kg/ha = birr
-            # determine feasibility
-            agents.option_feasibility[t,a] = start_costs <= agents.savings[t]
+            # allocate land area
+            tot_ha_farmed = agents.land_area*(1-adap_info['conservation']['area_req']*act['conservation'])
+            ha_farmed = {}
+            if act['outgrower']:
+                if outg_info['land_rqmt_type'] == 'fraction':
+                    ha_farmed['mkt'] = outg_info['land_rqmt_amt'] * tot_ha_farmed
+                elif outg_info['land_rqmt_type'] == 'ha':
+                    ha_farmed['mkt'] = np.full(agents.N, outg_info['land_rqmt_amt']) # note: this might be larger than an agent's land availability
+            else:
+                ha_farmed['mkt'] = np.full(agents.N, 0.)
+            ha_farmed['subs'] = np.maximum(tot_ha_farmed - ha_farmed['mkt'],0) # in case mkt > tot_ha_farmed
+            crops = ['subs','mkt'] if max(ha_farmed['mkt'])>0 else ['subs'] # don't bother with mkt if nobody is growing it (for computational eff.)
 
-            ## 1. estimate the future levels of SOM and available inorganic nutrients
+            ## calculate the start-of-year costs of the option (this is the same each year)
+            # note: this assumes that agents only grow mkt crops with the outgrower so they never have start-of-year costs
+            start_costs = market.farm_cost['subs'] * ha_farmed['subs']
+            start_costs += act['fertilizer'] * market.fertilizer_cost*ha_farmed['subs']*adap_info['fertilizer']['application_rate'] # birr/kg * ha_farmed * kg/ha = birr
+
+            # determine feasibility: cash and land availability
+            agents.option_feasibility[t,a] = (start_costs <= agents.savings[t]) * (ha_farmed['mkt'] <= tot_ha_farmed)
+
+            ## estimate the future levels of SOM and available inorganic nutrients
+            # assume that:
+            #     (1) land is fully "mixed" between years in the model simulation (i.e., SOM is the same in all fields)
+            #     (2) fertilizer is applied differently to different crop types, thus differentiating the inorganic nutrients for each crop type
+            #     (3) organic matter is equally applied to all fields
             # initialize
             som = np.full([inp['horizon']+1, agents.N], 0.) # (kgN/ha) at start of year (before mineralization/addition)
             som[0] = land.organic[t]
             residues = np.full([inp['horizon']+1, agents.N], 0.) # from the PREVIOUS period
-            residues[0] = land.residue_production[t-1] / land.land_area / land.residue_CN_conversion # (kgN/ha) assume applied equally over all land
-            inorg = np.full([inp['horizon'], agents.N], 0.) # (kgN/ha) after mineralization etc
+            residues[0] = land.residue_production[t-1] / land.land_area / land.residue_CN_conversion # (kgN/ha) assume applied equally over ALL land (including non-farmed)
             org_added = np.full([inp['horizon'], agents.N], 0.)
-            crop_yield = np.full([inp['horizon'], agents.N, nZ], 0)
+            inorg = {}
+            crop_yield = {}
+            for crop in land.ag_types: # init both crops
+                inorg[crop] = np.full([inp['horizon'], agents.N], 0.) # (kgN/ha) after mineralization etc
+                crop_yield[crop] = np.full([inp['horizon'], agents.N, nZ], 0)
 
             # iterate over the years: calculate yields and SOM evolution
             for ti in range(inp['horizon']):
                 ### A: soil dynamics
-                # add the organic and inorganic inputs
+                # add the organic and inorganic inputs (all measured in kgN/ha_farmed)
                 org_added[ti] += residues[ti] # add residues from previous period
-                if act['conservation']:
-                    org_added[ti] += adap_info['conservation']['organic_N_added']
-                if act['fertilizer']:
-                    inorg[ti] += adap_info['fertilizer']['application_rate']
+                org_added[ti] += adap_info['conservation']['organic_N_added'] * act['conservation']
+                inorg['subs'][ti] += adap_info['fertilizer']['application_rate'] * act['fertilizer']
+                inorg['mkt'][ti] += adap_info['fertilizer']['application_rate'] * act['outgrower']
                 # mineralization
                 som_mineralized = land.slow_mineralization_rate * som[ti]
                 org_added_mineralized = land.fast_mineralization_rate * org_added[ti]
-                inorg[ti] += som_mineralized + org_added_mineralized
+                for crop in crops:
+                    inorg[crop][ti] += som_mineralized + org_added_mineralized
                 # save SOM for next year
                 som[ti+1] = som[ti] - som_mineralized + (org_added[ti] - org_added_mineralized)
                 som[ti+1][som[ti+1]<0] = 0
                 som[ti+1][som[ti+1]>land.max_organic_N] = land.max_organic_N
                 # inorganic losses
                 inorg_loss_rate = (land.loss_min + (land.max_organic_N-som[ti+1])/land.max_organic_N * (land.loss_max - land.loss_min))
-                inorg[ti] -= inorg[ti] * inorg_loss_rate
-                inorg[ti][inorg[ti] < 0] = 0 # constrain
+                for crop in crops:
+                    inorg[crop][ti] -= inorg[crop][ti] * inorg_loss_rate
+                    inorg[crop][ti][inorg[crop][ti] < 0] = 0 # constrain
                 ### B: yields
-                y_w = blfs['rain'] * land.max_yield[crop] # shape: (agent, nZ) - just use expected rainfall amt here
-                y_n = inorg[ti] / (1/land.crop_CN_conversion+land.residue_multiplier/land.residue_CN_conversion) #  shape: (agent). kgN/ha / (kgN/kgC_yield) = kgC/ha ~= yield(perha)
-                crop_yield[ti] = np.minimum(y_w, y_n[:,None]).astype(int) # shape: (agent,nZ)
-                # residue production -- for updating soil just take the average yield of these
-                residues[ti+1] = (np.mean(crop_yield[ti],axis=-1) * ha_farmed * land.residue_multiplier * land.residue_loss_factor) / \
-                        land.land_area / land.residue_CN_conversion # (kg * ha = kg total) *kgN/kgtot /ha_tot
+                for crop in crops:
+                    y_w = blfs['rain'] * land.max_yield[crop] # shape: (agent, nZ) - just use expected rainfall amt here
+                    y_n = inorg[crop][ti] / (1/land.crop_CN_conversion+land.residue_multiplier/land.residue_CN_conversion) #  shape: (agent). kgN/ha / (kgN/kgC_yield) = kgC/ha ~= yield(perha)
+                    crop_yield[crop][ti] = np.minimum(y_w, y_n[:,None]).astype(int) # shape: (agent,nZ)
+                    # residue production -- for updating soil just take the average yield over the uncertainty
+                    # note: these are applied over the ENTIRE land area (including non-farmed)
+                    residues[ti+1] += (np.mean(crop_yield[crop][ti],axis=-1) * ha_farmed[crop] * land.residue_multiplier * land.residue_loss_factor) / \
+                            land.land_area / land.residue_CN_conversion # (kg * ha = kg total) *kgN/kgtot /ha_tot
             
             # calculate net income, incorporating price uncertainty
             # accounting for subsistence requirements
-            crop_prod = crop_yield * ha_farmed[None,:,None] # dimension: (horizon, agent, nZ)
-            mkt_prod = np.maximum(crop_prod - agents.food_rqmt[None,:,None]*(crop=='subs'), 0) # subsistence crop goes first for subsistence
-            cons_deficit = np.maximum(agents.food_rqmt[None,:,None] - crop_prod*(crop=='subs'), 0) # mkt crop can't be used for subsistence
-            ag_profits = (mkt_prod * blfs['price_{}'.format(crop)][None,:,:]).astype(int) # dimension:(horizon,agent,nZ)
+            prod = {}
+            for crop in land.ag_types:
+                prod[crop] = crop_yield[crop] * ha_farmed[crop][None,:,None] # dimension: (horizon, agent, nZ)
+            cons_deficit = np.maximum(agents.food_rqmt[None,:,None] - prod['subs'], 0) # mkt crop can't be used for subsistence
+            # mkt_prod = crop_yield['mkt']*ha_farmed['mkt'][None,:,None] + np.maximum(subs_prod - agents.food_rqmt[None,:,None], 0) # excess subsistence crop goes to mkt
+            # code.interact(local=dict(globals(), **locals()))
+            ag_profits = np.maximum(prod['subs']-agents.food_rqmt[None,:,None], 0) * blfs['price_subs'][None,:,:] # excess subsistence crop goes to mkt
+            ag_profits += prod['mkt'] * (mkt_crop_price if act['outgrower']*outg_info['fixed_price'] else blfs['price_mkt'][None,:,:])
             food_costs = cons_deficit * blfs['price_subs'][None,:,:]
             # other income sources and costs throughout the year
-            other_income = agents.ls_obj * agents.all_inputs['livestock']['income'] # dimension:(agent)
-            year_costs = (agents.living_cost * agents.living_cost_min_frac).astype(int)
-            net_income = ag_profits + other_income[None,:,None] - food_costs - start_costs[None,:,None] - year_costs[None,:,None] # dimension:(horizon,agent,nZ)
-            
-            # convert to NPV (take the mean rather than the sum. it's like a weighted average income)
+            ls_income = agents.ls_obj * agents.all_inputs['livestock']['income'] # dimension:(agent)
+            year_costs = agents.living_cost * agents.living_cost_min_frac
+            outgrower_costs = ha_farmed['mkt'] * (market.farm_cost['mkt'] + market.fertilizer_cost*adap_info['fertilizer']['application_rate'])
+            net_income = ag_profits - food_costs + (ls_income - start_costs - year_costs - outgrower_costs)[None,:,None] # dimension:(horizon,agent,nZ)
+
+            # convert to NPV (take the mean rather than the sum. it's like a weighted income averaged over time)
             npv = np.mean(net_income * agents.npv_vals[:,:,None], axis=0) # dimension: (agent,nZ)
             pos = npv>0
 
@@ -162,12 +190,6 @@ class Decision():
             # sys.exit()
             # 2e: calculate expected utility
             exp_util[a] = np.mean(rndm_utils, axis=1) # dimension : (agent)
-
-            ## MISCELLANEOUS
-            # Conservation time tradeoff for POM
-            if act['conservation'] and not act['fertilizer']:
-                (net_income[-1] > 0) * (net_income[0] < 0)
-                # code.interact(local=dict(globals(), **locals()))
 
         # choose the best option
         Decision.select_max_utility(agents, land, exp_util, t, crop, adap_info)

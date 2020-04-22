@@ -17,8 +17,8 @@ f = '../outputs/{}/selected_params.pkl'.format(exp_name)
 inp_all = pickle.load(open(f, 'rb'))
 calib_vars = pd.read_csv('../outputs/{}/calib_vars.csv'.format(exp_name), index_col=0)
 
-se = '3' # s+e+, s+e-, s-e+, s-e-
 inputs = base_inputs.compile()
+# se = '3' # s+e+, s+e-, s-e+, s-e-
 # for i in range(inp_all[se].shape[1]):
 #     inputs[calib_vars.loc[i, 'key1']][calib_vars.loc[i,'key2']] = inp_all[se][0,i]
 
@@ -34,8 +34,8 @@ inputs = base_inputs.compile()
 #         inputs[k][k2] = v2
 
 ## change any params
-inputs['model']['T'] = 50
-inputs['model']['n_agents'] = 12
+inputs['model']['T'] = 12
+inputs['model']['n_agents'] = 8
 # inputs['agents']['read_from_file'] = False
 # inputs['livestock']['consumption'] = 5
 # inputs['rangeland']['gr2'] = 0.9
@@ -50,7 +50,7 @@ inputs['model']['n_agents'] = 12
 # inputs['land']['loss_max'] = 0.5
 # inputs['land']['max_organic_N'] = 5000
 # inputs['market']['crop_sell_params'] = {'trad' : [2.17,0,0], 'int' : [4,0.5,0], 'div' : [2.17,0,0]}
-inputs['market']['salary_jobs_availability'] = 0
+# inputs['market']['salary_jobs_availability'] = 0
 
 # inputs['market']['fertilizer_cost'] = 0
 # inputs['land']['random_effect_sd'] = 0

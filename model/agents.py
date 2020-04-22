@@ -94,9 +94,11 @@ class Agents():
         self.blf = beliefs.Beliefs(self, self.all_inputs)
         # initialize decisions
         self.decision_options = []
-        for cons in inp['actions']['conservation']:
-            for fert in inp['actions']['fertilizer']:
-                self.decision_options.append({'conservation':cons,'fertilizer':fert})
+        outgrower_options = [False,True] if self.all_inputs['adaptation']['outgrower']['active'] else [False]
+        for outg in outgrower_options:
+            for cons in inp['actions']['conservation']:
+                for fert in inp['actions']['fertilizer']:
+                    self.decision_options.append({'conservation':cons,'fertilizer':fert,'outgrower':outg})
         self.choices = {}
         for act, vals in inp['actions'].items():
             self.choices[act] = np.full([self.T, self.N], False)
@@ -116,8 +118,6 @@ class Agents():
         self.discount_rate[self.discount_rate<0] = 0
         self.npv_vals = np.array([self.discount_rate**i for i in range(inp['horizon'])])
         self.option_feasibility = np.full((self.T, len(self.decision_options), self.N), False)
-        # for POM
-        self.conservation_time_tradeoff = np.full((self.T, self.N), False)
 
     def init_from_file(self):
         d_in = pd.read_csv(self.file_name, index_col=0)
