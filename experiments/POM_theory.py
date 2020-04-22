@@ -30,13 +30,13 @@ from . import trajectories
 
 def main():
     # specify experimental settings
-    N_samples = 1000
+    N_samples = 5000
     N_level1 = 20 # also do LHS for level 1 params
-    ncores = 30
+    ncores = 40
     nreps = 10 # to account for simulation-level variability (climate and prices)
     exp_name = 'pom_theory'
     inputs = {
-        'model' : {'n_agents' : 200, 'T' : 50, 'exp_name' : exp_name},
+        'model' : {'n_agents' : 200, 'T' : 30, 'exp_name' : exp_name},
         'decisions' : {}
     }
     scenarios = {'baseline' : {'decisions' : {'framework' : 'imposed', 'imposed_action' : {'conservation' : False, 'fertilizer' : False}}},
@@ -50,13 +50,14 @@ def main():
     calib_vars = define_calib_vars(exp_name)
     # generate set of RVs
     rvs, rvs1 = hypercube_sample(N_samples, N_level1, calib_vars)
+    rvs1 = np.array([[4000,0.6],[4000,0.4],[1000,0.6],[1000,0.4]]) # (som, rain mu)
 
     # # run the model and calculate fitting metrics
-    fits = run_model(rvs, rvs1, inputs, calib_vars, scenarios, ncores, nreps, load=False)
+    fits = run_model(rvs, rvs1, inputs, calib_vars, scenarios, ncores, nreps, load=True)
     
     # # process the fit data
     process_fits(fits, rvs, calib_vars, inputs, nreps, exp_name, fit_threshold)
-    plot_ex_post(exp_name, N_samples, nreps, rvs, calib_vars, fit_threshold)
+    # plot_ex_post(exp_name, N_samples, nreps, rvs, calib_vars, fit_threshold)
 
 def define_calib_vars(exp_name):
     calib_vars = pd.DataFrame(
@@ -73,7 +74,7 @@ def define_calib_vars(exp_name):
         # level1 parameters (i.e. vary within a single set of level0 parameters)
         ['land','organic_N_min_init',False,1000,5000,True,False],
         ['climate','rain_mu',False,0.4,0.8,False,False],
-        ['climate','rain_sd',False,0.1,0.3,False,False],
+        # ['climate','rain_sd',False,0.1,0.3,False,False],
         ],
         columns = ['key1','key2','key3','min_val','max_val','as_int','level0'])
 
@@ -241,7 +242,7 @@ def run_model(rvs, rvs1, inputs, calib_vars, scenarios, ncores, nreps, load=Fals
     inp_all = base_inputs.compile()
     inp_all = overwrite_inputs(inp_all, inputs)
     outdir = '../outputs/{}/'.format(inputs['model']['exp_name'])
-    outname = 'fits_raw_{}n0_{}n1_{}reps.npz'.format(rvs.shape[0], rvs1.shape[0], nreps)
+    outname = 'fits_raw_{}n0_{}n1_{}reps.npz'.format(rvs.shape[0], rvs1.shape[0], nreps)       
     if os.path.isfile(outdir + outname) and load:
         return np.load(outdir+outname, allow_pickle=True)['data']
 
@@ -260,15 +261,9 @@ def run_model(rvs, rvs1, inputs, calib_vars, scenarios, ncores, nreps, load=Fals
     fits_all_np = np.array(fits)
     # write
     np.savez_compressed(outdir + outname, data=fits_all_np)
-    code.interact(local=dict(globals(), **locals()))
     # fits_all_np = np.array(pd.DataFrame.from_dict(fits, orient='index'))
 
-    # fits_all_np = np.array(fits_all_np)
-    ## POM
-    # average over all reps
-    fits_avg = np.mean(fits_all_np, axis=0)
-    np.savez_compressed(outdir+outname, data=fits_avg)
-    return fits_avg
+    return fits_all_np
 
 def run_chunk_sims(ixs, rvs, rvs1, inp_all, calib_vars, scenarios, nreps):
     '''
@@ -351,65 +346,87 @@ def process_fits(fits, rvs, calib_vars, inputs, nreps, exp_name, fit_threshold):
     if not os.path.isdir(outdir):
         os.makedirs(outdir)
     # code.interact(local=dict(globals(), **locals()))
-    fit_pd = pd.DataFrame(fits)
-    # fit_pd = pd.DataFrame.from_dict(fits, orient='index')
-    fit_pd['sum'] = fit_pd.sum(axis=1)
+    fit_flat = fits.flatten().reshape((fits.shape[0]*fits.shape[1],fits.shape[2])) # shape: (model config, fits)
+    
 
-    vals = fit_pd['sum'].value_counts()
+    ## 1. frequency that each pattern is fit AND histogram
+    fig, axs = plt.subplots(1,2,figsize=(8,5))
+    xs = np.arange(fit_flat.shape[1])
+    axs[0].bar(x = xs, height=np.mean(fit_flat, axis=0))
+    axs[0].set_ylabel('Prob(pattern satisfied)')
+    axs[0].set_xticks(xs)
+    axs[0].set_xticklabels(['1a','1b','2','3','4'])
+    axs[0].grid(False)
+    axs[0].set_xlabel('Pattern')
+    sums = np.sum(fit_flat, axis=1)
+    axs[1].hist(sums)
+    axs[1].set_xlabel('Number of patterns matched')
+    axs[1].grid(False)
+    axs[1].set_xticks(xs+1)
+    axs[1].set_xticklabels((xs+1).astype(int))
+    nmax = len(np.where(sums==max(sums))[0])
+    axs[1].text(max(sums), nmax+1, '{} patterns\n{} model(s)'.format(max(sums), nmax), horizontalalignment='center')
+    axs[1].set_xlim([0, fits.shape[2]])
+    fig.savefig(outdir + 'histogram.png')
 
-    # histogram of sums
-    fig, ax = plt.subplots(figsize=(6,4))
-    ax.hist(fit_pd['sum'])
-    ax.set_xlabel('Mean number of patterns matched')
-    ax.set_ylabel('Count')
-    ax.set_xticks(np.arange(len(fits[0])+1))
-    ax.set_xticklabels(np.arange(len(fits[0])+1).astype(int))
-    ax.grid(False)
-    i = max(vals.index)
-    ax.text(i, vals.loc[i]+1, '{} patterns\n{} model(s)'.format(np.round(i, 1), vals.loc[i]), horizontalalignment='center')
-    ax.set_xlim([0, fits.shape[1]])
-    fig.savefig(outdir + 'histogram.png', dpi=500)
-    # write outputs
-    fit_pd = fit_pd.sort_values(by='sum', axis=0, ascending=False)
-    fit_pd['sim_number'] = fit_pd.index
-    fit_pd.to_csv(outdir + 'fits.csv')
-    # np.savetxt(outdir + 'rvs.csv', rvs)
 
-    # identify the best fitting models
-    vals = vals.sort_index()
-    max_fit = vals.index[-1]
-    max_fit_locs = fit_pd.loc[fit_pd['sum']==max_fit, 'sum'].index
+    ## 2. parameter sets (level0) + how many patterns they match
+    # sum_1a = np.sum(fits == np.array([1,0,1,1,1]), axis=(2))
+    # num_all_1a = np.sum(sum_1a==5, axis=1)
+    # mean_1a = np.mean(sum_1a, axis=1)
+    # sum_1b = np.sum(fits == np.array([0,1,1,1,1]), axis=(2))
+    # num_all_1b = np.sum(sum_1b==5, axis=1)
 
-    # plot their parameter values
-    vals_best = rvs[max_fit_locs]
-    vals_sc = (vals_best - np.array(calib_vars['min_val'])[None,:]) / np.array(calib_vars['max_val']-calib_vars['min_val'])[None,:]
+    ## 2. finding how many desirable patterns each parameter configuration matches
+    fit_a = np.sum(np.sum(fits[:,:,[0,2]] == np.array([1,1]), axis=2)==2, axis=1) # (N) <-- how many times does each config fit 1a+2
+    fit_b = np.sum(np.sum(fits[:,:,[1,2]] == np.array([1,1]), axis=2)==2, axis=1) # (N)
+    fit_both = (fit_a>0) * (fit_b>0) # fits both 1a and 1b at some point
+    # now find how many of patterns 3 and 4 these models fit
+    sum_34 = np.sum(fits[:,:,[3,4]], axis=2) * fit_both[:,None] # (N,n2)
+    mean_sum_34 = np.round(np.mean(sum_34, axis=1),2)
+    sel_sums = mean_sum_34[fit_both]
+    fig, ax = plt.subplots()
+    ax.hist(sel_sums)
+    ax.set_xlim([0,2])
+    mx = sel_sums.max()
+    nmax = (sel_sums==mx).sum()
+    ax.text(mx, nmax+1, '{}/2, {}mod(s)'.format(mx, nmax))
+    ax.set_xlabel('Fit to patterns 3 and 4')
+    fig.savefig(outdir+'patterns_34_fitting.png')
+    # select the best fitting model(s)
+    max_ix = np.where(mean_sum_34==mx)[0]
+    ok_ix = np.where(mean_sum_34 >= fit_threshold*mx)[0] # within threshold of the maximum
+
+    ## 3. plot their parameter values
+    vals_best = rvs[max_ix]
+    ix0 = np.array(calib_vars['level0'] == True)
+    vals_sc = (vals_best - np.array(calib_vars['min_val'])[None,ix0]) / np.array(calib_vars['max_val']-calib_vars['min_val'])[None,ix0]
     fig, ax = plt.subplots(figsize=(8,5))
-    # plot everything within 10% of this quality
-    ok_fits = fit_pd.loc[fit_pd['sum'] >= fit_threshold*max_fit, 'sum'].index
-    vals_ok = rvs[ok_fits]
-    vals_ok_sc = (vals_ok - np.array(calib_vars['min_val'])[None,:]) / np.array(calib_vars['max_val']-calib_vars['min_val'])[None,:]
-    ax.plot(np.transpose(vals_ok_sc), alpha=0.5, lw=0.5, color='k')
-    ax.plot(np.transpose(vals_sc), color='b')
-    ax.set_xticks(np.arange(calib_vars.shape[0]))
-    ax.set_xticklabels(calib_vars.key2, rotation=90)
+    # plot everything within the threshold of this quality
+    vals_ok = rvs[ok_ix]
+    vals_ok_sc = (vals_ok - np.array(calib_vars['min_val'])[None,ix0]) / np.array(calib_vars['max_val']-calib_vars['min_val'])[None,ix0]
+    ax.plot(np.transpose(vals_ok_sc), alpha=0.5, lw=0.5, color='k', label='_nolegend_')
+    ax.plot(np.transpose(vals_sc), color='b', label='best')
+    ax.set_xticks(np.arange(calib_vars.loc[ix0].shape[0]))
+    ax.set_xticklabels(calib_vars.key2[ix0], rotation=90)
     ax.set_ylabel('Value (scaled)')
     ax.xaxis.grid(True)
     ax.yaxis.grid(False)
     ax.legend()
     fig.savefig(outdir + 'param_vals.png', dpi=500)
 
-    # run and plot one of them
+    ## 4. save their values
     inp_all = base_inputs.compile()
     inp_all = overwrite_inputs(inp_all, inputs)
     fits_mod = []
-    for v, vi in enumerate(max_fit_locs):
-        inp_all = overwrite_rv_inputs(inp_all, rvs[vi], calib_vars.key1, calib_vars.key2)
+    for v, vi in enumerate(max_ix):
+        inp_all = overwrite_rv_inputs(inp_all, rvs[vi], [], calib_vars, {})
         inp_all['model']['exp_name'] = '{}/{}_{}reps/{}/'.format(exp_name, N, nreps, v)
         m = model.Model(inp_all)
         for t in range(m.T):
             m.step()
         # plt_single.main(m)
-        fits_mod.append(fitting_metrics(m))
+        # fits_mod.append(fitting_metrics(m, nreps))
 
         # save the inputs -- as csv and pickle
         df = pd.DataFrame.from_dict({(i,j): inp_all[i][j] 
@@ -420,6 +437,10 @@ def process_fits(fits, rvs, calib_vars, inputs, nreps, exp_name, fit_threshold):
         with open(outdir + 'input_params_{}.pkl'.format(v), 'wb') as f:
             pickle.dump(inp_all, f)
     
+    # code.interact(local=dict(globals(), **locals()))
+
+
+    # run and plot one of them
     # code.interact(local=dict(globals(), **locals()))
 
 def overwrite_inputs(all_inputs, changes):
