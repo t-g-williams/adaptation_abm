@@ -119,7 +119,7 @@ def decisions():
     d = {
         'framework' : 'util_max', # util_max or imposed
         'actions' : OrderedDict({'conservation' : [False,True], 'fertilizer' : [False,True], 'outgrower' : [False,True]}), # it should be such that the first option to be created is the "baseline"
-        'imposed_action' : {'conservation' : True, 'fertilizer' : True, 'outgrower' : False}, # only when t==0 or framework==imposed
+        'imposed_action' : {'conservation' : False, 'fertilizer' : False, 'outgrower' : False}, # only when t==0 or framework==imposed
         'risk_aversion' : True,
         'risk_tolerance_mu' : 3000, # mu for a normal distribution (high = more tolerant to risk)
         'risk_tolerance_cov' : 0.5, # coefficient of variation - i.e., sigma/mu. 0.5 means 50%

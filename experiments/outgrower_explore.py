@@ -18,7 +18,7 @@ from matplotlib.ticker import (AutoMinorLocator, MultipleLocator)
 import code
 
 def main():
-    exp_name = 'outgrower_explore'
+    exp_name = 'outgrower_explore_rndm'
     nreps = 40
     ncores = 40
 
@@ -30,8 +30,8 @@ def main():
     inputs['decisions']['framework'] = 'util_max'
     inputs['adaptation']['outgrower']['active'] = True
 
-    inputs['climate']['rain_sd'] = 0
-    inputs['land']['random_effect_sd'] = 0
+    # inputs['climate']['rain_sd'] = 0
+    # inputs['land']['random_effect_sd'] = 0
     inputs['agents']['land_area_init'] = [0.25,0.5,1,2]
 
     inputs['adaptation']['outgrower']['fixed_price'] = True
@@ -52,6 +52,7 @@ def main():
         outdir = '../outputs/{}'.format(exp_name)
         if not os.path.isdir(outdir):
             os.makedirs(outdir)
+        plot_absolute(mods, outdir, name, nreps)
         plot_effects(mods, outdir, name, nreps)
         plot_effects_equity(mods, outdir, name, nreps)
         plot_decisions(mods, outdir, name, nreps)
@@ -90,6 +91,49 @@ def change_inputs(params, change_dict):
             else:
                 params[k][k2] = v2
     return params
+
+def plot_absolute(mods, outdir, scenario, nreps):
+    # format results
+    fig, ax_all = plt.subplots(6,2,figsize=(12,12), sharex=True, sharey='row')
+
+    for s, sim in enumerate(['baseline','outgrower']):
+        axs = ax_all[:,s]
+        objs = OrderedDict({'wealth':[],'income':[],'SOM':[],'conservation':[],'fertilizer':[],'outgrower':[]})
+        land = []
+        for r in range(nreps):
+            objs['wealth'].append(mods[sim][r].agents.wealth)
+            objs['income'].append(mods[sim][r].agents.income)
+            objs['SOM'].append(mods[sim][r].land.organic)
+            objs['conservation'].append(mods[sim][r].agents.choices['conservation'])
+            objs['fertilizer'].append(mods[sim][r].agents.choices['fertilizer'])
+            objs['outgrower'].append(mods[sim][r].agents.choices['outgrower'])
+            land.append(mods[sim][r].agents.land_area)
+
+        land = np.mean(np.array(land), axis=0)
+        areas = np.unique(land)
+
+        for k, v in objs.items():
+            objs[k] = np.mean(np.array(objs[k]), axis=0)   
+
+        ylabs = list(objs.keys())
+        for o, name in enumerate(ylabs):
+            for a, area in enumerate(areas):
+                ags = land == area
+                axs[o].plot(np.mean(objs[name][:,ags], axis=1), color=str(1-area/max(areas)), lw=2, label='{}ha'.format(area))
+                # axs[o].plot(np.mean(objs[name][:,ags], axis=1), color='b', lw=0.3)
+                # axs[o].plot(np.mean(objs[name], axis=1), color='k', lw=3)
+
+            axs[o].grid(False)
+            if s == 0:
+                axs[o].set_ylabel(name)
+            axs[o].axhline(0, color='k', lw=0.8)
+            
+        axs[0].legend()
+        axs[-1].set_xlabel('year')
+        axs[0].set_title(sim)
+    
+    fig.tight_layout()
+    fig.savefig('{}/absolute_{}.png'.format(outdir, scenario))
 
 def plot_effects(mods, outdir, scenario, nreps):
     # format results
@@ -180,15 +224,15 @@ def plot_decisions(mods, outdir, scenario, nreps):
 
     for a, area in enumerate(areas):
         ags = objs['land'] == area
-        axs[0].plot(np.mean(objs['outgrower'][:,ags], axis=1), color=str(1-area/max(areas)), lw=2, 
+        axs[0].plot(np.mean(objs['outgrower'][1:,ags], axis=1), color=str(1-area/max(areas)), lw=2, 
                     ls='-', label='{}ha'.format(area))
-        axs[1].plot(np.mean(objs['cons'][:,ags], axis=1), color=str(1-area/max(areas)), lw=2, 
+        axs[1].plot(np.mean(objs['cons'][1:,ags], axis=1), color=str(1-area/max(areas)), lw=2, 
                     ls='-', label='{}ha'.format(area))
-        axs[1].plot(np.mean(objs['cons_base'][:,ags], axis=1), color=str(1-area/max(areas)), lw=2, 
+        axs[1].plot(np.mean(objs['cons_base'][1:,ags], axis=1), color=str(1-area/max(areas)), lw=2, 
                     ls=':', label='_nolegend_')
-        axs[2].plot(np.mean(objs['fert'][:,ags], axis=1), color=str(1-area/max(areas)), lw=2, 
+        axs[2].plot(np.mean(objs['fert'][1:,ags], axis=1), color=str(1-area/max(areas)), lw=2, 
                     ls='-', label='{}ha'.format(area))
-        axs[2].plot(np.mean(objs['fert_base'][:,ags], axis=1), color=str(1-area/max(areas)), lw=2, 
+        axs[2].plot(np.mean(objs['fert_base'][1:,ags], axis=1), color=str(1-area/max(areas)), lw=2, 
                     ls=':', label='_nolegend_')
         
     ylabs = ['outgrower','conservation','fertilizer']
