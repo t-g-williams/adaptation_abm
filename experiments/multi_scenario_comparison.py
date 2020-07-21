@@ -39,9 +39,6 @@ def main():
     inp_base['agents']['adap_type'] = 'always'
     inp_base['agents']['land_area_multiplier'] = 1
 
-    # inp_base['agents']['land_area_init'] = np.linspace(1,2,100)
-    # inp_base['adaptation']['insurance']['climate_percentile'] = 0.3
-
     #### adaptation scenarios
     scenarios = {
         'baseline' : {'model' : {'adaptation_option' : 'none'}},

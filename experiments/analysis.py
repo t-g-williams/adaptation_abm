@@ -1,5 +1,8 @@
 '''
 explore the effects of climate shocks under different model conditions
+to run this in commandline:
+    1. navigate to the main code folder
+    2. type: python -m experiments.shock_analysis
 '''
 import os
 import model.model as mod
@@ -24,11 +27,10 @@ import logging
 import logging.config
 
 def main():
-    exp_name_base = '2019_10_15_4'#2020_1_19_afford'2019_11_12_2'
-    solution_numbers = [0]#,1,2]
-    ncores = 40
-    load = True
-    # load = False
+    exp_name_base = '2019_10_15_4' # base experiment name -- for reading POM outputs and writing outputs
+    solution_numbers = [0] # the id numbers of the POM solutions
+    ncores = 40 # number of cores for parallelization
+    load = True # load pre-saved outputs?
 
     for solution_number in solution_numbers:
         exp_name = '{}/model_{}'.format(exp_name_base, solution_number)
@@ -43,7 +45,7 @@ def main():
         # manually specify some variables (common to all scenarios)
         inp_base['model']['n_agents'] = 200
         inp_base['model']['exp_name'] = exp_name
-        inp_base['agents']['adap_type'] = 'always'#'affording'
+        inp_base['agents']['adap_type'] = 'always' # agents always choose the adaptation option
         inp_base['model']['shock'] = False
         inp_base['agents']['land_area_multiplier'] = 1
 
@@ -54,14 +56,14 @@ def main():
             'cover_crop' : {'model' : {'adaptation_option' : 'cover_crop'}},
         }
 
-        ## 0: convergence analysis
-        # nreps_req = convergence.convergence_analysis(exp_name, inp_base, adap_scenarios, ncores)
+        # 0: convergence analysis
+        nreps_req = convergence.convergence_analysis(exp_name, inp_base, adap_scenarios, ncores)
 
-        # ## A: resilience as function of T_res, T_shock
-        # assess_resilience(exp_name, inp_base, adap_scenarios, load, ncores)
+        ## A: resilience as function of T_res, T_shock
+        assess_resilience(exp_name, inp_base, adap_scenarios, load, ncores)
 
-        # ## B: vary shock magnitude
-        # vary_magnitude(exp_name, inp_base, adap_scenarios, load, ncores)
+        ## B: vary shock magnitude
+        vary_magnitude(exp_name, inp_base, adap_scenarios, load, ncores)
 
         ## C: effect of policy design
         policy_design(exp_name, inp_base, adap_scenarios, load, ncores)
