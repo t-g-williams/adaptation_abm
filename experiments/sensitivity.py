@@ -8,8 +8,8 @@ import os
 import model.model as mod
 import model.base_inputs as inp
 import calibration.POM as POM
-from . import multi_scenario_comparison as msc
-from . import analysis as shock
+# from . import analysis_poverty as msc
+from . import analysis_shock as shock
 import code
 import tqdm
 import numpy as np
@@ -28,16 +28,16 @@ import logging.config
 
 
 def main():
-    exp_name = '2019_10_15_4'
+    exp_name = 'es_r1'
     N_vars = 10000 # number of random variable sets to generate
     N_reps = 100 # number of times to repeat model for each variable set
     ncores = 40
     pom_nvars = 100000
     pom_nreps = 10
-    n_mods = 1 # number of successful POM models
-    perturb_perc = 30
-    load = True
-    nboot_rf = 100
+    n_mods = 1 # number of successful POM models --> default to 1
+    perturb_perc = 30 # magnitude of the perturbation
+    load = True # load previously-generated results
+    nboot_rf = 100 # number of bootstraps for random forest
     sens_vars = {
         'agents' : ['wealth_init_mean','cash_req_mean','livestock_cost'],#,'land_area_multiplier'],
         'land' : ['organic_N_min_init','max_organic_N','fast_mineralization_rate',

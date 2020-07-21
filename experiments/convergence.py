@@ -5,7 +5,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import os
 import model.model as mod
-from . import analysis
+from . import analysis_shock
 import imp
 import copy
 import code
@@ -39,7 +39,7 @@ def convergence_analysis(exp_name, inp_base, adap_scenarios, ncores):
 
     #### RUN THE MODELS ####
     exp_name_res = exp_name + '/convergence'
-    results, results_baseline = analysis.run_shock_sims(exp_name_res, nreps, inp_base, adap_scenarios, shock_mags, shock_times, ncores, T_res, outcomes, load=load, flat_reps=False)
+    results, results_baseline = analysis_shock.run_shock_sims(exp_name_res, nreps, inp_base, adap_scenarios, shock_mags, shock_times, ncores, T_res, outcomes, load=load, flat_reps=False)
     bools = results_baseline['cover_crop'].loc[(outcomes[0])] < results_baseline['insurance'].loc[(outcomes[0])]
 
     #### process the results ####

@@ -4,7 +4,7 @@ multi-replication scenario analysis
 import os
 import model.model as mod
 import model.base_inputs as inp
-import plot.multi_scenario as plt_multi
+import plot.poverty as plt_pov
 import plot.single_run as plt
 import calibration.POM as POM
 import imp
@@ -20,7 +20,7 @@ import multiprocessing
 
 def main():
     nreps = 300
-    exp_name = '2019_10_15_4'
+    exp_name = 'es_r1'
     ncores = 40
 
     # load default params
@@ -58,7 +58,7 @@ def main():
     mods = multi_mod_run(nreps, inp_base, scenarios, ncores)
 
     #### PLOT ####
-    plt_multi.main(mods, nreps, inp_base, scenarios, exp_name, T, shock_years)
+    plt_pov.main(mods, nreps, inp_base, scenarios, exp_name, T, shock_years)
 
 def multi_mod_run(nreps, inp_base, scenarios, ncores):
     mods = {}

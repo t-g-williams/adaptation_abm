@@ -27,10 +27,11 @@ import logging
 import logging.config
 
 def main():
-    exp_name_base = '2019_10_15_4' # base experiment name -- for reading POM outputs and writing outputs
+    exp_name_base = 'ems_r1' # base experiment name -- for reading POM outputs and writing outputs
     solution_numbers = [0] # the id numbers of the POM solutions
     ncores = 40 # number of cores for parallelization
     load = True # load pre-saved outputs?
+    nreps = 100 # for the simulation
 
     for solution_number in solution_numbers:
         exp_name = '{}/model_{}'.format(exp_name_base, solution_number)
@@ -60,21 +61,20 @@ def main():
         nreps_req = convergence.convergence_analysis(exp_name, inp_base, adap_scenarios, ncores)
 
         ## A: resilience as function of T_res, T_shock
-        assess_resilience(exp_name, inp_base, adap_scenarios, load, ncores)
+        assess_resilience(exp_name, inp_base, adap_scenarios, load, ncores, nreps)
 
         ## B: vary shock magnitude
-        vary_magnitude(exp_name, inp_base, adap_scenarios, load, ncores)
+        vary_magnitude(exp_name, inp_base, adap_scenarios, load, ncores, nreps)
 
         ## C: effect of policy design
-        policy_design(exp_name, inp_base, adap_scenarios, load, ncores)
+        policy_design(exp_name, inp_base, adap_scenarios, load, ncores, nreps)
 
-def policy_design(exp_name, inp_base, adap_scenarios, load, ncores):
+def policy_design(exp_name, inp_base, adap_scenarios, load, ncores, nreps):
     '''
     explore the effect of the policy parameters on the response
     use a single shock magnitude
     '''
     ## shock settings
-    nreps = 100
     shock_mags = [0.2] # code only designed to have one value in this list
     shock_times = [10] # np.arange(2,31,step=2) # measured after the burn-in period
     T_res = [1,3,5,7,9]# np.arange(1,16) # how many years to calculate effects over
@@ -193,16 +193,15 @@ def policy_design(exp_name, inp_base, adap_scenarios, load, ncores):
     shock_plot.policy_design_dev_res(dev_cc, dev_ins, shock_mags, exp_name)
     shock_plot.policy_design_all_combined(res_cc, res_ins, shock_mags, shock_times, T_res, exp_name)
     shock_plot.policy_design_single(res_cc, res_ins, shock_mags, shock_times, T_res, exp_name)
-    shock_plot.policy_design_all(res_cc, res_ins, shock_mags, shock_times, T_res, exp_name)
+    # shock_plot.policy_design_all(res_cc, res_ins, shock_mags, shock_times, T_res, exp_name)
     # code.interact(local=dict(globals(), **locals()))
 
-def vary_magnitude(exp_name, inp_base, adap_scenarios, load, ncores):
+def vary_magnitude(exp_name, inp_base, adap_scenarios, load, ncores, nreps):
     '''
     explore the effect of varying the shock magnitude for a fixed time of shock
     (informed from part A)
     '''
     #### shock scenarios
-    nreps = 100
     shock_mags = np.round(np.linspace(0,0.5,10), 3)
     shock_times = [5,10,20] # keep this fixed in each plot
     T_res = np.arange(1,15) # how many years to calculate effects over
@@ -219,13 +218,12 @@ def vary_magnitude(exp_name, inp_base, adap_scenarios, load, ncores):
     shock_plot.shock_mag_grid_plot(results, shock_mags, shock_times, T_res, exp_name, False, outcomes)
     shock_plot.shock_mag_grid_plot(results_baseline, shock_mags, shock_times, T_res, exp_name, True, outcomes)
 
-def assess_resilience(exp_name, inp_base, adap_scenarios, load, ncores):
+def assess_resilience(exp_name, inp_base, adap_scenarios, load, ncores, nreps):
     '''
     compare the strategies over the dimensions of shock (t_shock, t_res)
     '''
-    nreps = 100
     shock_mags = [0.1,0.2]#,0.3]
-    shock_times = np.arange(2,51,step=2) # measured after the burn-in period
+    shock_times = np.arange(2,51,step=2) # measured after the burn-in period (T_shock in paper)
     T_res = np.arange(1,15) # how many years to calculate effects over
     inp_base['model']['T'] = shock_times[-1] + T_res[-1] + inp_base['adaptation']['burnin_period'] + 1
     outcomes = ['wealth','income']
@@ -237,8 +235,8 @@ def assess_resilience(exp_name, inp_base, adap_scenarios, load, ncores):
     t2 = time.time()
     print('{} seconds'.format(t2-t1))
     #### PLOT ####
-    shock_plot.resilience(results, shock_mags, shock_times, T_res, exp_name, False, outcomes)
-    shock_plot.resilience(results_baseline, shock_mags, shock_times, T_res, exp_name, True, outcomes)
+    shock_plot.resilience(results, shock_mags, shock_times, T_res, exp_name, False, outcomes) # baseline_resilience=False --> this means the shock effects are calculated relative to {policy,no_shock} 
+    shock_plot.resilience(results_baseline, shock_mags, shock_times, T_res, exp_name, True, outcomes) # here baseline_resilience=True, so measured relative to {baseline, no_shock}
 
 def run_dev_res_sims(exp_name, nreps, inp_base, adap_scenarios, ncores, T_dev, load=True):
     '''
@@ -330,10 +328,11 @@ def run_shock_sims(exp_name, nreps, inp_base, adap_scenarios, shock_mags, shock_
         if scenario == 'baseline': # use "baseline" scenario's values as no_shock
             no_shock_base = no_shock
 
-        ## run each of the shock sims
-        land_area = params['agents']['land_area_init']
         
-        # create a dataframe
+        # create dataframes to store outputs
+        # note: the "_base" extension means that it is the difference measured from the {policy,shock} with respect to the baseline (i.e., {no_policy,no_shock} simulation)
+        # whereas the other way measures the {policy,shock} relative to the {policy,no_shock}
+        land_area = params['agents']['land_area_init']
         mags_str = np.array([str(si).replace('.','_') for si in shock_mags])
         if flat_reps:
             idx = pd.MultiIndex.from_product([outcomes,mags_str,T_res,shock_times], names=('outcome','mag','assess_pd','time'))
@@ -343,6 +342,7 @@ def run_shock_sims(exp_name, nreps, inp_base, adap_scenarios, shock_mags, shock_
         diffs_pd = pd.DataFrame(index=idx, columns=land_area, dtype=float).sort_index()
         diffs_pd_base = diffs_pd.copy()
 
+        ## run each of the shock sims
         for shock_yr in shock_times:
             for shock_mag in shock_mags:
                 mag_str = str(shock_mag).replace('.','_')
