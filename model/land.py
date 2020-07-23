@@ -28,6 +28,9 @@ class Land():
         self.nutrient_factors = np.full([self.T, self.n_plots], np.nan)
         self.rf_factors = np.full([self.T, self.n_plots], np.nan)
 
+        # other
+        self.cover_crop_N_fixed = np.full([self.T, self.n_plots], np.nan)
+
     def init_organic(self):
         '''
         iniitalize the soil organic matter levels
@@ -37,7 +40,7 @@ class Land():
         self.organic_N_max_init = self.organic_N_min_init
         self.organic[0] = np.random.uniform(self.organic_N_min_init, self.organic_N_max_init, self.n_plots)
 
-    def update_soil(self, agents, adap_properties):
+    def update_soil(self, agents, adap_properties, climate):
         '''
         simulate the evolution of the land throughout the year
         '''
@@ -55,7 +58,7 @@ class Land():
         # inorganic += self.apply_fixed_fertilizer(agents) # kgN/ha ## NOT IN MODEL YET
         residue = self.crop_residue_input()
         livestock = self.livestock_SOM_input(agents) # kgN/ha
-        cover_crop = self.cover_crop_input(agents, adap_properties) # kgN/ha
+        cover_crop = self.cover_crop_input(agents, adap_properties, climate) # kgN/ha
         # these additions are split between organic and inorganic matter
         inorganic += self.fast_mineralization_rate * (residue + livestock + cover_crop)
         organic += (1-self.fast_mineralization_rate) * (residue + livestock + cover_crop)
@@ -97,17 +100,23 @@ class Land():
         N_per_ha = wealth_per_ha * self.wealth_N_conversion * (1-self.livestock_frac_crops) # birr/ha * kgN/birr * __ = kgN/ha
         return N_per_ha
 
-    def cover_crop_input(self, agents, adap_properties):
+    def cover_crop_input(self, agents, adap_properties, climate):
         '''
         calculate the input from legume cover crops
-        assume a linear model between the specified minimum and maximum amounts
+        assume a linear model between the specified minimum and maximum amounts based on SOM content
+        
+        if climate dependence of cover crop benefits:
+            use the same rainfall scaling factor as for crop yields
         '''
         inputs = np.full(self.n_plots, 0.)
         if adap_properties['type'] == 'cover_crop':
-            adap = agents.adapt[agents.t[0]]
+            adap = agents.adapt[self.t[0]]
             fields = np.in1d(self.owner, agents.id[adap]) # identify the fields
-            inputs[fields] += adap_properties['N_fixation_min'] + \
+            inputs_som_scaling = adap_properties['N_fixation_min'] + \
                 (1-self.organic[self.t[0],fields] / self.max_organic_N) * (adap_properties['N_fixation_max']-adap_properties['N_fixation_min']) # kg/ha
+            rf_factors = self.calculate_rainfall_factor(climate.rain[self.t[0]], cover_crop=True)[fields] if adap_properties['climate_dependence'] else 1
+            self.cover_crop_N_fixed[self.t[0],fields] = (inputs_som_scaling * rf_factors)
+            inputs[fields] += self.cover_crop_N_fixed[self.t[0],fields]
 
         return inputs
 
@@ -134,7 +143,7 @@ class Land():
         # attribute to agents
         agents.crop_production[t] = self.yields[t] * agents.land_area # kg
 
-    def calculate_rainfall_factor(self, rain, virtual=False):
+    def calculate_rainfall_factor(self, rain, virtual=False, cover_crop=False):
         '''
         convert the rainfall value (in 0,1) to a yield reduction factor
         '''
@@ -157,9 +166,14 @@ class Land():
             # this is a function of the difference in the slopes of the two lines
             red_max = (c - rain) * (1/(c-b) - 1/(c-a))
             # now factor in the fields' actual SOM values
-            # assume the average of the start and end of the year
-            mean_organic = np.mean(self.organic[[self.t[0], self.t[0]+1]], axis=0)
-            rf_effects = eff_max - (1 - mean_organic/self.max_organic_N) * red_max
+            if cover_crop:
+                # assume the start-of-year value
+                org = self.organic[self.t[0]]
+            else:
+                # assume the average of the start and end of the year
+                org = np.mean(self.organic[[self.t[0], self.t[0]+1]], axis=0)
+            
+            rf_effects = eff_max - (1 - org/self.max_organic_N) * red_max
             return np.maximum(rf_effects, 0)
 
     def apply_fixed_fertilizer(self, agents):

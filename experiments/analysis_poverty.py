@@ -20,8 +20,9 @@ import multiprocessing
 
 def main():
     nreps = 300
-    exp_name = 'es_r1'
+    exp_name_base = 'es_r1_cc_climate'
     ncores = 40
+    soln_number = 0
 
     # load default params
     inp_base = inp.compile()
@@ -29,7 +30,8 @@ def main():
     # load from POM experiment
     pom_nvars = 100000
     pom_nreps = 10
-    f = '../outputs/{}/POM/{}_{}reps/input_params_0.pkl'.format(exp_name, pom_nvars, pom_nreps)
+    exp_name = '{}/model_{}'.format(exp_name_base, soln_number)
+    f = '../outputs/{}/POM/{}_{}reps/input_params_{}.pkl'.format(exp_name_base, pom_nvars, pom_nreps, soln_number)
     inp_base = pickle.load(open(f, 'rb'))
     # manually specify some variables (common to all scenarios)
     T = 50
@@ -38,6 +40,7 @@ def main():
     inp_base['model']['exp_name'] = exp_name
     inp_base['agents']['adap_type'] = 'always'
     inp_base['agents']['land_area_multiplier'] = 1
+    inp_base['adaptation']['cover_crop']['climate_dependence'] = True
 
     #### adaptation scenarios
     scenarios = {
@@ -111,6 +114,13 @@ def run_chunk_reps(reps, params):
         ms['yields'].append(m.land.yields)
         ms['climate'].append(m.climate.rain)
         # pbar.update()
+        # if params['model']['adaptation_option'] == 'cover_crop':
+        #     code.interact(local=dict(globals(), **locals()))
+        #     import matplotlib.pyplot as plt
+        #     fig, ax = plt.subplots()
+        #     for a in range(m.agents.N):                
+        #         ax.scatter(m.climate.rain, m.land.cover_crop_N_fixed[:,a])
+        #     fig.savefig('../cover_crop_N_fixed.png')
 
     return ms
 

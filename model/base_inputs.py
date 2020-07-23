@@ -38,6 +38,7 @@ def adaptation():
             'N_fixation_min' : 80, # (with full organic matter) 80kg/ha representative of values reported in the literature. wittwer2017, buechi, couedel2018
             'N_fixation_max' : 80, # (with no organic matter) could do 50 and 200 if making them different
             'cost_factor' : 1, # assume the cost is the same as the annual cost of insurance multiplied by this factor
+            'climate_dependence' : True,  # scaling of N fixation based on annual climate condition
         }
     }
     return d

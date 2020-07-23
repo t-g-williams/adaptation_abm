@@ -34,7 +34,7 @@ class Model():
         '''
         advance the simulation by one year
         '''
-        self.land.update_soil(self.agents, self.adap_properties)
+        self.land.update_soil(self.agents, self.adap_properties, self.climate)
         self.land.crop_yields(self.agents, self.climate)
         self.agents.calculate_income(self.land, self.climate, self.adap_properties)
         self.agents.coping_measures(self.land)
@@ -67,6 +67,7 @@ class Model():
                 'cost' : cost * props['cost_factor'],
                 'N_fixation_min' : props['N_fixation_min'],
                 'N_fixation_max' : props['N_fixation_min'], # NOTE: THIS OPTION IS DISABLED FOR NOW
+                'climate_dependence' : props['climate_dependence'],
                 'adap' : True,
             }
 

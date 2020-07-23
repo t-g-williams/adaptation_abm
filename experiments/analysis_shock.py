@@ -27,7 +27,7 @@ import logging
 import logging.config
 
 def main():
-    exp_name_base = 'ems_r1' # base experiment name -- for reading POM outputs and writing outputs
+    exp_name_base = 'es_r1_cc_climate' # base experiment name -- for reading POM outputs and writing outputs
     solution_numbers = [0] # the id numbers of the POM solutions
     ncores = 40 # number of cores for parallelization
     load = True # load pre-saved outputs?
@@ -49,6 +49,7 @@ def main():
         inp_base['agents']['adap_type'] = 'always' # agents always choose the adaptation option
         inp_base['model']['shock'] = False
         inp_base['agents']['land_area_multiplier'] = 1
+        inp_base['adaptation']['cover_crop']['climate_dependence'] = True
 
         #### adaptation scenarios
         adap_scenarios = {
@@ -58,16 +59,16 @@ def main():
         }
 
         # 0: convergence analysis
-        nreps_req = convergence.convergence_analysis(exp_name, inp_base, adap_scenarios, ncores)
+        # nreps_req = convergence.convergence_analysis(exp_name, inp_base, adap_scenarios, ncores)
 
         ## A: resilience as function of T_res, T_shock
         assess_resilience(exp_name, inp_base, adap_scenarios, load, ncores, nreps)
 
-        ## B: vary shock magnitude
-        vary_magnitude(exp_name, inp_base, adap_scenarios, load, ncores, nreps)
+        # ## B: vary shock magnitude
+        # vary_magnitude(exp_name, inp_base, adap_scenarios, load, ncores, nreps)
 
-        ## C: effect of policy design
-        policy_design(exp_name, inp_base, adap_scenarios, load, ncores, nreps)
+        # ## C: effect of policy design
+        # policy_design(exp_name, inp_base, adap_scenarios, load, ncores, nreps)
 
 def policy_design(exp_name, inp_base, adap_scenarios, load, ncores, nreps):
     '''
