@@ -70,6 +70,23 @@ class Model():
                 'climate_dependence' : props['climate_dependence'],
                 'adap' : True,
             }
+        elif self.adaptation_option == 'both':
+            [cost, payout, magnitude] = self.calc_insurance_cost()
+            # save these
+            self.adap_properties = {
+                # general
+                'type' : 'both',
+                'adap' : True,
+                'cost' : cost * self.all_inputs['adaptation']['insurance']['cost_factor'] + \
+                            cost * self.all_inputs['adaptation']['cover_crop']['cost_factor'],
+                # insurance
+                'payout' : payout,
+                'magnitude' : magnitude,
+                # cover cropping
+                'N_fixation_min' : self.all_inputs['adaptation']['cover_crop']['N_fixation_min'],
+                'N_fixation_max' : self.all_inputs['adaptation']['cover_crop']['N_fixation_min'], # NOTE: THIS OPTION IS DISABLED FOR NOW
+                'climate_dependence' : self.all_inputs['adaptation']['cover_crop']['climate_dependence'],
+            }
 
         else:
             self.adap_properties = {

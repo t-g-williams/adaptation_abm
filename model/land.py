@@ -109,7 +109,7 @@ class Land():
             use the same rainfall scaling factor as for crop yields
         '''
         inputs = np.full(self.n_plots, 0.)
-        if adap_properties['type'] == 'cover_crop':
+        if adap_properties['type'] in ['cover_crop','both']:
             adap = agents.adapt[self.t[0]]
             fields = np.in1d(self.owner, agents.id[adap]) # identify the fields
             inputs_som_scaling = adap_properties['N_fixation_min'] + \

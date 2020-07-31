@@ -20,7 +20,8 @@ import multiprocessing
 
 def main():
     nreps = 300
-    exp_name_base = 'es_r1_cc_climate'
+    exp_name_POM = 'es_r1_baseline' # for reading POM outputs
+    exp_name_base = 'es_r1_95kgN_ha' # for writing outputs
     ncores = 40
     soln_number = 0
 
@@ -31,7 +32,7 @@ def main():
     pom_nvars = 100000
     pom_nreps = 10
     exp_name = '{}/model_{}'.format(exp_name_base, soln_number)
-    f = '../outputs/{}/POM/{}_{}reps/input_params_{}.pkl'.format(exp_name_base, pom_nvars, pom_nreps, soln_number)
+    f = '../outputs/{}/POM/{}_{}reps/input_params_{}.pkl'.format(exp_name_POM, pom_nvars, pom_nreps, soln_number)
     inp_base = pickle.load(open(f, 'rb'))
     # manually specify some variables (common to all scenarios)
     T = 50

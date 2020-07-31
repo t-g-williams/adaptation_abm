@@ -54,7 +54,7 @@ class Agents():
         # costs and payouts for adaptation option
         adap_costs = np.full(self.N, 0.)
         self.insurance_payout_year = False
-        if adap_properties['type'] == 'insurance':
+        if adap_properties['type'] in ['insurance','both']:
             # costs
             adap_costs[self.adapt[t]] = adap_properties['cost'] * self.land_area[self.adapt[t]]
             # payouts
@@ -62,7 +62,8 @@ class Agents():
                 payouts = np.full(self.N, 0.)
                 payouts[self.adapt[t]] = adap_properties['payout'] * self.land_area[self.adapt[t]]
                 self.insurance_payout_year = True
-        elif adap_properties['type'] == 'cover_crop':
+        if adap_properties['type'] in ['cover_crop','both']:
+            # note: with "both", the cost parameter includes the cost of both options. it's input twice and written over here, so we are not double counting
             adap_costs[self.adapt[t]] = adap_properties['cost'] * self.land_area[self.adapt[t]]
 
         # income = crop_sales - cash_req - adap_costs

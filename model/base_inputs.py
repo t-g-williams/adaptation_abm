@@ -35,8 +35,8 @@ def adaptation():
             'cost_factor' : 1, # multiplier on insurance cost
             },
         'cover_crop' : {
-            'N_fixation_min' : 80, # (with full organic matter) 80kg/ha representative of values reported in the literature. wittwer2017, buechi, couedel2018
-            'N_fixation_max' : 80, # (with no organic matter) could do 50 and 200 if making them different
+            'N_fixation_min' : 95, # (with full organic matter) 95 kg/ha is the median for temperate climates in badgley 2007. other papers see wittwer2017, buechi2015, couedel2018
+            'N_fixation_max' : 95, # (with no organic matter) could do 50 and 200 if making them different
             'cost_factor' : 1, # assume the cost is the same as the annual cost of insurance multiplied by this factor
             'climate_dependence' : True,  # scaling of N fixation based on annual climate condition
         }

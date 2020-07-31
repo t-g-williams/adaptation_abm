@@ -14,6 +14,9 @@ styles['plot_type'] = plot_type
 plt.style.use('fivethirtyeight')
 plt.style.use(styles[plot_type])
 
+import warnings
+warnings.simplefilter("ignore", UserWarning) # ImageGrid spits some annoying harmless warnings w.r.t. tight_layout
+
 def main(mods, nreps, inp_base, scenarios, exp_name, T, shock_years=[]):
     '''
     plot each agent type (number of plots) separately
@@ -27,9 +30,9 @@ def main(mods, nreps, inp_base, scenarios, exp_name, T, shock_years=[]):
         # only run these for the adaptation scenarios -- this assumes the length of shock years here is zero
         # poverty_trap_combined(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
         # poverty_trap(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
-        neg_wealth_probabilities(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
-        neg_wealth_probabilities(mods, nreps, inp_base, scenarios, exp_name, T, savedir, pos=True)
-        combined_wealth_income(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
+        wealth_probabilities(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
+        wealth_probabilities(mods, nreps, inp_base, scenarios, exp_name, T, savedir, pos=True)
+        # combined_wealth_income(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
         # agent_trajectories(mods, nreps, inp_base, scenarios, exp_name, T, savedir, 'wealth')
         # agent_trajectories(mods, nreps, inp_base, scenarios, exp_name, T, savedir, 'income')
     
@@ -153,7 +156,7 @@ def poverty_trap(mods, nreps, inp_base, scenarios, exp_name, T, savedir):
     plt.close('all')
     # code.interact(local=dict(globals(), **locals()))
 
-def neg_wealth_probabilities(mods, nreps, inp_base, scenarios, exp_name, T, savedir, pos=False):
+def wealth_probabilities(mods, nreps, inp_base, scenarios, exp_name, T, savedir, pos=False):
     '''
     plot the probability that each agents' wealth is below zero over time
     '''
@@ -164,6 +167,8 @@ def neg_wealth_probabilities(mods, nreps, inp_base, scenarios, exp_name, T, save
     fig, ax_all = plt.subplots(2,len(lands), figsize=(5*len(lands), 4), sharey=True, gridspec_kw={'height_ratios':[1,0.05]})
     axs = ax_all[0]
     [axi.remove() for axi in ax_all[1,:]]
+    cols = {'baseline':'k','cover_crop':'r','insurance':'b','both':'g'}
+    lss = {'baseline':'-','cover_crop':'--','insurance':'-.','both':':'}
 
     for n, land_area in enumerate(lands):
         ss = 0
@@ -183,9 +188,7 @@ def neg_wealth_probabilities(mods, nreps, inp_base, scenarios, exp_name, T, save
                 probs_t = np.mean(all_wealth>0, axis=0)
             else:
                 probs_t = np.mean(all_wealth<=0, axis=0)
-            col = 'k' if m == 'baseline' else 'r' if m == 'cover_crop' else 'b'
-            ls = '-' if m=='baseline' else '--' if m=='cover_crop' else '-.'
-            axs[n].plot(np.arange(T+burnin+1), probs_t, label=scenario, lw=1.5, ls=ls, color=col)#, marker='o')
+            axs[n].plot(np.arange(T+burnin+1), probs_t, label=scenario, lw=1.5, ls=lss[m], color=cols[m])#, marker='o')
             ss += 1
 
         l = axs[n].get_ylim()
@@ -199,10 +202,10 @@ def neg_wealth_probabilities(mods, nreps, inp_base, scenarios, exp_name, T, save
     ylab = 'P(wealth > 0)' if pos else 'P(wealth = 0)'
     axs[0].set_ylabel(ylab)
     # axs[1].legend(loc=10, bbox_to_anchor=(0.5, -0.3), ncol=3, frameon=False)
-    lg = fig.legend(list(mods.keys()) + ['burn-in'], loc=10, bbox_to_anchor=(0.5, 0.1), ncol=4, frameon=False)
+    lg = fig.legend(list(mods.keys()) + ['burn-in'], loc=10, bbox_to_anchor=(0.5, 0.1), ncol=len(mods)+1, frameon=False)
     fig.tight_layout()
     ext = 'pos' if pos else 'neg'
-    fig.savefig(savedir + '{}_wealth_prob_combined.png'.format(ext), bbox_extra_artists=(lg,))
+    fig.savefig(savedir + '{}_wealth_prob_combined.png'.format(ext), bbox_extra_artists=(lg,), dpi=200)
     # code.interact(local=dict(globals(), **locals()))
     plt.close('all')
 

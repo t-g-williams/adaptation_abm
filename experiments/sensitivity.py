@@ -332,7 +332,7 @@ def plot_rf_results(d_climate, d_dev, mean_vals, res_types, exp_name, mod_number
     # ax.legend(bps, ['A', 'B'], loc='upper right')
     ax.legend([bps[0]["boxes"][0], bps[1]["boxes"][0]], res_types, loc='center', 
               bbox_to_anchor=[0.5,-0.1], ncol=2, frameon=False)
-    fig.savefig(plot_dir + 'variable_importance_boxplot_combined.png')
+    fig.savefig(plot_dir + 'variable_importance_boxplot_combined.png', dpi=200)
 
     ####### PDPs #######
     fig, axs = plt.subplots(3,5, figsize=(15,10), sharey=True, gridspec_kw={'height_ratios':[1,1,0.05]})
@@ -405,7 +405,7 @@ def plot_rf_results(d_climate, d_dev, mean_vals, res_types, exp_name, mod_number
     axs[1,0].text(0, 1.1, 'LAND', transform=axs[1,0].transAxes, fontsize=22)
 
     lg = fig.legend(res_types, bbox_to_anchor=[0.5,0.1], ncol=2, loc='center', frameon=False)
-    fig.savefig(plot_dir + 'partial_dependence_combined.png', bbox_extra_artists =(lg,)) #  bbox_inches='tight', 
+    fig.savefig(plot_dir + 'partial_dependence_combined.png', bbox_extra_artists =(lg,), dpi=200) #  bbox_inches='tight', 
 
 if __name__ == '__main__':
     logging.config.fileConfig('logger.conf', defaults={'logfilename' : 'logs/{}.log'.format(os.path.basename(__file__)[:-3])})

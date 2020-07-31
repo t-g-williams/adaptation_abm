@@ -19,15 +19,26 @@ styles['plot_type'] = plot_type
 plt.style.use('fivethirtyeight')
 plt.style.use(styles[plot_type])
 
+import warnings
+warnings.simplefilter("ignore", UserWarning) # ImageGrid spits some annoying harmless warnings w.r.t. tight_layout
+
 def resilience(results, shock_mags, shock_times, T_res, exp_name, baseline_resilience, outcomes):
     savedir = '../outputs/{}/plots/resilience/'.format(exp_name)
     if not os.path.isdir(savedir):
         os.makedirs(savedir)
 
     adap_scenarios = list(results.keys())
+    
+    ## ALL AGENTS
     land_area = results[adap_scenarios[0]].columns   
     grid_plot(savedir, adap_scenarios, land_area, results, shock_mags, shock_times, T_res, exp_name, baseline_resilience, outcomes)
     # line_plots(savedir, adap_scenarios, land_area, results, shock_mags, shock_times, T_res, exp_name, baseline_resilience, outcomes)
+    
+    ## JUST MIDDLE AGENTS
+    grid_plot(savedir, adap_scenarios, [land_area[1]], results, shock_mags, shock_times, T_res, exp_name, baseline_resilience, outcomes, ext2='_middle')
+    # line_plots(savedir, adap_scenarios, land_area[1], results, shock_mags, shock_times, T_res, exp_name, baseline_resilience, outcomes, ext2='_middle')
+    # code.interact(local=dict(globals(), **locals()))
+    
 
 def policy_design_both_res_types(dev_cc, dev_ins, res_cc, res_ins, shock_mags, shock_times, T_res, T_dev, exp_name):
     '''
@@ -115,7 +126,7 @@ def policy_design_both_res_types(dev_cc, dev_ins, res_cc, res_ins, shock_mags, s
     for a, ax in enumerate(ax_flat):
         ax.grid(False)
         ax.text(0.02,0.98,labels[a], fontsize=20, transform=ax.transAxes, ha='left', va='top')
-    fig.savefig(savedir + 'policy_both_resilience_{}ha.png'.format(str(land_area).replace('.','_')), bbox_inches='tight')
+    fig.savefig(savedir + 'policy_both_resilience_{}ha.png'.format(str(land_area).replace('.','_')), bbox_inches='tight', dpi=200)
     # sys.exit()
     # code.interact(local=dict(globals(), **locals()))
 
@@ -176,7 +187,7 @@ def policy_design_dev_res(d_cc, d_ins, shock_mags, exp_name):
     axs[1,0].text(-0.2, 1.1, 'B: Legume cover', fontsize=28, transform=axs[1,0].transAxes)
 
     fig.savefig(savedir + 'policy_development_mag_{}.png'.format(mag_str),
-        bbox_inches='tight') 
+        bbox_inches='tight', dpi=200) 
     plt.close('all')
 
 def policy_design_single(d_cc, d_ins, shock_mags, shock_times, T_res, exp_name):
@@ -248,7 +259,7 @@ def policy_design_single(d_cc, d_ins, shock_mags, shock_times, T_res, exp_name):
         axs[1,0].text(-0.2, 1.1, 'B: Insurance', fontsize=28, transform=axs[1,0].transAxes)
 
         fig.savefig(savedir + 'policy_{}_shockyr_{}_assess_{}_mag_{}.png'.format(outcome, t_shock, t_res, mag_str),
-            bbox_inches='tight') 
+            bbox_inches='tight', dpi=200) 
         # code.interact(local=dict(globals(), **locals()))
         plt.close('all')
 
@@ -314,7 +325,7 @@ def policy_design_all(d_cc, d_ins, shock_mags, shock_times, T_res, exp_name):
                 axis = cax.axis[cax.orientation]
                 axis.label.set_text("P(CC>ins)")
                 fig.savefig(savedir + 'all_policy_{}_{}_{}ha_mag_{}.png'.format(outcome, policies[p], land, mag_str),
-                    bbox_inches='tight') 
+                    bbox_inches='tight', dpi=200) 
                 plt.close('all')
 
 def policy_design_all_combined(d_cc, d_ins, shock_mags, shock_times, T_res, exp_name):
@@ -382,7 +393,7 @@ def policy_design_all_combined(d_cc, d_ins, shock_mags, shock_times, T_res, exp_
             axis = cax.axis[cax.orientation]
             axis.label.set_text("P(CC>ins)")
             fig.savefig(savedir + 'combined_policy_{}_{}_mag_{}_shockyr{}.png'.format(outcome, policies[i], mag_str, t_shock),
-                bbox_inches='tight') 
+                bbox_inches='tight', dpi=200) 
             plt.close('all')
 
 def shock_mag_grid_plot(results, shock_mags, shock_times, T_res, exp_name, baseline_resilience, outcomes):
@@ -431,12 +442,12 @@ def shock_mag_grid_plot(results, shock_mags, shock_times, T_res, exp_name, basel
             axis.label.set_text("P(CC>ins)")
 
             ext = '_baseline' if baseline_resilience else ''
-            fig.savefig(savedir + '{}_shock_magnitude_grid{}_shockyr_{}.png'.format(outcome, ext, shock_time), bbox_inches='tight') 
+            fig.savefig(savedir + '{}_shock_magnitude_grid{}_shockyr_{}.png'.format(outcome, ext, shock_time), bbox_inches='tight', dpi=200) 
             # sys.exit()
             # code.interact(local=dict(globals(), **locals()))
             plt.close('all')
 
-def grid_plot(savedir, adap_scenarios, land_area, results, shock_mags, shock_times, T_res, exp_name, baseline_resilience, outcomes):
+def grid_plot(savedir, adap_scenarios, land_area, results, shock_mags, shock_times, T_res, exp_name, baseline_resilience, outcomes, ext2=''):
     '''
     for each agent type, plot a grid showing P(CC>ins) as a function of T_res and T_shock
     '''
@@ -467,7 +478,10 @@ def grid_plot(savedir, adap_scenarios, land_area, results, shock_mags, shock_tim
                     # ax.set_yticklabels([])
                 else:
                     ax.set_ylabel(r'Assessment period ($T_{assess}$)')
-                ax.set_title('{} ha'.format(land))
+                if len(land_area)>1:
+                    ax.set_title('{} ha'.format(land))
+                else:
+                    ax.set_title('')
                 ax.set_xlabel(r'Time of shock ($T_{shock}$)')
 
             # color bar
@@ -477,7 +491,7 @@ def grid_plot(savedir, adap_scenarios, land_area, results, shock_mags, shock_tim
             axis.label.set_text("P(CC>ins)")
 
             ext = '_baseline' if baseline_resilience else ''
-            fig.savefig(savedir + '{}_shock_grid_{}{}.png'.format(outcome, mag, ext), bbox_inches='tight')
+            fig.savefig(savedir + '{}_shock_grid_{}{}{}.png'.format(outcome, mag, ext, ext2), bbox_inches='tight', dpi=200)
             plt.close('all')
 
 def line_plots(savedir, adap_scenarios, land_area, results, shock_mags, shock_times, T_res, exp_name, baseline_resilience, outcomes):
@@ -535,5 +549,5 @@ def line_plots(savedir, adap_scenarios, land_area, results, shock_mags, shock_ti
 
             fig.tight_layout()
             ext = '_baseline' if baseline_resilience else ''
-            fig.savefig(savedir + '{}_shock_effects_{}{}.png'.format(outcome, mag_str, ext))
+            fig.savefig(savedir + '{}_shock_effects_{}{}.png'.format(outcome, mag_str, ext), dpi=200)
             plt.close('all')

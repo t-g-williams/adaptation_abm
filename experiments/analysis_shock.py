@@ -25,13 +25,16 @@ from tqdm import tqdm
 import multiprocessing
 import logging
 import logging.config
+logger = logging.getLogger('sLogger')
+
 
 def main():
-    exp_name_base = 'es_r1_cc_climate' # base experiment name -- for reading POM outputs and writing outputs
+    exp_name_POM = 'es_r1_baseline' # for reading POM outputs
+    exp_name_base = 'es_r1_95kgN_ha' # for writing outputs
     solution_numbers = [0] # the id numbers of the POM solutions
     ncores = 40 # number of cores for parallelization
     load = True # load pre-saved outputs?
-    nreps = 100 # for the simulation
+    nreps = 300 # for the simulation
 
     for solution_number in solution_numbers:
         exp_name = '{}/model_{}'.format(exp_name_base, solution_number)
@@ -41,7 +44,7 @@ def main():
         # load from POM experiment
         pom_nvars = 100000
         pom_nreps = 10
-        f = '../outputs/{}/POM/{}_{}reps/input_params_{}.pkl'.format(exp_name_base, pom_nvars, pom_nreps, solution_number)
+        f = '../outputs/{}/POM/{}_{}reps/input_params_{}.pkl'.format(exp_name_POM, pom_nvars, pom_nreps, solution_number)
         inp_base = pickle.load(open(f, 'rb'))
         # manually specify some variables (common to all scenarios)
         inp_base['model']['n_agents'] = 200
@@ -65,10 +68,10 @@ def main():
         assess_resilience(exp_name, inp_base, adap_scenarios, load, ncores, nreps)
 
         # ## B: vary shock magnitude
-        # vary_magnitude(exp_name, inp_base, adap_scenarios, load, ncores, nreps)
+        vary_magnitude(exp_name, inp_base, adap_scenarios, load, ncores, nreps)
 
         # ## C: effect of policy design
-        # policy_design(exp_name, inp_base, adap_scenarios, load, ncores, nreps)
+        policy_design(exp_name, inp_base, adap_scenarios, load, ncores, nreps)
 
 def policy_design(exp_name, inp_base, adap_scenarios, load, ncores, nreps):
     '''
@@ -239,7 +242,7 @@ def assess_resilience(exp_name, inp_base, adap_scenarios, load, ncores, nreps):
     shock_plot.resilience(results, shock_mags, shock_times, T_res, exp_name, False, outcomes) # baseline_resilience=False --> this means the shock effects are calculated relative to {policy,no_shock} 
     shock_plot.resilience(results_baseline, shock_mags, shock_times, T_res, exp_name, True, outcomes) # here baseline_resilience=True, so measured relative to {baseline, no_shock}
 
-def run_dev_res_sims(exp_name, nreps, inp_base, adap_scenarios, ncores, T_dev, load=True):
+def run_dev_res_sims(exp_name, nreps, inp_base, adap_scenarios, ncores, T_dev, load=True, return_all=False):
     '''
     loop over the adaptation and shock scenarios
     '''
@@ -255,7 +258,10 @@ def run_dev_res_sims(exp_name, nreps, inp_base, adap_scenarios, ncores, T_dev, l
     # load if results already saved
     if load and os.path.exists(savename):
         results = pickle.load(open(savename, 'rb'))
-        return np.mean(results['cover_crop'] > results['insurance'], axis=1)
+        if return_all:
+            return results
+        else:
+            return np.mean(results['cover_crop'] > results['insurance'], axis=1)
     
     for scenario, scenario_params in adap_scenarios.items():
         # different savename for the baseline and non-baseline
@@ -283,8 +289,11 @@ def run_dev_res_sims(exp_name, nreps, inp_base, adap_scenarios, ncores, T_dev, l
     with open(savename, 'wb') as f:
         pickle.dump(results, f)
     
-    output = np.mean(results['cover_crop'] > results['insurance'], axis=1)
-    return output
+    if return_all:
+        return results
+    else:
+        output = np.mean(results['cover_crop'] > results['insurance'], axis=1)
+        return output
 
 def run_shock_sims(exp_name, nreps, inp_base, adap_scenarios, shock_mags, shock_times, ncores, T_res, outcomes, load=True, flat_reps=True):
     '''
@@ -300,6 +309,7 @@ def run_shock_sims(exp_name, nreps, inp_base, adap_scenarios, shock_mags, shock_
     results_baseline = {}
 
     for scenario, scenario_params in adap_scenarios.items():
+        logger.info(scenario)
         # different savename for the baseline and non-baseline
         savename = '{}/{}reps_{}.csv'.format(outdir, nreps, scenario)
         savename2 = '{}/{}reps_{}_baseline.csv'.format(outdir, nreps, scenario)
@@ -327,7 +337,7 @@ def run_shock_sims(exp_name, nreps, inp_base, adap_scenarios, shock_mags, shock_
 
         # for resilience assessment: subtract values from the no_intervention scenario?
         if scenario == 'baseline': # use "baseline" scenario's values as no_shock
-            no_shock_base = no_shock
+            no_shock_base = no_shock # note: this fails if some scenarios have been run already -- need to re-run all
 
         
         # create dataframes to store outputs
