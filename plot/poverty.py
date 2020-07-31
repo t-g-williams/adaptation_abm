@@ -5,8 +5,10 @@ import matplotlib.pyplot as plt
 import code
 import brewer2mpl
 import os
+import string
 import copy
 import sys
+import matplotlib.transforms as transforms
 from . import plot_style
 plot_type = 'paper'#'presentation_black_bg'
 styles = plot_style.create() # get the plotting styles
@@ -22,16 +24,26 @@ def main(mods, nreps, inp_base, scenarios, exp_name, T, shock_years=[]):
     plot each agent type (number of plots) separately
     this assumes there's 3 agent types
     '''
-    savedir = '../outputs/{}/'.format(exp_name)
+    savedir = '../outputs/{}/plots/'.format(exp_name)
     if not os.path.isdir(savedir):
         os.makedirs(savedir)
 
     if len(shock_years) == 0:
+        ## FOR PAPER
+        time_plot_combined(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
+        time_plot('util', 'E[utility]', mods, nreps, inp_base, scenarios, exp_name, T, savedir, risk_tol=500)
+        time_plot('util', 'E[utility]', mods, nreps, inp_base, scenarios, exp_name, T, savedir, risk_tol=1000)
+        time_plot('util', 'E[utility]', mods, nreps, inp_base, scenarios, exp_name, T, savedir, risk_tol=3000)
+        time_plot('util', 'E[utility]', mods, nreps, inp_base, scenarios, exp_name, T, savedir, risk_tol=5000)
+        time_plot('var_income', 'std.dev(income)', mods, nreps, inp_base, scenarios, exp_name, T, savedir)
+        time_plot('exp_income', 'E[income]', mods, nreps, inp_base, scenarios, exp_name, T, savedir)
+        time_plot('poverty', 'P(wealth > 0)', mods, nreps, inp_base, scenarios, exp_name, T, savedir)
+        # code.interact(local=dict(globals(), **locals()))
+
+        # OLD PLOTS
         # only run these for the adaptation scenarios -- this assumes the length of shock years here is zero
         # poverty_trap_combined(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
         # poverty_trap(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
-        wealth_probabilities(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
-        wealth_probabilities(mods, nreps, inp_base, scenarios, exp_name, T, savedir, pos=True)
         # combined_wealth_income(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
         # agent_trajectories(mods, nreps, inp_base, scenarios, exp_name, T, savedir, 'wealth')
         # agent_trajectories(mods, nreps, inp_base, scenarios, exp_name, T, savedir, 'income')
@@ -156,13 +168,92 @@ def poverty_trap(mods, nreps, inp_base, scenarios, exp_name, T, savedir):
     plt.close('all')
     # code.interact(local=dict(globals(), **locals()))
 
-def wealth_probabilities(mods, nreps, inp_base, scenarios, exp_name, T, savedir, pos=False):
+def time_plot_combined(mods, nreps, inp_base, scenarios, exp_name, T, savedir):
     '''
-    plot the probability that each agents' wealth is below zero over time
+    plot the specified outcome over time for each agent type
+    '''
+    outcomes = ['poverty','exp_income','var_income']
+    ylabs = ['P(wealth > 0)','E[income]','std.dev(income)']
+
+    lands = inp_base['agents']['land_area_init']
+    titles = ['Land poor','Middle','Land rich']
+    burnin = inp_base['adaptation']['burnin_period']
+    fig, ax_all = plt.subplots(len(outcomes)+1,len(lands), figsize=(5*len(lands), 3*len(outcomes)+0.5), sharey='row', gridspec_kw={'height_ratios':[1]*len(outcomes)+[0.05],
+        'hspace':0.15,'wspace':0.075})
+    axs = ax_all[:-1]
+    [axi.remove() for axi in ax_all[-1,:]]
+    ax_flat = axs.flatten()
+    cols = {'baseline':'k','cover_crop':'r','insurance':'b','both':'g'}
+    lss = {'baseline':'-','cover_crop':'--','insurance':'-.','both':':'}
+
+    for n, land_area in enumerate(lands):
+        for scenario, mods_sc in mods.items():
+            m = scenario
+            ## get the relevant outcome data
+            for o,outcome in enumerate(outcomes):
+                if outcome == 'poverty': # plot probability of non-poverty (wealth>0) over time
+                    d = mods_sc['wealth']
+                    xs = np.arange(T+burnin+1)
+                elif outcome in ['exp_income','var_income','util']:
+                    d = mods_sc['income']
+                    xs = np.arange(T+burnin)
+
+                # flatten it
+                all_d = []
+                for r in range(nreps):
+                    agents = mods_sc['land_area'][r] == land_area
+                    all_d.append(list(d[r,:,agents]))
+                all_d = np.array([item for sublist in all_d for item in sublist])
+                # ^ this is (agents, time) shape
+
+                # extract the relevant info for plotting
+                if outcome == 'poverty':
+                    plt_data = np.mean(all_d>0, axis=0)
+                elif outcome == 'exp_income':
+                    plt_data = all_d.mean(0)
+                elif outcome == 'var_income':
+                    plt_data = np.std(all_d, axis=0)
+
+                axs[o,n].plot(xs, plt_data, label=scenario, lw=2, ls=lss[m], color=cols[m])#, marker='o')
+                
+                if outcome in ['exp_income','util']:
+                    axs[o,n].axhline(0, color='k', lw=1)
+
+    for a, ax in enumerate(ax_flat):
+        ax.grid(False)
+        trans = transforms.blended_transform_factory(ax.transData, ax.transAxes)
+        ax.fill_between([0,burnin], [0,0],[1,1], color='0.5', alpha=0.3, label='burn-in', transform=trans)
+        ax.set_xticks(np.arange(0,T+burnin+1,10))
+        ax.set_xlim([0,T+burnin+1])
+    for a, ax in enumerate(axs[0]):
+        ax.set_title(titles[a])
+    for a, ax in enumerate(axs[-1]):
+        ax.set_xlabel('Year')
+    for a, ax in enumerate(axs[:-1].flatten()):
+        ax.set_xticks(np.arange(0,T+burnin+1,10))
+        ax.set_xticklabels([])
+
+    for a, ax in enumerate(axs[:,0]):
+        ax.set_ylabel(ylabs[a])
+    for a, ax in enumerate(axs[0]): # poverty
+        ax.set_ylim([0,1])
+
+    for o,outc in enumerate(outcomes):
+        axs[o,0].text(-0.2,1,string.ascii_uppercase[o],ha='right',va='top',transform=axs[o,0].transAxes, fontsize=24)
+
+    lg = fig.legend(list(mods.keys()) + ['burn-in'], loc=10, bbox_to_anchor=(0.5, 0.01), ncol=len(mods)+1, frameon=False)
+    fig.tight_layout()
+    ext = '_{}'.format(risk_tol) if outcome == 'util' else ''
+    fig.savefig(savedir + 'time_plot_combined.png', bbox_extra_artists=(lg,), dpi=200)
+    plt.close('all')
+    sys.exit()
+
+def time_plot(outcome, ylab, mods, nreps, inp_base, scenarios, exp_name, T, savedir, risk_tol=False):
+    '''
+    plot the specified outcome over time for each agent type
     '''
     lands = inp_base['agents']['land_area_init']
     titles = ['Land poor','Middle','Land rich']
-    # lss = ['-','--',':']
     burnin = inp_base['adaptation']['burnin_period']
     fig, ax_all = plt.subplots(2,len(lands), figsize=(5*len(lands), 4), sharey=True, gridspec_kw={'height_ratios':[1,0.05]})
     axs = ax_all[0]
@@ -171,42 +262,59 @@ def wealth_probabilities(mods, nreps, inp_base, scenarios, exp_name, T, savedir,
     lss = {'baseline':'-','cover_crop':'--','insurance':'-.','both':':'}
 
     for n, land_area in enumerate(lands):
-        ss = 0
         for scenario, mods_sc in mods.items():
             m = scenario
-            ## calculate the wealth mean and std dev over time
-            # extract and format the wealth info
-            w = mods_sc['wealth']
-            all_wealth = []
+            ## get the relevant outcome data
+            if outcome == 'poverty': # plot probability of non-poverty (wealth>0) over time
+                d = mods_sc['wealth']
+                xs = np.arange(T+burnin+1)
+            elif outcome in ['exp_income','var_income','util']:
+                d = mods_sc['income']
+                xs = np.arange(T+burnin)
+
+            # flatten it
+            all_d = []
             for r in range(nreps):
                 agents = mods_sc['land_area'][r] == land_area
-                all_wealth.append(list(w[r,:,agents]))
-            all_wealth = np.array([item for sublist in all_wealth for item in sublist])
+                all_d.append(list(d[r,:,agents]))
+            all_d = np.array([item for sublist in all_d for item in sublist])
             # ^ this is (agents, time) shape
-            # extract mean and variance
-            if pos:
-                probs_t = np.mean(all_wealth>0, axis=0)
-            else:
-                probs_t = np.mean(all_wealth<=0, axis=0)
-            axs[n].plot(np.arange(T+burnin+1), probs_t, label=scenario, lw=1.5, ls=lss[m], color=cols[m])#, marker='o')
-            ss += 1
 
-        l = axs[n].get_ylim()
-        axs[n].fill_between([0,burnin], [l[0],l[0]], [l[1],l[1]], color='0.5', alpha=0.3, label='burn-in')
-        axs[n].set_ylim(l)
+            # extract the relevant info for plotting
+            if outcome == 'poverty':
+                plt_data = np.mean(all_d>0, axis=0)
+            elif outcome == 'exp_income':
+                plt_data = all_d.mean(0)
+            elif outcome == 'var_income':
+                plt_data = np.std(all_d, axis=0)
+            elif outcome == 'util':
+                utils = np.full(all_d.shape, np.nan)
+                utils[all_d>0] = (1 - np.exp(-all_d / risk_tol))[all_d>0]
+                utils[all_d<=0] = -(1 - np.exp(all_d / risk_tol))[all_d<=0]
+                plt_data = utils.mean(0)
 
+            axs[n].plot(xs, plt_data, label=scenario, lw=2, ls=lss[m], color=cols[m])#, marker='o')
+
+    limz = axs[n].get_ylim()
     for a, ax in enumerate(axs):
         ax.grid(False)
         ax.set_xlabel('Year')
         ax.set_title(titles[a])
-    ylab = 'P(wealth > 0)' if pos else 'P(wealth = 0)'
+        ax.fill_between([0,burnin], [-9e10,-9e10], [9e10,9e10], color='0.5', alpha=0.3, label='burn-in')
+    [ax.set_ylim(limz) for ax in axs] # re-set the y lims
     axs[0].set_ylabel(ylab)
-    # axs[1].legend(loc=10, bbox_to_anchor=(0.5, -0.3), ncol=3, frameon=False)
+    
+    # plot-specific formatting
+    if outcome == 'poverty':
+        [ax.set_ylim([0,1]) for ax in axs] # re-set the y lims
+    elif outcome in ['exp_income','util']:
+        [ax.axhline(0, color='k', lw=1) for ax in axs]
+
+
     lg = fig.legend(list(mods.keys()) + ['burn-in'], loc=10, bbox_to_anchor=(0.5, 0.1), ncol=len(mods)+1, frameon=False)
     fig.tight_layout()
-    ext = 'pos' if pos else 'neg'
-    fig.savefig(savedir + '{}_wealth_prob_combined.png'.format(ext), bbox_extra_artists=(lg,), dpi=200)
-    # code.interact(local=dict(globals(), **locals()))
+    ext = '_{}'.format(risk_tol) if outcome == 'util' else ''
+    fig.savefig(savedir + 'time_plot_{}{}.png'.format(outcome,ext), bbox_extra_artists=(lg,), dpi=200)
     plt.close('all')
 
 def combined_wealth_income(mods, nreps, inp_base, scenarios, exp_name, T, savedir):
