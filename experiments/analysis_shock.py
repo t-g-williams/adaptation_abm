@@ -29,8 +29,8 @@ logger = logging.getLogger('sLogger')
 
 
 def main():
-    exp_name_POM = 'es_r1_baseline' # for reading POM outputs
-    exp_name_base = 'es_r1_95kgN_ha' # for writing outputs
+    exp_name_POM = 'es_r1_fertilizer' # for reading POM outputs
+    exp_name_base = 'es_r1_fertilizer' # for writing outputs
     solution_numbers = [0] # the id numbers of the POM solutions
     ncores = 40 # number of cores for parallelization
     load = True # load pre-saved outputs?
@@ -68,10 +68,10 @@ def main():
         assess_resilience(exp_name, inp_base, adap_scenarios, load, ncores, nreps)
 
         # ## B: vary shock magnitude
-        vary_magnitude(exp_name, inp_base, adap_scenarios, load, ncores, nreps)
+        # vary_magnitude(exp_name, inp_base, adap_scenarios, load, ncores, nreps)
 
-        # ## C: effect of policy design
-        policy_design(exp_name, inp_base, adap_scenarios, load, ncores, nreps)
+        # # ## C: effect of policy design
+        # policy_design(exp_name, inp_base, adap_scenarios, load, ncores, nreps)
 
 def policy_design(exp_name, inp_base, adap_scenarios, load, ncores, nreps):
     '''

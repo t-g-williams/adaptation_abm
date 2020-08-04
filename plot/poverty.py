@@ -38,6 +38,7 @@ def main(mods, nreps, inp_base, scenarios, exp_name, T, shock_years=[]):
         time_plot('var_income', 'std.dev(income)', mods, nreps, inp_base, scenarios, exp_name, T, savedir)
         time_plot('exp_income', 'E[income]', mods, nreps, inp_base, scenarios, exp_name, T, savedir)
         time_plot('poverty', 'P(wealth > 0)', mods, nreps, inp_base, scenarios, exp_name, T, savedir)
+        time_plot('fert_choice', 'P(choose fertilizer)', mods, nreps, inp_base, scenarios, exp_name, T, savedir)
         # code.interact(local=dict(globals(), **locals()))
 
         # OLD PLOTS
@@ -246,7 +247,7 @@ def time_plot_combined(mods, nreps, inp_base, scenarios, exp_name, T, savedir):
     ext = '_{}'.format(risk_tol) if outcome == 'util' else ''
     fig.savefig(savedir + 'time_plot_combined.png', bbox_extra_artists=(lg,), dpi=200)
     plt.close('all')
-    sys.exit()
+    # sys.exit()
 
 def time_plot(outcome, ylab, mods, nreps, inp_base, scenarios, exp_name, T, savedir, risk_tol=False):
     '''
@@ -271,6 +272,9 @@ def time_plot(outcome, ylab, mods, nreps, inp_base, scenarios, exp_name, T, save
             elif outcome in ['exp_income','var_income','util']:
                 d = mods_sc['income']
                 xs = np.arange(T+burnin)
+            elif outcome == 'fert_choice':
+                d = mods_sc['fert_choice']
+                xs = np.arange(T+burnin)
 
             # flatten it
             all_d = []
@@ -283,7 +287,7 @@ def time_plot(outcome, ylab, mods, nreps, inp_base, scenarios, exp_name, T, save
             # extract the relevant info for plotting
             if outcome == 'poverty':
                 plt_data = np.mean(all_d>0, axis=0)
-            elif outcome == 'exp_income':
+            elif outcome in ['exp_income','fert_choice']:
                 plt_data = all_d.mean(0)
             elif outcome == 'var_income':
                 plt_data = np.std(all_d, axis=0)

@@ -40,7 +40,7 @@ class Land():
         self.organic_N_max_init = self.organic_N_min_init
         self.organic[0] = np.random.uniform(self.organic_N_min_init, self.organic_N_max_init, self.n_plots)
 
-    def update_soil(self, agents, adap_properties, climate):
+    def update_soil(self, agents, adap_properties, climate, decision=False):
         '''
         simulate the evolution of the land throughout the year
         '''
@@ -55,7 +55,7 @@ class Land():
         organic -= mineralization
 
         ### agent inputs
-        # inorganic += self.apply_fixed_fertilizer(agents) # kgN/ha ## NOT IN MODEL YET
+        inorganic += self.apply_fixed_fertilizer(agents) # kgN/ha ## NOT IN MODEL YET
         residue = self.crop_residue_input()
         livestock = self.livestock_SOM_input(agents) # kgN/ha
         cover_crop = self.cover_crop_input(agents, adap_properties, climate) # kgN/ha
@@ -72,9 +72,12 @@ class Land():
         inorganic -= losses
         inorganic[inorganic < 0] = 0 # constrain
 
-        ### save final values
-        self.inorganic[self.t[0]] = inorganic # end of this year (for yields)
-        self.organic[self.t[0]+1] = organic # start of next year
+        if decision:
+            return inorganic, organic # for decision-making
+        else:
+            ### save final values
+            self.inorganic[self.t[0]] = inorganic # end of this year (for yields)
+            self.organic[self.t[0]+1] = organic # start of next year
 
     def crop_residue_input(self):
         '''
@@ -182,13 +185,12 @@ class Land():
         only for agents that are using this option
         '''
         fert_applied = np.full(self.n_plots, 0.)
-        ag = agents.adapt['fertilizer_fixed'][agents.t[0]]
+        ag = agents.fert_choice[agents.t[0]]
         if np.sum(ag) > 0:
             # add to the fields
             fields = np.in1d(self.owner, agents.id[ag]) # identify the fields
-            amt = self.all_inputs['adaptation']['fertilizer_fixed']['application_rate']
-            fert_applied[fields] = amt
+            fert_applied[fields] = agents.fert_kg
             # add costs to agents
-            agents.fert_costs[agents.t[0], ag] += amt * agents.fertilizer_cost * agents.land_area[ag]
+            agents.fert_costs[agents.t[0], ag] = agents.fert_kg * agents.fertilizer_cost * agents.land_area[ag]
         
         return fert_applied    

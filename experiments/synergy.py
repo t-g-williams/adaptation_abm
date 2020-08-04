@@ -32,8 +32,8 @@ import warnings
 warnings.simplefilter("ignore", UserWarning) # ImageGrid spits some annoying harmless warnings w.r.t. tight_layout
 
 def main():
-    exp_name_POM = 'es_r1_baseline' # for reading POM outputs
-    exp_name_base = 'es_r1_95kgN_ha' # for writing outputs
+    exp_name_POM = 'es_r1_fertilizer' # for reading POM outputs
+    exp_name_base = 'es_r1_fertilizer' # for writing outputs
     solution_number = 0 # the id number of the POM solutions
     ncores = 40 # number of cores for parallelization
     load = True # load pre-saved outputs?
@@ -56,6 +56,8 @@ def main():
     inp_base['agents']['land_area_multiplier'] = 1
     inp_base['adaptation']['cover_crop']['climate_dependence'] = True
 
+    T_dev = 20 # time period for development resilience simulations
+
     #### adaptation scenarios
     adap_scenarios = {
         'baseline' : {'model' : {'adaptation_option' : 'none'}},
@@ -65,21 +67,20 @@ def main():
     }
 
     #### SHOCK RESILIENCE
-    [results, results_baseline, results_dev] = assess_synergies(exp_name, inp_base, adap_scenarios, load, ncores, nreps)
+    [results, results_baseline, results_dev] = assess_synergies(exp_name, inp_base, adap_scenarios, load, ncores, nreps, T_dev)
     plot_synergy(exp_name, adap_scenarios, inp_base, results, results_baseline, results_dev)
 
     #### POVERTY REDUCTION
     mods = analysis_poverty.multi_mod_run(nreps, inp_base, adap_scenarios, ncores)
-    plt_pov.main(mods, nreps, inp_base, scenarios, exp_name, T, shock_years)
+    plt_pov.main(mods, nreps, inp_base, adap_scenarios, exp_name, T_dev)
 
-def assess_synergies(exp_name, inp_base, adap_scenarios, load, ncores, nreps):
+def assess_synergies(exp_name, inp_base, adap_scenarios, load, ncores, nreps, T_dev):
     '''
     compare the strategies over the dimensions of shock (t_shock, t_res)
     '''
     shock_mags = [0.1,0.2]#,0.3]
     shock_times = np.arange(2,51,step=2) # measured after the burn-in period (T_shock in paper)
     T_res = np.arange(1,15) # how many years to calculate effects over
-    T_dev = 20 # time period for development resilience simulations
     inp_base['model']['T'] = shock_times[-1] + T_res[-1] + inp_base['adaptation']['burnin_period'] + 1
     outcomes = ['wealth','income']
 

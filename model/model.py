@@ -34,6 +34,8 @@ class Model():
         '''
         advance the simulation by one year
         '''
+        if self.agents.fertilizer:
+            self.agents.fertilizer_decisions(self.land, self.adap_properties, self.climate)
         self.land.update_soil(self.agents, self.adap_properties, self.climate)
         self.land.crop_yields(self.agents, self.climate)
         self.agents.calculate_income(self.land, self.climate, self.adap_properties)

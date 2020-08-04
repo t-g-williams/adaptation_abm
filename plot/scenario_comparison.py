@@ -141,6 +141,8 @@ def agent_type_plots(mods, savedir):
     ax5s = [fig5.add_subplot(311),fig5.add_subplot(312),fig5.add_subplot(313)]
     fig8 = plt.figure(figsize=(18,6))
     ax8s = [fig8.add_subplot(131),fig8.add_subplot(132),fig8.add_subplot(133)]
+    fig10 = plt.figure(figsize=(18,6))
+    ax10s = [fig10.add_subplot(131),fig10.add_subplot(132),fig10.add_subplot(133)]
     ii = 0
     shock = False
     for m, mod in mods.items():
@@ -159,6 +161,7 @@ def agent_type_plots(mods, savedir):
             ax3s[a].plot(np.median(mod.land.organic[:,ag], axis=1), label=m, color=colors[ii])
             ax4s[a].plot(mod.agents.wealth[:,ag], color=colors[ii])#, lw=0.5)
             ax5s[a].plot(mod.land.organic[:,ag], color=colors[ii])#, lw=0.5)
+            ax10s[a].plot(mod.agents.fert_choice[:,ag].mean(1), color=colors[ii], label=m)#, lw=0.5)
             ax6s[a].plot(np.median(mod.agents.income[:,ag], axis=1), label=m, color=colors[ii])
             ax9s[a].plot(np.median(mod.agents.income[:,ag], axis=1), label=m, color=colors[ii])
             ax7s[a].plot(np.median(mod.land.yields[:,ag], axis=1), label=m, color=colors[ii])
@@ -177,6 +180,7 @@ def agent_type_plots(mods, savedir):
         ax9s[a].set_title('Income : agent type {}'.format(a+1))
         ax7s[a].set_title('Yield : agent type {}'.format(a+1))
         ax8s[a].set_title('Yield : agent type {}'.format(a+1))
+        ax10s[a].set_title('P(choose fert) : agent type {}'.format(a+1))
         axs[a].set_ylabel('Birr')
         ax4s[a].set_ylabel('Birr')
         ax2s[a].set_ylabel('P(coping rqd)')
@@ -186,12 +190,14 @@ def agent_type_plots(mods, savedir):
         ax9s[a].set_ylabel('Income')
         ax7s[a].set_ylabel('kg/ha')
         ax8s[a].set_ylabel('kg/ha')
+        ax10s[a].set_ylabel('Probability')
         ax8s[a].set_xlabel('Rainfall')
         axs[a].legend()
         ax2s[a].legend()
         ax3s[a].legend()
         ax6s[a].legend()
         ax9s[a].legend()
+        ax10s[a].legend()
         axs[a].axhline(y=0, color='k', ls=':')
         ax4s[a].axhline(y=0, color='k', ls=':')
         ax3s[a].axhline(y=0, color='k', ls=':')
@@ -223,6 +229,7 @@ def agent_type_plots(mods, savedir):
         fig6.savefig(savedir + 'type_income.png')
         fig9.savefig(savedir + 'type_income_horiz.png')
         fig7.savefig(savedir + 'type_yields.png')
+        fig10.savefig(savedir + 'type_fertilizer.png')
 
 def soil_wealth(mods, savedir):
     fig = plt.figure(figsize=(12,4))

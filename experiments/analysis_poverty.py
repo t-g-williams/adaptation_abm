@@ -19,9 +19,9 @@ from tqdm import tqdm
 import multiprocessing
 
 def main():
-    nreps = 1000
-    exp_name_POM = 'es_r1_baseline' # for reading POM outputs
-    exp_name_base = 'es_r1_95kgN_ha' # for writing outputs
+    nreps = 300
+    exp_name_POM = 'es_r1_fertilizer' # for reading POM outputs
+    exp_name_base = 'es_r1_fertilizer' # for writing outputs
     ncores = 25
     soln_number = 0
 
@@ -82,6 +82,7 @@ def multi_mod_run(nreps, inp_base, scenarios, ncores):
             'organic' : np.array([oi.astype(int) for tmp_i in tmp for oi in tmp_i['organic']]), # each rep is different length
             'land_area' : np.array([oi for tmp_i in tmp for oi in tmp_i['land_area']]),
             'coping' : np.array([oi for tmp_i in tmp for oi in tmp_i['coping']]),
+            'fert_choice' : np.array([oi for tmp_i in tmp for oi in tmp_i['fert_choice']]),
             'owners' : np.array([oi for tmp_i in tmp for oi in tmp_i['owners']]),
             'income' : np.array([oi for tmp_i in tmp for oi in tmp_i['income']]).astype(int),
             'yields' : np.array([oi for tmp_i in tmp for oi in tmp_i['yields']]).astype(int),
@@ -96,7 +97,7 @@ def run_chunk_reps(reps, params):
     '''
     params = copy.copy(params)
     ms = {'wealth' : [], 'organic' : [], 'coping' : [], 'land_area' : [], 'owners' : [],
-        'income' : [], 'yields' : [], 'climate' : []}
+        'income' : [], 'yields' : [], 'climate' : [], 'fert_choice' : []}
     # with tqdm(reps, disable = not True) as pbar:
     for r in reps:
         params['model']['seed'] = r # set the seed
@@ -114,6 +115,7 @@ def run_chunk_reps(reps, params):
         ms['income'].append(m.agents.income)
         ms['yields'].append(m.land.yields)
         ms['climate'].append(m.climate.rain)
+        ms['fert_choice'].append(m.agents.fert_choice)
         # pbar.update()
         # if params['model']['adaptation_option'] == 'cover_crop':
         #     code.interact(local=dict(globals(), **locals()))

@@ -44,6 +44,7 @@ def adaptation():
     return d
 
 def agents():
+    climate_inp = climate()
     d = {
         # adaptation / decision-making
         'adap_type' : 'always', # coping, switching, affording, or always
@@ -64,6 +65,14 @@ def agents():
         'crop_sell_price' : 2.17, # 2.17 birr/kg. mean 2015 maize price (FAO)
         'fertilizer_cost' : 13.2, # 13.2 birr/kg. median from 2015 LSMS
         'livestock_cost' : 3000, # birr/head. Ethiopia CSA data 2015
+
+        #### fertilizer parameters ####
+        'fertilizer' : True, # binary switch -- is it included in the model?
+        'fert_cash_constrained' : True, # switch: do cash constraints prohibit use of fertilizer?
+        'fert_use_savings' : True,
+        'risk_tolerance' : 3000,
+        'fert_kg' : 50,
+        'nsim_utility' : 10,
     }
     return d
 
