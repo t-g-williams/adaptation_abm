@@ -67,12 +67,13 @@ def main():
     }
 
     #### SHOCK RESILIENCE
-    [results, results_baseline, results_dev] = assess_synergies(exp_name, inp_base, adap_scenarios, load, ncores, nreps, T_dev)
-    plot_synergy(exp_name, adap_scenarios, inp_base, results, results_baseline, results_dev)
+    # [results, results_baseline, results_dev] = assess_synergies(exp_name, inp_base, adap_scenarios, load, ncores, nreps, T_dev)
+    # plot_synergy(exp_name, adap_scenarios, inp_base, results, results_baseline, results_dev)
 
     #### POVERTY REDUCTION
+    inp_base['model']['T'] = T_dev + inp_base['adaptation']['burnin_period']
     mods = analysis_poverty.multi_mod_run(nreps, inp_base, adap_scenarios, ncores)
-    plt_pov.main(mods, nreps, inp_base, adap_scenarios, exp_name, T_dev)
+    plt_pov.main(mods, nreps, inp_base, adap_scenarios, exp_name, T_dev, dir_ext='synergy/')
 
 def assess_synergies(exp_name, inp_base, adap_scenarios, load, ncores, nreps, T_dev):
     '''
@@ -125,7 +126,7 @@ def plot_synergy(exp_name, adap_scenarios, inp_base, shock, base, dev):
     cax = axs.cbar_axes[0]
     cbar = cax.colorbar(hm)
     axis = cax.axis[cax.orientation]
-    axis.label.set_text("Average annual income benefit (birr)")
+    axis.label.set_text("Average income benefit (birr/yr)")
     fig.savefig(savedir + 'shock_resilience_grid.png', dpi=200,bbox_inches='tight')
 
     ### synergies
@@ -141,8 +142,27 @@ def plot_synergy(exp_name, adap_scenarios, inp_base, shock, base, dev):
     axis.label.set_text("Synergy (E[birr/year])")
     fig.savefig(savedir + 'synergy_grid.png', dpi=200,bbox_inches='tight')
     plt.close('all')
-    sys.exit()
-    code.interact(local=dict(globals(), **locals()))    
+    # sys.exit()
+
+    ## are benefits of both greater than the single option?
+    fig = plt.figure(figsize=(6*2, 5))
+    axs = ImageGrid(fig, 111, nrows_ncols=(1,2), axes_pad=0.5, add_all=True, label_mode='L',
+        cbar_mode='single',cbar_location='right', aspect=False)
+    plt_vals = [-(both-cc),-(both-ins)]
+    mm = np.abs(np.array(plt_vals)).max()
+    titls = ['both - cover_crop', 'both - insurance']
+    for a, ax in enumerate(axs):
+        hm = (plt_vals[a]).to_xarray().plot(ax=ax, cmap='bwr',add_colorbar=False, vmin=-mm,vmax=mm)# plot the -ve b/c -ve values are good
+        ax.set_title(titls[a])
+        ax.set_xlabel(r'Time of shock ($T_{shock}$)')
+    axs[0].set_ylabel(r'Assessment period ($T_{assess}$)')
+    cax = axs.cbar_axes[0]
+    cbar = cax.colorbar(hm)
+    axis = cax.axis[cax.orientation]
+    axis.label.set_text("Additional average income benefit (birr/yr)")
+    fig.savefig(savedir + 'synergy_grid_comparison.png', dpi=200,bbox_inches='tight')
+
+    # code.interact(local=dict(globals(), **locals()))    
 
 
 

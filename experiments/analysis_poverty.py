@@ -41,6 +41,10 @@ def main():
     inp_base['model']['exp_name'] = exp_name
     inp_base['agents']['adap_type'] = 'always'
     inp_base['agents']['land_area_multiplier'] = 1
+    # inp_base['agents']['fert_cash_constrained'] = False
+    # inp_base['agents']['fertilizer_cost'] = 0
+    # print('not cash constrained..')
+    # print('fert cost 0')
     inp_base['adaptation']['cover_crop']['climate_dependence'] = True
 
     #### adaptation scenarios

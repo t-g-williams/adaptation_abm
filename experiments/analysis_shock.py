@@ -33,8 +33,8 @@ def main():
     exp_name_base = 'es_r1_fertilizer' # for writing outputs
     solution_numbers = [0] # the id numbers of the POM solutions
     ncores = 40 # number of cores for parallelization
-    load = True # load pre-saved outputs?
-    nreps = 300 # for the simulation
+    load = False # load pre-saved outputs?
+    nreps = 100 # for the simulation
 
     for solution_number in solution_numbers:
         exp_name = '{}/model_{}'.format(exp_name_base, solution_number)
@@ -53,6 +53,8 @@ def main():
         inp_base['model']['shock'] = False
         inp_base['agents']['land_area_multiplier'] = 1
         inp_base['adaptation']['cover_crop']['climate_dependence'] = True
+        # inp_base['land']['residue_loss_factor'] = 0.5
+        # print('50% residue lost!!!!')
 
         #### adaptation scenarios
         adap_scenarios = {

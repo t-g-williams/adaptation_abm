@@ -19,12 +19,12 @@ plt.style.use(styles[plot_type])
 import warnings
 warnings.simplefilter("ignore", UserWarning) # ImageGrid spits some annoying harmless warnings w.r.t. tight_layout
 
-def main(mods, nreps, inp_base, scenarios, exp_name, T, shock_years=[]):
+def main(mods, nreps, inp_base, scenarios, exp_name, T, shock_years=[], dir_ext=''):
     '''
     plot each agent type (number of plots) separately
     this assumes there's 3 agent types
     '''
-    savedir = '../outputs/{}/plots/'.format(exp_name)
+    savedir = '../outputs/{}/plots/{}'.format(exp_name, dir_ext)
     if not os.path.isdir(savedir):
         os.makedirs(savedir)
 
@@ -216,7 +216,7 @@ def time_plot_combined(mods, nreps, inp_base, scenarios, exp_name, T, savedir):
                     plt_data = np.std(all_d, axis=0)
 
                 axs[o,n].plot(xs, plt_data, label=scenario, lw=2, ls=lss[m], color=cols[m])#, marker='o')
-                
+
                 if outcome in ['exp_income','util']:
                     axs[o,n].axhline(0, color='k', lw=1)
 
