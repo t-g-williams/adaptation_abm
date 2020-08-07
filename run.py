@@ -15,8 +15,9 @@ inp_base = inputs.compile()
 # load from POM experiment
 # f = '../outputs/2019_10_10/POM/100000_10reps/input_params_0.pkl'
 f = '../outputs/2019_10_15_4/POM/100000_10reps/input_params_0.pkl'
-f = '../outputs/es_r1_fertilizer/POM/100000_10reps/input_params_0.pkl'
+# f = '../outputs/es_r1_fertilizer/POM/100000_10reps/input_params_0.pkl'
 inp = pickle.load(open(f, 'rb'))
+code.interact(local=dict(globals(), **locals()))
 
 ## change any params, e.g.
 inp['model']['T'] = 100
@@ -40,6 +41,15 @@ for t in range(m.T):
     m.step()
 
 # plot
-code.interact(local=dict(globals(), **locals()))
 print('plotting....')
 plt.main(m)
+
+## temporary: replacing inp_base with inp_POM
+for k, v in inp.items():
+    for k2, v2 in v.items():
+        inp_base[k][k2] = v2
+fdir = '../outputs/es_r1_sims/POM/100000_10reps/'
+import os
+os.makedirs(fdir)
+with open(fdir + 'input_params_0.pkl', 'wb') as f:
+    pickle.dump(inp_base, f)

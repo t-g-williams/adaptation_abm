@@ -55,6 +55,7 @@ def agents():
 
         ##### cash + wealth #####
         # initial (normal distribution)
+        'fodder_constraint' : True, # is agents' livestock holdings constrained by fodder availability? if False, households can purchase fodder to keep their herds alive
         'wealth_init_mean' : 15000,
         'wealth_init_sd' : 0,
         'max_neg_wealth' : 0, # birr. just for plotting. these ppl cant recover anyway
@@ -63,11 +64,11 @@ def agents():
         'cash_req_sd' : 0,
         # market prices
         'crop_sell_price' : 2.17, # 2.17 birr/kg. mean 2015 maize price (FAO)
-        'fertilizer_cost' : 13.2, # 13.2 birr/kg. median from 2015 LSMS
         'livestock_cost' : 3000, # birr/head. Ethiopia CSA data 2015
 
         #### fertilizer parameters ####
-        'fertilizer' : True, # binary switch -- is it included in the model?
+        'fertilizer' : False, # binary switch -- is it included in the model?
+        'fertilizer_cost' : 13.2, # 13.2 birr/kg. median from 2015 LSMS
         'fert_cash_constrained' : True, # switch: do cash constraints prohibit use of fertilizer?
         'fert_use_savings' : True,
         'risk_tolerance' : 3000,

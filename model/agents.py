@@ -19,7 +19,7 @@ class Agents():
         self.land_area = self.init_farm_size()      
         self.crop_production = np.full([self.T, self.N], -9999)
 
-        # wealth (cash holdings)
+        # wealth (livestock holdings)
         # this represents the START of the year
         self.wealth = np.full([self.T+1, self.N], -9999)
         self.wealth[0] = np.random.normal(self.wealth_init_mean, self.wealth_init_sd, self.N)
@@ -27,24 +27,25 @@ class Agents():
         # money
         self.income = np.full([self.T, self.N], -9999)
         self.cash_req = np.random.normal(self.cash_req_mean, self.cash_req_sd, self.N)
-        self.leftover_cash = np.full([self.T+1, self.N], 0) # can be used to buy fertilizer
         # coping measures
         self.coping_rqd = np.full([self.T, self.N], False)
         self.cant_cope = np.full([self.T, self.N], False)
         # adaptation option decisions
         self.adapt = np.full([self.T+1, self.N], False)
         # decision-making
-        self.risk_tol = np.full(self.N, self.risk_tolerance)
         self.fert_choice = np.full([self.T, self.N], False)
-        self.fert_choice_no_risk = np.full([self.T, self.N], False)
         self.fert_costs = np.full([self.T, self.N], 0.)
-        self.util = np.full([self.T, self.N], 0.)
-        self.util_fert = np.full([self.T, self.N], 0.)
-        self.util_fert_no_risk = np.full([self.T, self.N], 0.)
-        self.util_no_risk = np.full([self.T, self.N], 0.)
-        # pre-generate the agent-level "realizations" from a standard normal distribution
-        # that they will each use in their utility calculations
-        self.rndm_Zs = np.random.normal(size=(self.T, self.N, self.nsim_utility))
+        self.leftover_cash = np.full([self.T+1, self.N], 0) # can maybe be used to buy fertilizer
+        if self.fertilizer:
+            self.risk_tol = np.full(self.N, self.risk_tolerance)
+            self.fert_choice_no_risk = np.full([self.T, self.N], False)
+            self.util = np.full([self.T, self.N], 0.)
+            self.util_fert = np.full([self.T, self.N], 0.)
+            self.util_fert_no_risk = np.full([self.T, self.N], 0.)
+            self.util_no_risk = np.full([self.T, self.N], 0.)
+            # pre-generate the agent-level "realizations" from a standard normal distribution
+            # that they will each use in their utility calculations
+            self.rndm_Zs = np.random.normal(size=(self.T, self.N, self.nsim_utility))
 
     def init_farm_size(self):
         '''
@@ -185,26 +186,27 @@ class Agents():
         self.wealth[t+1] = self.wealth[t] + self.income[t]
         # record agents with -ve wealth (not able to cope)
         self.cant_cope[t, self.wealth[t+1] < 0] = True
+        
         # wealth (/livestock) constraints: can't carry more than your crop residues allows
         # if 80% of livestock must be grazed on fodder, then the maximum wealth you can carry
         # is 20% of your current livestock herds + whatever you can sustain from your crop residues
         # i.e. it's assumed that some fraction of your livestock are fully independent of crop residue
         # rather than all livestock requiring this fraction of feed from fodder
-        buffer_yrs = 1
-        # crop_prod = np.mean(self.crop_production[max(0,t-buffer_yrs):t], axis=0)
-        # print(crop_prod)
-        max_ls_fodder = self.crop_production[t] * land.residue_multiplier * land.residue_loss_factor / \
-                (land.livestock_residue_factor) # TLU = kgCrop * kgDM/kgCrop / kgDM/TLU
-        max_wealth = max_ls_fodder*self.livestock_cost + (1-land.livestock_frac_crops) * self.wealth[t]
+        # if wealth_constraint==False, HHs can always buy fodder so there is no upper limit
+        if self.fodder_constraint:
+            max_ls_fodder = self.crop_production[t] * land.residue_multiplier * land.residue_loss_factor / \
+                    (land.livestock_residue_factor) # TLU = kgCrop * kgDM/kgCrop / kgDM/TLU
+            max_ls_wealth_tot = max_ls_fodder*self.livestock_cost + (1-land.livestock_frac_crops) * self.wealth[t]
 
-        if self.insurance_payout_year:
-            # assume that any leftover income from the insurance payout is converted to livestock/wealth
-            max_wealth += self.remaining_payout
+            if self.insurance_payout_year:
+                # assume that any leftover income from the insurance payout is converted to livestock/wealth
+                max_ls_wealth_tot += self.remaining_payout
         
-        too_much = self.wealth[t+1] > max_wealth
-        # too_much[too_much==True] = False # TEMPORARY!!!
-        self.leftover_cash[t+1,too_much] = self.wealth[t+1,too_much] - max_wealth[too_much].astype(int)
-        self.wealth[t+1, too_much] = max_wealth[too_much]
+            too_much = self.wealth[t+1] > max_ls_wealth_tot
+            # too_much[too_much==True] = False # TEMPORARY!!!
+            self.leftover_cash[t+1,too_much] = self.wealth[t+1,too_much] - max_ls_wealth_tot[too_much].astype(int)
+            self.wealth[t+1, too_much] = max_ls_wealth_tot[too_much]
+        
         self.wealth[t+1, self.wealth[t+1] < self.max_neg_wealth] = self.max_neg_wealth
         # if t == 20:
         # code.interact(local=dict(globals(), **locals()))

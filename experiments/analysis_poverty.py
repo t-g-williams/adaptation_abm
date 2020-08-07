@@ -20,8 +20,8 @@ import multiprocessing
 
 def main():
     nreps = 300
-    exp_name_POM = 'es_r1_fertilizer' # for reading POM outputs
-    exp_name_base = 'es_r1_fertilizer' # for writing outputs
+    exp_name_POM = 'es_r1_sims' # for reading POM outputs
+    exp_name_base = 'es_r1_sims' # for writing outputs
     ncores = 25
     soln_number = 0
 
@@ -40,12 +40,12 @@ def main():
     inp_base['model']['n_agents'] = 300
     inp_base['model']['exp_name'] = exp_name
     inp_base['agents']['adap_type'] = 'always'
-    inp_base['agents']['land_area_multiplier'] = 1
+    # inp_base['agents']['land_area_multiplier'] = 1
     # inp_base['agents']['fert_cash_constrained'] = False
     # inp_base['agents']['fertilizer_cost'] = 0
     # print('not cash constrained..')
     # print('fert cost 0')
-    inp_base['adaptation']['cover_crop']['climate_dependence'] = True
+    # inp_base['adaptation']['cover_crop']['climate_dependence'] = True
 
     #### adaptation scenarios
     scenarios = {

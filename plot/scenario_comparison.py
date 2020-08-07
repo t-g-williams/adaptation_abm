@@ -21,13 +21,13 @@ def main(mods, save=True):
     else:
         savedir = False
 
-    combined_plots(mods)
+    combined_plots(mods, savedir)
     agent_type_plots(mods, savedir)
 
     # soil_wealth(mods, savedir)
     # coping(mods, savedir)
 
-def combined_plots(mods):
+def combined_plots(mods, savedir):
     has_shock = True if 'shock' in mods.keys() else False
     # plot wealth for an agent of type 2 only
     fig, axs = plt.subplots(3,1,figsize=(7,8), gridspec_kw={'height_ratios':[1,1,0.3]})
@@ -44,16 +44,16 @@ def combined_plots(mods):
             xs = np.arange(yr-2,yr+T)
             ls = ':' if m == 'shock' else '-'
             labl = 'no shock' if m == 'baseline' else m
-            ax.plot(xs, mod.agents.wealth[:,lands==uniq_land[1]][xs,0], label=labl, color='k', lw=2, ls=ls)
-            ax2.plot(xs, mod.land.organic[:,lands==uniq_land[1]][xs+1,0], label=labl, color='k', lw=2, ls=ls)
+            ax.plot(xs, mod.agents.wealth[:,lands==uniq_land[1]][xs].mean(1), label=labl, color='k', lw=2, ls=ls)
+            ax2.plot(xs, mod.land.organic[:,lands==uniq_land[1]][xs+1].mean(1), label=labl, color='k', lw=2, ls=ls)
             ax3.plot(xs, mod.climate.rain[xs], label=labl, color='k', lw=2, ls=ls)
         else:
             T = 21
             xs = np.arange(burnin, burnin+T)
             col = 'k' if m == 'baseline' else 'r' if m == 'cover_crop' else 'b'
             ls = '-' if m=='baseline' else '--' if m=='cover_crop' else '-.'
-            ax.plot(xs, mod.agents.income[:,lands==uniq_land[1]][xs,0], label=m, lw=1.5, color=col, ls=ls)
-            ax2.plot(xs, mod.land.organic[:,lands==uniq_land[1]][xs+1,0], label=m, lw=1.5, color=col, ls=ls)
+            ax.plot(xs, mod.agents.income[:,lands==uniq_land[1]][xs].mean(1), label=m, lw=1.5, color=col, ls=ls)
+            ax2.plot(xs, mod.land.organic[:,lands==uniq_land[1]][xs+1].mean(1), label=m, lw=1.5, color=col, ls=ls)
             ax3.plot(xs, mod.climate.rain[xs], label=m, color=col, lw=1.5, ls=ls)
         if mod.shock:
             for yr in mod.climate.shock_years:
@@ -116,6 +116,12 @@ def combined_plots(mods):
     text = 'B: Effect of shock' if has_shock else 'C: Resilience strategies'
     # ax.text(-0.2,1.1, text, transform=ax.transAxes, fontsize=22)
     ax.set_title(text, fontsize=22)
+
+    if isinstance(savedir, bool):
+        return fig
+    else:
+        ext = 'shock' if has_shock else 'resilience'
+        fig.savefig(savedir + 'combined_{}.png'.format(ext))
 
 def agent_type_plots(mods, savedir):
     '''

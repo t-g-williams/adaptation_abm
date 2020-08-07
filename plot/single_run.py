@@ -31,8 +31,9 @@ def main(mod, save=True):
     # plotting by agent type
     type_combined(mod, save)
     type_wealth(mod, savedir)
-    type_fertilizer(mod, savedir)
-    type_fertilizer_no_risk(mod, savedir)
+    if mod.agents.fertilizer:
+        type_fertilizer(mod, savedir)
+        type_fertilizer_no_risk(mod, savedir)
     type_coping(mod, savedir)
     type_nutrients(mod, savedir)
     type_yields(mod, savedir)
@@ -66,8 +67,9 @@ def separate(mod, savedir=False):
                 axs[1,ui].plot(mod.land.organic[:,ixx], lw=1.5, color='k', alpha=alphas[i])
                 axs[2,ui].plot(mod.climate.rain[:], lw=1.5, color='k', alpha=alphas[i])
         else:
-            axs[0,ui].plot(mod.agents.wealth[:,ixs], lw=1.5, color='k')
-            axs[1,ui].plot(mod.land.organic[:,ixs], lw=1.5, color='k')
+            lw = 0.25
+            axs[0,ui].plot(mod.agents.wealth[:,ixs], lw=lw, color='k')
+            axs[1,ui].plot(mod.land.organic[:,ixs], lw=lw, color='k')
             axs[2,ui].plot(mod.climate.rain[:], lw=1.5, color='k')
         axs[0,ui].axhline(y=0, color='k', lw=1)#, ls=':')
 
@@ -91,7 +93,7 @@ def separate(mod, savedir=False):
     if isinstance(savedir, bool):
         return fig
     else:
-        fig.savefig(savedir + 'separate_plots.png')
+        fig.savefig(savedir + 'separate_plots.png', dpi=200)
 
 def inputs(mod, savedir):
     '''

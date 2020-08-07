@@ -10,6 +10,7 @@ import copy
 import sys
 import xarray
 from mpl_toolkits.axes_grid1 import ImageGrid
+import matplotlib.patheffects as PathEffects
 import logging
 logger = logging.getLogger('sLogger')
 from . import plot_style
@@ -64,7 +65,7 @@ def policy_design_both_res_types(dev_cc, dev_ins, res_cc, res_ins, shock_mags, s
     ys = dev_cc.index.levels[0] # n fixed
     hm = ax.imshow(plt_data.astype(float), cmap='bwr', vmin=0, vmax=1, origin='lower', extent=[min(xs), max(xs), min(ys), max(ys)],
                 aspect='auto')
-    ax.scatter([1], [80], color='k') # default value
+    ax.scatter([1], [95], color='k', edgecolors='w', lw=1) # default value
     ## insurance
     ax = axs[1,0]
     plt_data = np.array(dev_ins[land_area].unstack())
@@ -72,7 +73,7 @@ def policy_design_both_res_types(dev_cc, dev_ins, res_cc, res_ins, shock_mags, s
     y2s = dev_ins.index.levels[0] * 100 # convert to %age
     hm2 = ax.imshow(plt_data.astype(float), cmap='bwr', vmin=0, vmax=1, origin='lower', extent=[min(x2s), max(x2s), min(y2s), max(y2s)],
                 aspect='auto')
-    ax.scatter([1], [10], color='k') # default value
+    ax.scatter([1], [10], color='k', edgecolors='w', lw=1) # default value
 
     #### CLIMATE RESILIENCE ####
     ## cover crop
@@ -82,7 +83,7 @@ def policy_design_both_res_types(dev_cc, dev_ins, res_cc, res_ins, shock_mags, s
     hm = axs[0,1].imshow(d_plot, cmap='bwr', vmin=0, vmax=1, origin='lower', extent=[min(xs), max(xs), min(ys), max(ys)],
                 aspect='auto')
     # add points for default
-    axs[0,1].scatter([1], [80], color='k')
+    axs[0,1].scatter([1], [95], color='k', edgecolors='w', lw=1)
     ## insurance
     d_subs = res_ins[outcome].query(query_str)
     d_plot = []
@@ -92,7 +93,7 @@ def policy_design_both_res_types(dev_cc, dev_ins, res_cc, res_ins, shock_mags, s
     hm = axs[1,1].imshow(d_plot, cmap='bwr', vmin=0, vmax=1, origin='lower', extent=[min(x2s), max(x2s), min(y2s), max(y2s)],
                 aspect='auto')
     # add points for default
-    axs[1,1].scatter([1], [10], color='k')
+    axs[1,1].scatter([1], [10], color='k', edgecolors='w', lw=1)
 
     ## labels
     fs = 20
@@ -100,10 +101,10 @@ def policy_design_both_res_types(dev_cc, dev_ins, res_cc, res_ins, shock_mags, s
     # axs[1,0].set_title('Development resilience: insurance', fontsize=fs)
     # axs[0,1].set_title('Climate resilience: cover crop', fontsize=fs)
     # axs[1,1].set_title('Climate resilience: insurance', fontsize=fs)
-    axs[0,0].set_ylabel('Legume cover crop\nN fixation (kg N/ha)')
-    axs[1,0].set_ylabel('Insured climate percentile')
-    axs[1,0].set_xlabel('Cost factor')
-    axs[1,1].set_xlabel('Cost factor')
+    axs[0,0].set_ylabel('Cover crop\nN fixation (kg N/ha)', fontsize=fs)
+    axs[1,0].set_ylabel('Insurance\n% of years with payout', fontsize=fs)
+    axs[1,0].set_xlabel('Cost factor', fontsize=fs)
+    axs[1,1].set_xlabel('Cost factor', fontsize=fs)
 
     for ax in axs[0]:
         ax.set_xticklabels([])
@@ -111,8 +112,8 @@ def policy_design_both_res_types(dev_cc, dev_ins, res_cc, res_ins, shock_mags, s
         ax.set_yticklabels([])
 
 
-    axs[0,0].text(0.5, 1.05, 'Development resilience\n'+r'$T_{dev}=$'+str(T_dev), fontsize=fs, ha='center',va='bottom', transform=axs[0,0].transAxes)
-    axs[0,1].text(0.5, 1.05, 'Shock resilience\n'+r'$T_{shock}=$'+str(T_shock)+r', $T_{assess}=$'+str(T_res), fontsize=fs, ha='center',va='bottom', transform=axs[0,1].transAxes)
+    axs[0,0].text(0.5, 1.05, 'Poverty reduction\n'+r'$T_{pov}=$'+str(T_dev), fontsize=fs, ha='center',va='bottom', transform=axs[0,0].transAxes)
+    axs[0,1].text(0.5, 1.05, 'Shock absorption\n'+r'$T_{shock}=$'+str(T_shock)+r', $T_{assess}=$'+str(T_res), fontsize=fs, ha='center',va='bottom', transform=axs[0,1].transAxes)
     # axs[0,0].text(-0.2, 0.5, 'Cover crop', fontsize=fs, ha='right', va='center', transform=axs[0,0].transAxes)
     # axs[1,0].text(-0.2, 0.5, 'Insurance', fontsize=fs, ha='right', va='center', transform=axs[1,0].transAxes)
 
@@ -120,14 +121,15 @@ def policy_design_both_res_types(dev_cc, dev_ins, res_cc, res_ins, shock_mags, s
     # cb_ax = fig.add_axes([0.5, -0.03, 0.5, 0.02])
     cb_ax = fig.add_axes([1, 0.22, 0.02, 0.5])
     cbar = fig.colorbar(hm, orientation='vertical', cax=cb_ax)
-    cbar.set_label('P(CC>ins)')
+    cbar.set_label(r'P(CC$\succ$ins)')
 
-    labels = ['(A)','(B)','(C)','(D)']
+    labels = ['A','B','C','D']
     for a, ax in enumerate(ax_flat):
         ax.grid(False)
-        ax.text(0.02,0.98,labels[a], fontsize=20, transform=ax.transAxes, ha='left', va='top')
+        txt = ax.text(0.02,0.98,labels[a], fontsize=20, transform=ax.transAxes, ha='left', va='top')
+        txt.set_path_effects([PathEffects.withStroke(linewidth=2, foreground='w')])
+
     fig.savefig(savedir + 'policy_both_resilience_{}ha.png'.format(str(land_area).replace('.','_')), bbox_inches='tight', dpi=200)
-    # sys.exit()
     # code.interact(local=dict(globals(), **locals()))
 
 def policy_design_dev_res(d_cc, d_ins, shock_mags, exp_name):
@@ -152,7 +154,7 @@ def policy_design_dev_res(d_cc, d_ins, shock_mags, exp_name):
         
         hm = ax.imshow(plt_data.astype(float), cmap='bwr', vmin=0, vmax=1, origin='lower', extent=[min(xs), max(xs), min(ys), max(ys)],
                     aspect='auto')
-        ax.scatter([1], [80], color='k') # default value
+        ax.scatter([1], [95], color='k', edgecolors='w', lw=1) # default value
 
         ## insurance
         ax2 = axs[0,li]
@@ -161,7 +163,7 @@ def policy_design_dev_res(d_cc, d_ins, shock_mags, exp_name):
         y2s = d_ins.index.levels[0] * 100 # convert to %age
         hm2 = ax2.imshow(plt_data2.astype(float), cmap='bwr', vmin=0, vmax=1, origin='lower', extent=[min(x2s), max(x2s), min(y2s), max(y2s)],
                     aspect='auto')
-        ax2.scatter([1], [10], color='k') # default value
+        ax2.scatter([1], [10], color='k', edgecolors='w', lw=1) # default value
         
         # formatting
         if li > 0:
@@ -169,8 +171,8 @@ def policy_design_dev_res(d_cc, d_ins, shock_mags, exp_name):
                 axx.set_ylabel('')
                 axx.set_yticklabels([])
         else:
-            ax.set_ylabel('Nitrogen fixation (kg N/ha)')
-            ax2.set_ylabel('Insured climate percentile')
+            ax.set_ylabel('Legume cover crop\nN fixation (kg N/ha)')
+            ax2.set_ylabel('Insurance\n% of years with payout')
         for axx in [ax, ax2]:
             axx.set_xlabel('Cost factor')
         for axx in [ax, ax2]:
@@ -180,7 +182,7 @@ def policy_design_dev_res(d_cc, d_ins, shock_mags, exp_name):
     # color bar
     cb_ax = fig.add_axes([0.34, -0.03, 0.37, 0.03])
     cbar = fig.colorbar(hm2, orientation='horizontal', cax=cb_ax)
-    cbar.set_label('P(CC>ins)')
+    cbar.set_label(r'P(CC$\succ$ins)')
 
     # labels
     axs[0,0].text(-0.2, 1.1, 'A: Insurance', fontsize=28, transform=axs[0,0].transAxes)
@@ -224,7 +226,7 @@ def policy_design_single(d_cc, d_ins, shock_mags, shock_times, T_res, exp_name):
             ys = cc.index.levels[3] # n fixed
             hm = ax.imshow(plt_data, cmap='bwr', vmin=0, vmax=1, origin='lower', extent=[min(xs), max(xs), min(ys), max(ys)],
                         aspect='auto')
-            ax.scatter([1], [80], color='k') # default value
+            ax.scatter([1], [95], color='k', edgecolors='w', lw=1) # default value
 
             ## insurance
             ax2 = axs[1,li]
@@ -233,7 +235,7 @@ def policy_design_single(d_cc, d_ins, shock_mags, shock_times, T_res, exp_name):
             y2s = ins.index.levels[3] * 100 # convert to %age
             hm2 = ax2.imshow(plt_data2, cmap='bwr', vmin=0, vmax=1, origin='lower', extent=[min(x2s), max(x2s), min(y2s), max(y2s)],
                         aspect='auto')
-            ax2.scatter([1], [10], color='k') # default value
+            ax2.scatter([1], [10], color='k', edgecolors='w', lw=1) # default value
             
             # formatting
             if li > 0:
@@ -241,8 +243,8 @@ def policy_design_single(d_cc, d_ins, shock_mags, shock_times, T_res, exp_name):
                     axx.set_ylabel('')
                     axx.set_yticklabels([])
             else:
-                ax.set_ylabel('Nitrogen fixation (kg N/ha)')
-                ax2.set_ylabel('Insured climate percentile')
+                ax.set_ylabel('Legume cover crop\nN fixation (kg N/ha)')
+                ax2.set_ylabel('Insurance\n% of years with payout')
             for axx in [ax, ax2]:
                 axx.set_xlabel('Cost factor')
             for axx in [ax, ax2]:
@@ -252,7 +254,7 @@ def policy_design_single(d_cc, d_ins, shock_mags, shock_times, T_res, exp_name):
         # color bar
         cb_ax = fig.add_axes([0.34, -0.03, 0.37, 0.03])
         cbar = fig.colorbar(hm2, orientation='horizontal', cax=cb_ax)
-        cbar.set_label('P(CC>ins)')
+        cbar.set_label(r'P(CC$\succ$ins)')
 
         # labels
         axs[0,0].text(-0.2, 1.1, 'A: Legume cover', fontsize=28, transform=axs[0,0].transAxes)
@@ -274,8 +276,8 @@ def policy_design_all(d_cc, d_ins, shock_mags, shock_times, T_res, exp_name):
     mag_str = str(shock_mags[0]).replace('.','_')
     
     policies = ['insurance','cover_crop']
-    labels = ['fraction insured','N fixation']
-    defaults = [10, 80]
+    labels = ['Insurance\n% of years with payout','Legume cover crop\nN fixation (kg N/ha)']
+    defaults = [10, 95]
     T_res_plot = [1,3,5,7,9]
     T_shock_plot = [2,6,10,16]
 
@@ -305,7 +307,7 @@ def policy_design_all(d_cc, d_ins, shock_mags, shock_times, T_res, exp_name):
                         hm = ax.imshow(d_plot, cmap='bwr', vmin=0, vmax=1, origin='lower', extent=[min(xs), max(xs), min(ys), max(ys)],
                                     aspect='auto')
                         # add point for default
-                        ax.scatter([1], [defaults[p]], color='k')
+                        ax.scatter([1], [defaults[p]], color='k', edgecolors='w', lw=1)
                         i += 1
                         
                         # labels
@@ -323,7 +325,7 @@ def policy_design_all(d_cc, d_ins, shock_mags, shock_times, T_res, exp_name):
                 cax = axs.cbar_axes[0]
                 cbar = cax.colorbar(hm)
                 axis = cax.axis[cax.orientation]
-                axis.label.set_text("P(CC>ins)")
+                axis.label.set_text(r'P(CC$\succ$ins)')
                 fig.savefig(savedir + 'all_policy_{}_{}_{}ha_mag_{}.png'.format(outcome, policies[p], land, mag_str),
                     bbox_inches='tight', dpi=200) 
                 plt.close('all')
@@ -345,8 +347,8 @@ def policy_design_all_combined(d_cc, d_ins, shock_mags, shock_times, T_res, exp_
     policies = ['insurance','cover_crop']
     names = ['A: Insurance', 'B: Legume cover']
     ds = [d_ins, d_cc]
-    ylabels = ['Insured climate %ile','N fixation (kg N/ha)']
-    defaults = [10, 80]
+    ylabels = ['Insurance\n% of years with payout','N fixation (kg N/ha)']
+    defaults = [10, 95]
     T_res_plot = [1,3,5,7,9]
     t_shock = 10
 
@@ -374,7 +376,7 @@ def policy_design_all_combined(d_cc, d_ins, shock_mags, shock_times, T_res, exp_
                 hm = ax.imshow(d_plot, cmap='bwr', vmin=0, vmax=1, origin='lower', extent=[min(xs), max(xs), min(ys), max(ys)],
                             aspect='auto')
                 # add point for default
-                ax.scatter([1], [defaults[i]], color='k')
+                ax.scatter([1], [defaults[i]], color='k', edgecolors='w', lw=1)
                 
                 # labels
                 ax.set_title(r'$T_{assess}=$'+str(t_res), fontsize=16)
@@ -391,7 +393,7 @@ def policy_design_all_combined(d_cc, d_ins, shock_mags, shock_times, T_res, exp_
             cax = axs.cbar_axes[0]
             cbar = cax.colorbar(hm)
             axis = cax.axis[cax.orientation]
-            axis.label.set_text("P(CC>ins)")
+            axis.label.set_text(r'P(CC$\succ$ins)')
             fig.savefig(savedir + 'combined_policy_{}_{}_mag_{}_shockyr{}.png'.format(outcome, policies[i], mag_str, t_shock),
                 bbox_inches='tight', dpi=200) 
             plt.close('all')
@@ -439,7 +441,7 @@ def shock_mag_grid_plot(results, shock_mags, shock_times, T_res, exp_name, basel
             cax = axs.cbar_axes[0]
             cbar = cax.colorbar(hm)
             axis = cax.axis[cax.orientation]
-            axis.label.set_text("P(CC>ins)")
+            axis.label.set_text(r'P(CC$\succ$ins)')
 
             ext = '_baseline' if baseline_resilience else ''
             fig.savefig(savedir + '{}_shock_magnitude_grid{}_shockyr_{}.png'.format(outcome, ext, shock_time), bbox_inches='tight', dpi=200) 
@@ -461,7 +463,7 @@ def grid_plot(savedir, adap_scenarios, land_area, results, shock_mags, shock_tim
 
         # create a separate figure for each shock magnitude
         for m, mag in enumerate(mags_str):
-            fig = plt.figure(figsize=(6*len(land_area), 5))
+            fig = plt.figure(figsize=(6*len(land_area)+1, 5))
             axs = ImageGrid(fig, 111, nrows_ncols=(1,len(land_area)), axes_pad=0.5, add_all=True, label_mode='L',
                 cbar_mode='single',cbar_location='right', aspect=False)
 
@@ -488,7 +490,7 @@ def grid_plot(savedir, adap_scenarios, land_area, results, shock_mags, shock_tim
             cax = axs.cbar_axes[0]
             cbar = cax.colorbar(hm)
             axis = cax.axis[cax.orientation]
-            axis.label.set_text("P(CC>ins)")
+            axis.label.set_text(r'P(CC$\succ$ins)')
 
             ext = '_baseline' if baseline_resilience else ''
             fig.savefig(savedir + '{}_shock_grid_{}{}{}.png'.format(outcome, mag, ext, ext2), bbox_inches='tight', dpi=200)

@@ -29,12 +29,12 @@ logger = logging.getLogger('sLogger')
 
 
 def main():
-    exp_name_POM = 'es_r1_fertilizer' # for reading POM outputs
-    exp_name_base = 'es_r1_fertilizer' # for writing outputs
+    exp_name_POM = 'es_r1_sims' # for reading POM outputs
+    exp_name_base = 'es_r1_sims' # for writing outputs
     solution_numbers = [0] # the id numbers of the POM solutions
-    ncores = 40 # number of cores for parallelization
-    load = False # load pre-saved outputs?
-    nreps = 100 # for the simulation
+    ncores = 10 # number of cores for parallelization
+    load = True # load pre-saved outputs?
+    nreps = 300 # for the simulation
 
     for solution_number in solution_numbers:
         exp_name = '{}/model_{}'.format(exp_name_base, solution_number)
@@ -51,8 +51,8 @@ def main():
         inp_base['model']['exp_name'] = exp_name
         inp_base['agents']['adap_type'] = 'always' # agents always choose the adaptation option
         inp_base['model']['shock'] = False
-        inp_base['agents']['land_area_multiplier'] = 1
-        inp_base['adaptation']['cover_crop']['climate_dependence'] = True
+        # inp_base['agents']['land_area_multiplier'] = 1
+        # inp_base['adaptation']['cover_crop']['climate_dependence'] = False
         # inp_base['land']['residue_loss_factor'] = 0.5
         # print('50% residue lost!!!!')
 
@@ -66,14 +66,14 @@ def main():
         # 0: convergence analysis
         # nreps_req = convergence.convergence_analysis(exp_name, inp_base, adap_scenarios, ncores)
 
-        ## A: resilience as function of T_res, T_shock
+        # ## A: resilience as function of T_res, T_shock
         assess_resilience(exp_name, inp_base, adap_scenarios, load, ncores, nreps)
 
-        # ## B: vary shock magnitude
-        # vary_magnitude(exp_name, inp_base, adap_scenarios, load, ncores, nreps)
+        # # ## B: vary shock magnitude
+        vary_magnitude(exp_name, inp_base, adap_scenarios, load, ncores, nreps)
 
         # # ## C: effect of policy design
-        # policy_design(exp_name, inp_base, adap_scenarios, load, ncores, nreps)
+        policy_design(exp_name, inp_base, adap_scenarios, load, ncores, nreps)
 
 def policy_design(exp_name, inp_base, adap_scenarios, load, ncores, nreps):
     '''
