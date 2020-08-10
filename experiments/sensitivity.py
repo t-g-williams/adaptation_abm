@@ -63,12 +63,14 @@ def main():
         'random_effect_sd' : 'xx',
         'crop_CN_conversion' : 'xx',
         'residue_CN_conversion' : 'xx',
-        'wealth_N_conversion' : 'xx',
+        'wealth_N_conversion' : 'Livestock N\nconversion factor',
         'livestock_frac_crops' : 'Livestock %\nresidue requirement',
         'livestock_residue_factor' : 'xx',
         'rain_mu' : 'Climate mean',
         'rain_sd' : 'Climate std. dev.'
     }
+    # specify which land vars to plot? if False, plot the most important
+    land_vars = ['livestock_frac_crops','wealth_N_conversion','organic_N_min_init','max_yield']
 
     for m in range(n_mods):
         logger.info('model {}........'.format(m))
@@ -85,7 +87,7 @@ def main():
         params, keys, names = hypercube_sample(N_vars, sens_vars, inp_base, perturb_perc)
 
         ### 3. run the policy analysis
-        T_shock = [10] # measured after the burn-in
+        T_shock = [20] # measured after the burn-in
         T_res = [5]
         T_dev = 50 # for development resilience
         shock_mag = [0.1]
@@ -100,8 +102,8 @@ def main():
         ### 5. plot results
         # plot_rf_results(boot_climate, Ys_climate.mean(), exp_name, m, 'climate')
         # plot_rf_results(boot_dev, Ys_dev.mean(), exp_name, m, 'development')
-        plot_rf_results(boot_climate, boot_dev, [Ys_climate.mean(), Ys_dev.mean()], ['shock resilience', 'development resilience'], 
-            exp_name, m, inp_base, sens_vars_clean)
+        plot_rf_results(boot_climate, boot_dev, [Ys_climate.mean(), Ys_dev.mean()], ['shock absorption', 'poverty reduction'], 
+            exp_name, m, inp_base, sens_vars_clean, land_vars=land_vars)
 
 def hypercube_sample(N, sens_vars, inp_base, perturb_perc):
     '''
@@ -264,7 +266,7 @@ def random_forest(y, X, varz, keys):
 
     return var_imp, pdp_data, fit
 
-def plot_rf_results(d_climate, d_dev, mean_vals, res_types, exp_name, mod_number, inp_base, sens_vars_clean):
+def plot_rf_results(d_climate, d_dev, mean_vals, res_types, exp_name, mod_number, inp_base, sens_vars_clean, land_vars=False):
     plot_dir = '../outputs/{}/model_{}/plots/sensitivity/'.format(exp_name, mod_number)
     if not os.path.isdir(plot_dir):
         os.makedirs(plot_dir)
@@ -335,7 +337,7 @@ def plot_rf_results(d_climate, d_dev, mean_vals, res_types, exp_name, mod_number
     fig.savefig(plot_dir + 'variable_importance_boxplot_combined.png', dpi=200)
 
     ####### PDPs #######
-    fig, axs = plt.subplots(3,5, figsize=(15,10), sharey=True, gridspec_kw={'height_ratios':[1,1,0.05]})
+    fig, axs = plt.subplots(3,5, figsize=(15,10), sharey=True, gridspec_kw={'height_ratios':[1,1,0.01]})
     axs[1,4].remove()
     [axi.remove() for axi in axs[2,:]]
     axs_flat = list(axs.flatten())
@@ -348,7 +350,10 @@ def plot_rf_results(d_climate, d_dev, mean_vals, res_types, exp_name, mod_number
     ## land
     n_land = 4
     for i in range(n_land):
-        var = var_imp_df[var_imp_df.key=='land'].iloc[i]['variable']   
+        if isinstance(land_vars,bool):
+            var = var_imp_df[var_imp_df.key=='land'].iloc[i]['variable']   
+        else:
+            var = land_vars[i]
         for o, obj in enumerate([d_climate,d_dev]):
             ax = axs[1,i]
             pdp_data = obj['pdp_datas']
@@ -398,13 +403,13 @@ def plot_rf_results(d_climate, d_dev, mean_vals, res_types, exp_name, mod_number
         except:
             pass
         if a % 5 == 0:
-            ax.set_ylabel('P(CC>ins)')
+            ax.set_ylabel(r'P(CC$\succ$ins)')
 
     axs[0,0].text(0, 1.1, '\nAGENTS', transform=axs[0,0].transAxes, fontsize=22)
     axs[0,3].text(0, 1.1, 'CLIMATE', transform=axs[0,3].transAxes, fontsize=22)
     axs[1,0].text(0, 1.1, 'LAND', transform=axs[1,0].transAxes, fontsize=22)
 
-    lg = fig.legend(res_types, bbox_to_anchor=[0.5,0.1], ncol=2, loc='center', frameon=False)
+    lg = fig.legend(res_types, bbox_to_anchor=[0.5,0.01], ncol=2, loc='center', frameon=False)
     fig.savefig(plot_dir + 'partial_dependence_combined.png', bbox_extra_artists =(lg,), dpi=200) #  bbox_inches='tight', 
 
 if __name__ == '__main__':

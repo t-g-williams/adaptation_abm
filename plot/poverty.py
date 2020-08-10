@@ -30,6 +30,7 @@ def main(mods, nreps, inp_base, scenarios, exp_name, T, shock_years=[], dir_ext=
 
     if len(shock_years) == 0:
         ## FOR PAPER
+        utility_plot_combined(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
         time_plot_combined(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
         time_plot('util', 'E[utility]', mods, nreps, inp_base, scenarios, exp_name, T, savedir, risk_tol=500)
         time_plot('util', 'E[utility]', mods, nreps, inp_base, scenarios, exp_name, T, savedir, risk_tol=1000)
@@ -246,6 +247,57 @@ def time_plot_combined(mods, nreps, inp_base, scenarios, exp_name, T, savedir):
     fig.tight_layout()
     ext = '_{}'.format(risk_tol) if outcome == 'util' else ''
     fig.savefig(savedir + 'time_plot_combined.png', bbox_extra_artists=(lg,), dpi=200)
+    plt.close('all')
+    # sys.exit()
+
+
+def utility_plot_combined(mods, nreps, inp_base, scenarios, exp_name, T, savedir):
+    '''
+    plot the utility under different levels of risk aversion for a land-rich agent
+    '''
+    tols = [50,500,5000]
+    burnin = inp_base['adaptation']['burnin_period']
+    fig, ax_all = plt.subplots(2,len(tols), figsize=(5*len(tols), 4), sharey=True, gridspec_kw={'height_ratios':[1,0.05]})
+    axs = ax_all[0]
+    [axi.remove() for axi in ax_all[1,:]]
+    cols = {'baseline':'k','cover_crop':'r','insurance':'b','both':'g'}
+    lss = {'baseline':'-','cover_crop':'--','insurance':'-.','both':':'}
+
+    for to, tol in enumerate(tols):
+        for scenario, mods_sc in mods.items():
+            m = scenario
+            ## get the relevant outcome data
+            d = mods_sc['income']
+            xs = np.arange(T+burnin)
+            # flatten it
+            all_d = []
+            for r in range(nreps):
+                agents = mods_sc['land_area'][r] == 2 # land-rich agents
+                all_d.append(list(d[r,:,agents]))
+            all_d = np.array([item for sublist in all_d for item in sublist])
+            # ^ this is (agents, time) shape
+
+            # extract the relevant info for plotting
+            utils = np.full(all_d.shape, np.nan)
+            utils[all_d>0] = (1 - np.exp(-all_d / tol))[all_d>0]
+            utils[all_d<=0] = -(1 - np.exp(all_d / tol))[all_d<=0]
+            plt_data = utils.mean(0)
+
+            axs[to].plot(xs, plt_data, label=scenario, lw=2, ls=lss[m], color=cols[m])#, marker='o')
+
+    limz = axs[to].get_ylim()
+    for a, ax in enumerate(axs):
+        ax.grid(False)
+        ax.set_xlabel('Year')
+        ax.set_title('Risk tolerance = {}'.format(tols[a]))
+        ax.fill_between([0,burnin], [-9e10,-9e10], [9e10,9e10], color='0.5', alpha=0.3, label='burn-in')
+    [ax.set_ylim(limz) for ax in axs] # re-set the y lims
+    [ax.set_ylim([0,1]) for ax in axs]
+    axs[0].set_ylabel('Utility')
+    
+    lg = fig.legend(list(mods.keys()) + ['burn-in'], loc=10, bbox_to_anchor=(0.5, 0.1), ncol=len(mods)+1, frameon=False)
+    fig.tight_layout()
+    fig.savefig(savedir + 'utility_plot_combined.png', bbox_extra_artists=(lg,), dpi=200)
     plt.close('all')
     # sys.exit()
 

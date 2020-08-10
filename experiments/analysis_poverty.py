@@ -19,7 +19,7 @@ from tqdm import tqdm
 import multiprocessing
 
 def main():
-    nreps = 300
+    nreps = 3000
     exp_name_POM = 'es_r1_sims' # for reading POM outputs
     exp_name_base = 'es_r1_sims' # for writing outputs
     ncores = 25

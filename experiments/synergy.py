@@ -56,7 +56,7 @@ def main():
     inp_base['agents']['land_area_multiplier'] = 1
     inp_base['adaptation']['cover_crop']['climate_dependence'] = True
 
-    T_dev = 20 # time period for development resilience simulations
+    T_dev = 50 # time period for development resilience simulations
 
     #### adaptation scenarios
     adap_scenarios = {
@@ -105,10 +105,14 @@ def plot_synergy(exp_name, adap_scenarios, inp_base, shock, base, dev):
         os.makedirs(savedir)
     #### SHOCK RESILIENCE
     # subset the dataframes to what we care about
-    both = base['both'].loc[('income','0_2'),'1.5'].groupby(level=[0,1]).mean() # take the mean over the replications
-    cc = base['cover_crop'].loc[('income','0_2'),'1.5'].groupby(level=[0,1]).mean() # take the mean over the replications
-    ins = base['insurance'].loc[('income','0_2'),'1.5'].groupby(level=[0,1]).mean() # take the mean over the replications
-    none = base['baseline'].loc[('income','0_2'),'1.5'].groupby(level=[0,1]).mean() # take the mean over the replications
+    both_all = base['both'].loc[('income','0_2'),'1.5']
+    cc_all = base['cover_crop'].loc[('income','0_2'),'1.5']
+    ins_all = base['insurance'].loc[('income','0_2'),'1.5']
+    none_all = base['baseline'].loc[('income','0_2'),'1.5']
+    both = both_all.groupby(level=[0,1]).mean() # take the mean over the replications
+    cc = cc_all.groupby(level=[0,1]).mean() # take the mean over the replications
+    ins = ins_all.groupby(level=[0,1]).mean() # take the mean over the replications
+    none = none_all.groupby(level=[0,1]).mean() # take the mean over the replications
 
     #### plot the effects separately
     titls = ['cover_crop','insurance','both']
@@ -149,10 +153,19 @@ def plot_synergy(exp_name, adap_scenarios, inp_base, shock, base, dev):
     axs = ImageGrid(fig, 111, nrows_ncols=(1,2), axes_pad=0.5, add_all=True, label_mode='L',
         cbar_mode='single',cbar_location='right', aspect=False)
     plt_vals = [-(both-cc),-(both-ins)]
-    mm = np.abs(np.array(plt_vals)).max()
-    titls = ['both - cover_crop', 'both - insurance']
+    plt_vals_prob = [((-(both_all-cc_all))>0).groupby(level=[0,1]).mean(),((-(both_all-ins_all))>0).groupby(level=[0,1]).mean()]
+    # mm = np.abs(np.array(plt_vals)).max()
+
+
+    # make a color map
+    from matplotlib.colors import LinearSegmentedColormap
+    cmaps = [LinearSegmentedColormap.from_list('cm_cc', [(1, 0, 0), (1, 1, 1), (0, 1, 0)]), # R -> W -> G
+                LinearSegmentedColormap.from_list('cm_ins', [(0, 0, 1), (1, 1, 1), (0, 1, 0)])] # B -> W -> G
+    cmaps = ['bwr','bwr'] # default ones....
+    titls = [r"P(both$\succ$cover_crop)", r"P(both$\succ$insurance)"]
     for a, ax in enumerate(axs):
-        hm = (plt_vals[a]).to_xarray().plot(ax=ax, cmap='bwr',add_colorbar=False, vmin=-mm,vmax=mm)# plot the -ve b/c -ve values are good
+        # hm = (plt_vals[a]).to_xarray().plot(ax=ax, cmap='bwr',add_colorbar=False, vmin=-mm,vmax=mm)# plot the -ve b/c -ve values are good
+        hm = (plt_vals_prob[a]).to_xarray().plot(ax=ax, cmap=cmaps[a],add_colorbar=False, vmin=0,vmax=1)# plot the -ve b/c -ve values are good
         ax.set_title(titls[a])
         ax.set_xlabel(r'Time of shock ($T_{shock}$)')
     axs[0].set_ylabel(r'Assessment period ($T_{assess}$)')
@@ -160,9 +173,10 @@ def plot_synergy(exp_name, adap_scenarios, inp_base, shock, base, dev):
     cbar = cax.colorbar(hm)
     axis = cax.axis[cax.orientation]
     axis.label.set_text("Additional average income benefit (birr/yr)")
-    fig.savefig(savedir + 'synergy_grid_comparison.png', dpi=200,bbox_inches='tight')
-
+    axis.label.set_text("Probability")
+    fig.savefig(savedir + 'synergy_grid_comparison_prob.png', dpi=200,bbox_inches='tight')
     # code.interact(local=dict(globals(), **locals()))    
+
 
 
 
