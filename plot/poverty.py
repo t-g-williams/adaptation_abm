@@ -338,7 +338,7 @@ def time_plot(outcome, ylab, mods, nreps, inp_base, scenarios, exp_name, T, save
 
             # extract the relevant info for plotting
             if outcome == 'poverty':
-                plt_data = np.mean(all_d>0, axis=0)
+                plt_data = np.mean(all_d>0, axis=0) # notes: baseline at 19=35.4%, 29=14.3, -1=0.... cc at 19=42.6, 29=35.5, -1=21.1
             elif outcome in ['exp_income','fert_choice']:
                 plt_data = all_d.mean(0)
             elif outcome == 'var_income':

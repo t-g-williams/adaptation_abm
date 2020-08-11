@@ -49,7 +49,7 @@ def main():
     }
     sens_vars_clean = {
         'wealth_init_mean' : 'Initial wealth',
-        'cash_req_mean' : 'Annual living costs',
+        'cash_req_mean' : 'Consumption requirement',
         'livestock_cost' : 'Livestock cost',
         'organic_N_min_init' : r'$SOM_{init}$',
         'max_organic_N' : r'$SOM_{max}$',
@@ -366,8 +366,10 @@ def plot_rf_results(d_climate, d_dev, mean_vals, res_types, exp_name, mod_number
             ax.text(0.5,0,'x',transform=ax.transAxes, va='center', ha='center')
 
     # agents
+    ag_varz = ['cash_req_mean','livestock_cost','wealth_init_mean'] # impose the order
     for j in range(3):
-        var = var_imp_df[var_imp_df.key=='agents'].iloc[j]['variable']
+        # var = var_imp_df[var_imp_df.key=='agents'].iloc[j]['variable']
+        var = ag_varz[j]
         for o, obj in enumerate([d_climate,d_dev]):
             ax = axs[0,j]
             pdp_data = obj['pdp_datas']
