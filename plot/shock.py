@@ -490,7 +490,11 @@ def grid_plot(savedir, adap_scenarios, land_area, results, shock_mags, shock_tim
             cax = axs.cbar_axes[0]
             cbar = cax.colorbar(hm)
             axis = cax.axis[cax.orientation]
-            axis.label.set_text(r'P(CC$\succ$ins)')
+            if 'middle' in ext2:
+                ax.set_title(r'P(CC$\succ$ins)')
+                axis.label.set_text('Probability')
+            else:
+                axis.label.set_text(r'P(CC$\succ$ins)')
 
             ext = '_baseline' if baseline_resilience else ''
             fig.savefig(savedir + '{}_shock_grid_{}{}{}.png'.format(outcome, mag, ext, ext2), bbox_inches='tight', dpi=200)

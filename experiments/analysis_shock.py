@@ -70,10 +70,10 @@ def main():
         assess_resilience(exp_name, inp_base, adap_scenarios, load, ncores, nreps)
 
         # # ## B: vary shock magnitude
-        vary_magnitude(exp_name, inp_base, adap_scenarios, load, ncores, nreps)
+        # vary_magnitude(exp_name, inp_base, adap_scenarios, load, ncores, nreps)
 
-        # # ## C: effect of policy design
-        policy_design(exp_name, inp_base, adap_scenarios, load, ncores, nreps)
+        # # # ## C: effect of policy design
+        # policy_design(exp_name, inp_base, adap_scenarios, load, ncores, nreps)
 
 def policy_design(exp_name, inp_base, adap_scenarios, load, ncores, nreps):
     '''

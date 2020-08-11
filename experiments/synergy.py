@@ -18,6 +18,7 @@ import sys
 import code
 import tqdm
 import numpy as np
+import string
 import pandas as pd
 import pickle
 import copy
@@ -66,7 +67,7 @@ def main():
         'both' : {'model' : {'adaptation_option' : 'both'}},
     }
 
-    #### SHOCK RESILIENCE
+    ### SHOCK RESILIENCE
     [results, results_baseline, results_dev] = assess_synergies(exp_name, inp_base, adap_scenarios, load, ncores, nreps, T_dev)
     plot_synergy(exp_name, adap_scenarios, inp_base, results, results_baseline, results_dev)
 
@@ -137,13 +138,18 @@ def plot_synergy(exp_name, adap_scenarios, inp_base, shock, base, dev):
     fig = plt.figure(figsize=(7, 5))
     ax = ImageGrid(fig, 111, nrows_ncols=(1,1), axes_pad=0.5, add_all=True, label_mode='L',
         cbar_mode='single',cbar_location='right', aspect=False)
-    plt_vals = both-(cc+ins-none)
-    mm = np.abs(np.array(plt_vals)).max()
-    hm = (-plt_vals).to_xarray().plot(ax=ax[0], cmap='bwr',add_colorbar=False, vmin=-mm,vmax=mm) # plot the -ve b/c -ve values are good
+    plt_vals_prob = (both_all<=(cc_all+ins_all-none_all)).groupby(level=[0,1]).mean() # <= b/c -ve is beneficial
+    plt_vals = -(both-(cc+ins-none))
+    # mm = np.abs(np.array(plt_vals)).max()
+    hm = (plt_vals_prob).to_xarray().plot(ax=ax[0], cmap='bwr',add_colorbar=False, vmin=0,vmax=1) # plot the -ve b/c -ve values are good
+    # code.interact(local=dict(globals(), **locals()))  
     cax = ax.cbar_axes[0]
     cbar = cax.colorbar(hm)
     axis = cax.axis[cax.orientation]
-    axis.label.set_text("Synergy (E[birr/year])")
+    # axis.label.set_text("Synergy (E[birr/year])")
+    axis.label.set_text("P(synergy)")
+    ax[0].set_ylabel(r'Assessment period ($T_{assess}$)')
+    ax[0].set_xlabel(r'Time of shock ($T_{shock}$)')
     fig.savefig(savedir + 'synergy_grid.png', dpi=200,bbox_inches='tight')
     plt.close('all')
     # sys.exit()
@@ -166,8 +172,9 @@ def plot_synergy(exp_name, adap_scenarios, inp_base, shock, base, dev):
     for a, ax in enumerate(axs):
         # hm = (plt_vals[a]).to_xarray().plot(ax=ax, cmap='bwr',add_colorbar=False, vmin=-mm,vmax=mm)# plot the -ve b/c -ve values are good
         hm = (plt_vals_prob[a]).to_xarray().plot(ax=ax, cmap=cmaps[a],add_colorbar=False, vmin=0,vmax=1)# plot the -ve b/c -ve values are good
-        ax.set_title(titls[a])
         ax.set_xlabel(r'Time of shock ($T_{shock}$)')
+        # ax.set_title(titls[a])
+        ax.text(-0.05, 1.03, '{}: {}'.format(string.ascii_uppercase[a], titls[a]), fontsize=24, transform=ax.transAxes, ha='left',va='bottom')
     axs[0].set_ylabel(r'Assessment period ($T_{assess}$)')
     cax = axs.cbar_axes[0]
     cbar = cax.colorbar(hm)
@@ -175,7 +182,7 @@ def plot_synergy(exp_name, adap_scenarios, inp_base, shock, base, dev):
     axis.label.set_text("Additional average income benefit (birr/yr)")
     axis.label.set_text("Probability")
     fig.savefig(savedir + 'synergy_grid_comparison_prob.png', dpi=200,bbox_inches='tight')
-    # code.interact(local=dict(globals(), **locals()))    
+    # sys.exit() 
 
 
 

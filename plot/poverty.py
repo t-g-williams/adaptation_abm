@@ -367,7 +367,7 @@ def time_plot(outcome, ylab, mods, nreps, inp_base, scenarios, exp_name, T, save
         [ax.axhline(0, color='k', lw=1) for ax in axs]
 
 
-    lg = fig.legend(list(mods.keys()) + ['burn-in'], loc=10, bbox_to_anchor=(0.5, 0.1), ncol=len(mods)+1, frameon=False)
+    lg = fig.legend(list(mods.keys()) + ['burn-in'], loc=10, bbox_to_anchor=(0.5, 0.05), ncol=len(mods)+1, frameon=False, fontsize=14)
     fig.tight_layout()
     ext = '_{}'.format(risk_tol) if outcome == 'util' else ''
     fig.savefig(savedir + 'time_plot_{}{}.png'.format(outcome,ext), bbox_extra_artists=(lg,), dpi=200)
