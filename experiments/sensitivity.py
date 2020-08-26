@@ -323,7 +323,7 @@ def plot_rf_results(d_climate, d_dev, mean_vals, res_types, exp_name, mod_number
     fsz = 18
     ax.text(xmx*0.97, 15.25, 'LAND', ha='right',va='top', fontsize=fsz)
     ax.text(xmx*0.97, 17.25, 'CLIMATE', ha='right',va='top', fontsize=fsz)
-    ax.text(xmx*0.97, 20.25, 'AGENTS', ha='right',va='top', fontsize=fsz)
+    ax.text(xmx*0.97, 20.25, 'HOUSEHOLDS', ha='right',va='top', fontsize=fsz)
     ylim = ax.get_ylim()
 
     ax.fill_between([0,xmx],[15.5,15.5],[0,0], color='k',alpha=0.05)
@@ -407,7 +407,7 @@ def plot_rf_results(d_climate, d_dev, mean_vals, res_types, exp_name, mod_number
         if a % 5 == 0:
             ax.set_ylabel(r'P(CC$\succ$ins)')
 
-    axs[0,0].text(0, 1.1, '\nAGENTS', transform=axs[0,0].transAxes, fontsize=22)
+    axs[0,0].text(0, 1.1, '\nHOUSEHOLDS', transform=axs[0,0].transAxes, fontsize=22)
     axs[0,3].text(0, 1.1, 'CLIMATE', transform=axs[0,3].transAxes, fontsize=22)
     axs[1,0].text(0, 1.1, 'LAND', transform=axs[1,0].transAxes, fontsize=22)
 

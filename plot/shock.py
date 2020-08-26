@@ -491,8 +491,9 @@ def grid_plot(savedir, adap_scenarios, land_area, results, shock_mags, shock_tim
             cbar = cax.colorbar(hm)
             axis = cax.axis[cax.orientation]
             if 'middle' in ext2:
-                ax.set_title(r'P(CC$\succ$ins)')
-                axis.label.set_text('Probability')
+                ax.set_title('')
+                axis.label.set_text(r'P(CC$\succ$ins)')
+                # axis.label.set_text('Probability')
             else:
                 axis.label.set_text(r'P(CC$\succ$ins)')
 

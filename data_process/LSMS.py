@@ -37,6 +37,10 @@ def area():
         's={}\nloc={}\nscale={}\n{}%={}ha'.format(np.round(s,3), np.round(loc,3), np.round(scale,3), perc, np.round(qt, 2)))
     fig.savefig('../data/LSMS/areas.png')
     # code.interact(local=dict(globals(), **locals()))
+    # find quantiles of the chosen areas
+    # (a<=1).mean()
+    # (a<=1.5).mean()
+    # (a<=2).mean()
 
 def fertilizer():
     '''
