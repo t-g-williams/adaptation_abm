@@ -13,6 +13,7 @@ import calibration.POM as POM
 import plot.poverty as plt_pov
 from experiments import analysis_shock
 from experiments import analysis_poverty
+import seaborn as sns
 import copy
 import sys
 import code
@@ -167,7 +168,10 @@ def plot_synergy(exp_name, adap_scenarios, inp_base, shock, base, dev):
     from matplotlib.colors import LinearSegmentedColormap
     cmaps = [LinearSegmentedColormap.from_list('cm_cc', [(1, 0, 0), (1, 1, 1), (0, 1, 0)]), # R -> W -> G
                 LinearSegmentedColormap.from_list('cm_ins', [(0, 0, 1), (1, 1, 1), (0, 1, 0)])] # B -> W -> G
-    cmaps = ['bwr','bwr'] # default ones....
+    cmaps = [LinearSegmentedColormap.from_list('cm_cc', [(0, 0, 0), (1, 1, 1), (0, 0.5, 0)]), # k -> W -> G
+                LinearSegmentedColormap.from_list('cm_ins', [(0, 0, 0), (1, 1, 1), (0, 0.5, 0)])] # k -> W -> G  
+    # cmaps = ['bwr','bwr'] # default ones....
+    # cmaps = [sns.diverging_palette(145, 300, s=60, as_cmap=True),sns.diverging_palette(145, 300, s=60, as_cmap=True)]
     titls = [r"P(both$\succ$cover_crop)", r"P(both$\succ$insurance)"]
     for a, ax in enumerate(axs):
         # hm = (plt_vals[a]).to_xarray().plot(ax=ax, cmap='bwr',add_colorbar=False, vmin=-mm,vmax=mm)# plot the -ve b/c -ve values are good

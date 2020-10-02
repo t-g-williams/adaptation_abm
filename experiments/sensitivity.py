@@ -30,7 +30,7 @@ import logging.config
 def main():
     exp_name = 'es_r1_sims'
     N_vars = 10000 # number of random variable sets to generate
-    N_reps = 100 # number of times to repeat model for each variable set
+    N_reps = 100 # number of times to repeat model for each variable set. need a large number to calculate probability
     ncores = 40
     pom_nvars = 100000
     pom_nreps = 10
@@ -82,6 +82,7 @@ def main():
         inp_base['model']['exp_name'] = exp_name
         inp_base['agents']['adap_type'] = 'always'
         inp_base['agents']['land_area_multiplier'] = 1 # not in POM experiment
+        inp_base['climate']['shock_as_percentile'] = True # CHANGED FOR REVISIONS
 
         ### 2. sample: generate random perturbed variable sets
         params, keys, names = hypercube_sample(N_vars, sens_vars, inp_base, perturb_perc)

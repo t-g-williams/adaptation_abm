@@ -116,5 +116,6 @@ def climate():
 
         'shock_years' : [30], # starting at 0 (pythonic)
         'shock_rain' : 0.1, # the rain value in the simulated shock
+        'shock_as_percentile' : False,
     }
     return d

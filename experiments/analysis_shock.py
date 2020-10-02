@@ -53,7 +53,6 @@ def main():
         inp_base['model']['shock'] = False
         # inp_base['agents']['land_area_multiplier'] = 1
         # inp_base['adaptation']['cover_crop']['climate_dependence'] = False
-        # inp_base['land']['residue_loss_factor'] = 0.5
         # print('50% residue lost!!!!')
 
         #### adaptation scenarios
