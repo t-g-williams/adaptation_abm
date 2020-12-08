@@ -20,10 +20,9 @@ import multiprocessing
 
 def main():
     nreps = 3000
-    exp_name_POM = 'es_r1_sims' # for reading POM outputs
-    exp_name_base = 'es_r1_sims' # for writing outputs
-    ncores = 25
-    soln_number = 0
+    exp_name_POM = 'es_r2' # for reading POM outputs
+    exp_name_base = 'es_r2' # for writing outputs
+    ncores = 1
 
     # load default params
     inp_base = inp.compile()
@@ -31,6 +30,7 @@ def main():
     # load from POM experiment
     pom_nvars = 100000
     pom_nreps = 10
+    soln_number = 0 # from the POM procedure
     exp_name = '{}/model_{}'.format(exp_name_base, soln_number)
     f = '../outputs/{}/POM/{}_{}reps/input_params_{}.pkl'.format(exp_name_POM, pom_nvars, pom_nreps, soln_number)
     inp_base = pickle.load(open(f, 'rb'))
@@ -40,12 +40,6 @@ def main():
     inp_base['model']['n_agents'] = 300
     inp_base['model']['exp_name'] = exp_name
     inp_base['agents']['adap_type'] = 'always'
-    # inp_base['agents']['land_area_multiplier'] = 1
-    # inp_base['agents']['fert_cash_constrained'] = False
-    # inp_base['agents']['fertilizer_cost'] = 0
-    # print('not cash constrained..')
-    # print('fert cost 0')
-    # inp_base['adaptation']['cover_crop']['climate_dependence'] = True
 
     #### adaptation scenarios
     scenarios = {
@@ -86,7 +80,6 @@ def multi_mod_run(nreps, inp_base, scenarios, ncores):
             'organic' : np.array([oi.astype(int) for tmp_i in tmp for oi in tmp_i['organic']]), # each rep is different length
             'land_area' : np.array([oi for tmp_i in tmp for oi in tmp_i['land_area']]),
             'coping' : np.array([oi for tmp_i in tmp for oi in tmp_i['coping']]),
-            'fert_choice' : np.array([oi for tmp_i in tmp for oi in tmp_i['fert_choice']]),
             'owners' : np.array([oi for tmp_i in tmp for oi in tmp_i['owners']]),
             'income' : np.array([oi for tmp_i in tmp for oi in tmp_i['income']]).astype(int),
             'yields' : np.array([oi for tmp_i in tmp for oi in tmp_i['yields']]).astype(int),
@@ -101,7 +94,7 @@ def run_chunk_reps(reps, params):
     '''
     params = copy.copy(params)
     ms = {'wealth' : [], 'organic' : [], 'coping' : [], 'land_area' : [], 'owners' : [],
-        'income' : [], 'yields' : [], 'climate' : [], 'fert_choice' : []}
+        'income' : [], 'yields' : [], 'climate' : []}
     # with tqdm(reps, disable = not True) as pbar:
     for r in reps:
         params['model']['seed'] = r # set the seed
@@ -119,15 +112,7 @@ def run_chunk_reps(reps, params):
         ms['income'].append(m.agents.income)
         ms['yields'].append(m.land.yields)
         ms['climate'].append(m.climate.rain)
-        ms['fert_choice'].append(m.agents.fert_choice)
         # pbar.update()
-        # if params['model']['adaptation_option'] == 'cover_crop':
-        #     code.interact(local=dict(globals(), **locals()))
-        #     import matplotlib.pyplot as plt
-        #     fig, ax = plt.subplots()
-        #     for a in range(m.agents.N):                
-        #         ax.scatter(m.climate.rain, m.land.cover_crop_N_fixed[:,a])
-        #     fig.savefig('../cover_crop_N_fixed.png')
 
     return ms
 

@@ -1,10 +1,10 @@
 # Stylized Model of Smallholder Agricultural Households
 Author: Tim G Williams (tgw@umich.edu)
 
-A COMPLETE ODD+D PROTOCOL WILL BE RELEASED UPON ACCEPTANCE OF THE PUBLICATION.
 
 ## Model overview
-To be added upon acceptance of the publication.
+A complete ODD+D protocol is included within the publication:
+Williams, T. G., G. Dreßler, A. E. Stratton, and B. Müller. (2020) “Ecological and Financial Strategies Provide Complementary Benefits for Smallholder Climate Resilience: Insights from a Simulation Model.” Ecology and Society.
 
 ## 1. Code structure
 The code is divided into a few folders:
@@ -23,9 +23,12 @@ NOTE: while most files are `.py`, some are `.ipynb`, which are Jupyter Notebook 
 Requirements:
 - Python >=3.6
 - Make sure all required packages in the `requirements.txt` file are installed.
-- Create a folder called `code` for the code and a folder called `outputs/` for the outputs to be stored.
+- Create a folder called `code/` for the code and a folder called `outputs/` for the outputs to be stored.
 
 Navigate to the `code` directory.
+
+Install required python packages using: `pip install -r requirements.txt`
+(Note: it is recommended to do this within a "virtual environment", which can be created using `pip install virtualenv` and then `virtualenv venv`, then `source venv/bin/activate` (max/linux) or `venv/Scripts/activate` (windows))
 
 From the command line, type:
 
@@ -37,5 +40,6 @@ This will run the model and some plotting functions.
 The experiments conducted for the main body of the paper are coded in several different files:
 - `experiments/analysis_shock.py` examines the effects of climate shocks under the different scenarios
 - `experiments/analysis_poverty.py` examines, under regular climatic variability, the propensity for households to have positive levels of wealth over time
+- `experiments/synergy.py` examines the effect of both strategies together.
 - `experiments/sensitivity.py` conducts a sensitivity analysis to selected parameters, and visualizes them using a gradient-boosted random forest.
 - `experiments/explore mechanisms.ipynb` generates the plots in the supplemental data to the paper

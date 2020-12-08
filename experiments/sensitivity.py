@@ -28,7 +28,7 @@ import logging.config
 
 
 def main():
-    exp_name = 'es_r1_sims'
+    exp_name = 'es_r2'
     N_vars = 10000 # number of random variable sets to generate
     N_reps = 100 # number of times to repeat model for each variable set. need a large number to calculate probability
     ncores = 40

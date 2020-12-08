@@ -112,8 +112,6 @@ class Agents():
                 max_ls_wealth_tot += self.remaining_payout
         
             too_much = self.wealth[t+1] > max_ls_wealth_tot
-            # too_much[too_much==True] = False # TEMPORARY!!!
-            self.leftover_cash[t+1,too_much] = self.wealth[t+1,too_much] - max_ls_wealth_tot[too_much].astype(int)
             self.wealth[t+1, too_much] = max_ls_wealth_tot[too_much]
         
         self.wealth[t+1, self.wealth[t+1] < self.max_neg_wealth] = self.max_neg_wealth

@@ -30,7 +30,7 @@ def main():
     N_samples = 100000
     ncores = 40
     nreps = 10
-    exp_name = 'es_r1_fertilizer/POM_2'
+    exp_name = 'es_r2/POM_test'
     inputs = {
         'model' : {'n_agents' : 100, 'T' : 100, 'exp_name' : exp_name,
                     'adaptation_option' : 'none'}
@@ -46,10 +46,8 @@ def main():
         [4, 'land', 'livestock_frac_crops', 0.5, 1],
         [5, 'land', 'residue_CN_conversion', 25, 200],
         [6, 'agents', 'cash_req_mean', 5000, 15000],
-        [7, 'agents', 'fertilizer_cost', 5, 50],
-        [8, 'agents', 'risk_tolerance', 50, 10000],
-        [9, 'land', 'loss_max', 0.05, 0.95],
-        [10, 'agents', 'wealth_init_mean', 5000, 50000]],
+        [7, 'land', 'loss_max', 0.05, 0.95],
+        [8, 'agents', 'wealth_init_mean', 5000, 50000]],
         # [9, 'climate', 'rain_mu', 0.2, 0.8],
         # [10, 'land', 'random_effect_sd', 0, 1]],
         columns = ['id','key1','key2','min_val','max_val'])

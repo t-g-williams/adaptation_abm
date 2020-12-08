@@ -116,5 +116,6 @@ def convergence_analysis(exp_name, inp_base, adap_scenarios, ncores):
     ax.grid(False)
     ax.set_ylim([0,0.4])
     fig.savefig('../outputs/{}/plots/convergence_absolute_error.png'.format(exp_name))
+    print('../outputs/{}/plots/convergence_absolute_error.png'.format(exp_name))
 
     return nreps_req

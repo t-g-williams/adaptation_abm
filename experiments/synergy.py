@@ -34,8 +34,8 @@ import warnings
 warnings.simplefilter("ignore", UserWarning) # ImageGrid spits some annoying harmless warnings w.r.t. tight_layout
 
 def main():
-    exp_name_POM = 'es_r1_sims' # for reading POM outputs
-    exp_name_base = 'es_r1_sims' # for writing outputs
+    exp_name_POM = 'es_r2' # for reading POM outputs
+    exp_name_base = 'es_r2' # for writing outputs
     solution_number = 0 # the id number of the POM solutions
     ncores = 40 # number of cores for parallelization
     load = True # load pre-saved outputs?
@@ -55,9 +55,6 @@ def main():
     inp_base['model']['exp_name'] = exp_name
     inp_base['agents']['adap_type'] = 'always' # agents always choose the adaptation option
     inp_base['model']['shock'] = False
-    inp_base['agents']['land_area_multiplier'] = 1
-    inp_base['adaptation']['cover_crop']['climate_dependence'] = True
-
     T_dev = 50 # time period for development resilience simulations
 
     #### adaptation scenarios
@@ -106,7 +103,7 @@ def plot_synergy(exp_name, adap_scenarios, inp_base, shock, base, dev):
     if not os.path.isdir(savedir):
         os.makedirs(savedir)
     #### SHOCK RESILIENCE
-    # subset the dataframes to what we care about
+    # subset the dataframes to what we care about (NOTE: this might not work first time round... re-run the code and it does (only works when importing CSV))
     both_all = base['both'].loc[('income','0_2'),'1.5']
     cc_all = base['cover_crop'].loc[('income','0_2'),'1.5']
     ins_all = base['insurance'].loc[('income','0_2'),'1.5']

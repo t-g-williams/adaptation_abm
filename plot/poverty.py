@@ -39,18 +39,6 @@ def main(mods, nreps, inp_base, scenarios, exp_name, T, shock_years=[], dir_ext=
         time_plot('var_income', 'std.dev(income)', mods, nreps, inp_base, scenarios, exp_name, T, savedir)
         time_plot('exp_income', 'E[income]', mods, nreps, inp_base, scenarios, exp_name, T, savedir)
         time_plot('poverty', 'P(wealth > 0)', mods, nreps, inp_base, scenarios, exp_name, T, savedir)
-        time_plot('fert_choice', 'P(choose fertilizer)', mods, nreps, inp_base, scenarios, exp_name, T, savedir)
-        # code.interact(local=dict(globals(), **locals()))
-
-        # OLD PLOTS
-        # only run these for the adaptation scenarios -- this assumes the length of shock years here is zero
-        # poverty_trap_combined(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
-        # poverty_trap(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
-        # combined_wealth_income(mods, nreps, inp_base, scenarios, exp_name, T, savedir)
-        # agent_trajectories(mods, nreps, inp_base, scenarios, exp_name, T, savedir, 'wealth')
-        # agent_trajectories(mods, nreps, inp_base, scenarios, exp_name, T, savedir, 'income')
-    
-    # first_round_plots(mods, nreps, inp_base, scenarios, exp_name, T, savedir, shock_years)
 
 def poverty_trap_combined(mods, nreps, inp_base, scenarios, exp_name, T, savedir):
     '''

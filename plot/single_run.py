@@ -31,9 +31,6 @@ def main(mod, save=True):
     # plotting by agent type
     type_combined(mod, save)
     type_wealth(mod, savedir)
-    if mod.agents.fertilizer:
-        type_fertilizer(mod, savedir)
-        type_fertilizer_no_risk(mod, savedir)
     type_coping(mod, savedir)
     type_nutrients(mod, savedir)
     type_yields(mod, savedir)
@@ -275,32 +272,6 @@ def type_wealth(mod, savedir):
         return fig
     else:
         fig.savefig(savedir + 'single_wealth.png')
-
-def type_fertilizer(mod, savedir):
-    fig = plt.figure(figsize=(12,6))
-    ax = fig.add_subplot(111)
-    type_timeseries(mod.agents.fert_choice, mod.agents.land_area, ax, 'Prob', 'Prob(choose fertilizer)', plt_mean=True)
-    ax.plot(mod.climate.rain, color='k', ls=':', lw=0.75, label='rainfall')
-    ax.legend()
-    fig.tight_layout()
-    if isinstance(savedir, bool):
-        return fig
-    else:
-        fig.savefig(savedir + 'single_fertilizer.png')
-
-
-def type_fertilizer_no_risk(mod, savedir):
-    fig = plt.figure(figsize=(12,6))
-    ax = fig.add_subplot(111)
-    type_timeseries(mod.agents.fert_choice_no_risk, mod.agents.land_area, ax, 'Prob', 'Prob(choose fertilizer)', plt_mean=True)
-    ax.plot(mod.climate.rain, color='k', ls=':', lw=0.75, label='rainfall')
-    ax.legend()
-    fig.tight_layout()
-    if isinstance(savedir, bool):
-        return fig
-    else:
-        fig.savefig(savedir + 'single_fertilizer_no_risk.png')
-
 
 def type_coping(mod, savedir):
     fig = plt.figure(figsize=(20,6))

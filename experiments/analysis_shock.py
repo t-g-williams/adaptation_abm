@@ -29,10 +29,10 @@ logger = logging.getLogger('sLogger')
 
 
 def main():
-    exp_name_POM = 'es_r1_sims' # for reading POM outputs
-    exp_name_base = 'es_r1_sims' # for writing outputs
+    exp_name_POM = 'es_r2' # for reading POM outputs
+    exp_name_base = 'es_r2' # for writing outputs
     solution_numbers = [0] # the id numbers of the POM solutions
-    ncores = 10 # number of cores for parallelization
+    ncores = 40 # number of cores for parallelization
     load = True # load pre-saved outputs?
     nreps = 300 # for the simulation
 
@@ -47,13 +47,10 @@ def main():
         f = '../outputs/{}/POM/{}_{}reps/input_params_{}.pkl'.format(exp_name_POM, pom_nvars, pom_nreps, solution_number)
         inp_base = pickle.load(open(f, 'rb'))
         # manually specify some variables (common to all scenarios)
-        inp_base['model']['n_agents'] = 200
+        inp_base['model']['n_agents'] = 300
         inp_base['model']['exp_name'] = exp_name
         inp_base['agents']['adap_type'] = 'always' # agents always choose the adaptation option
         inp_base['model']['shock'] = False
-        # inp_base['agents']['land_area_multiplier'] = 1
-        # inp_base['adaptation']['cover_crop']['climate_dependence'] = False
-        # print('50% residue lost!!!!')
 
         #### adaptation scenarios
         adap_scenarios = {
