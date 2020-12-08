@@ -55,7 +55,6 @@ class Land():
         organic -= mineralization
 
         ### agent inputs
-        inorganic += self.apply_fixed_fertilizer(agents) # kgN/ha ## NOT IN MODEL YET
         residue = self.crop_residue_input()
         livestock = self.livestock_SOM_input(agents) # kgN/ha
         cover_crop = self.cover_crop_input(agents, adap_properties, climate) # kgN/ha
@@ -178,19 +177,3 @@ class Land():
             
             rf_effects = eff_max - (1 - org/self.max_organic_N) * red_max
             return np.maximum(rf_effects, 0)
-
-    def apply_fixed_fertilizer(self, agents):
-        '''
-        simulate application of a fixed amount of fertilizer to fields
-        only for agents that are using this option
-        '''
-        fert_applied = np.full(self.n_plots, 0.)
-        ag = agents.fert_choice[agents.t[0]]
-        if np.sum(ag) > 0:
-            # add to the fields
-            fields = np.in1d(self.owner, agents.id[ag]) # identify the fields
-            fert_applied[fields] = agents.fert_kg
-            # add costs to agents
-            agents.fert_costs[agents.t[0], ag] = agents.fert_kg * agents.fertilizer_cost * agents.land_area[ag]
-        
-        return fert_applied    

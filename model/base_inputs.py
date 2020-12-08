@@ -18,16 +18,13 @@ def model():
         'seed' : 0,
         'sim_id' : 0,
         'rep_id' : 0,
-        'adaptation_option' : 'insurance', # set to "none" for baseline
+        'adaptation_option' : 'insurance', # set to "none" for baseline, or "insurance" or "cover_crop"
         'shock' : False,
     }
     return d
 
 def adaptation():
     d = {
-        # 'fertilizer_fixed' : {
-        #     'application_rate' : 147.2, # kg/ha. median from LSMS (ALL fertilizer. i assume this equals Nitrogen)
-        #     },
         'burnin_period' : 10, # years before adaptation options come into effect
         'insurance' : {
             'climate_percentile' : 0.1,
@@ -58,22 +55,13 @@ def agents():
         'fodder_constraint' : True, # is agents' livestock holdings constrained by fodder availability? if False, households can purchase fodder to keep their herds alive
         'wealth_init_mean' : 15000,
         'wealth_init_sd' : 0,
-        'max_neg_wealth' : 0, # birr. just for plotting. these ppl cant recover anyway
+        'max_neg_wealth' : 0, # birr. just for plotting
         # requirements
         'cash_req_mean' : 17261, # 17261 birr/yr. median value from 2015 LSMS
         'cash_req_sd' : 0,
         # market prices
         'crop_sell_price' : 2.17, # 2.17 birr/kg. mean 2015 maize price (FAO)
         'livestock_cost' : 3000, # birr/head. Ethiopia CSA data 2015
-
-        #### fertilizer parameters ####
-        'fertilizer' : False, # binary switch -- is it included in the model?
-        'fertilizer_cost' : 13.2, # 13.2 birr/kg. median from 2015 LSMS
-        'fert_cash_constrained' : True, # switch: do cash constraints prohibit use of fertilizer?
-        'fert_use_savings' : True,
-        'risk_tolerance' : 3000,
-        'fert_kg' : 50,
-        'nsim_utility' : 10,
     }
     return d
 

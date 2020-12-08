@@ -34,8 +34,6 @@ class Model():
         '''
         advance the simulation by one year
         '''
-        if self.agents.fertilizer:
-            self.agents.fertilizer_decisions(self.land, self.adap_properties, self.climate)
         self.land.update_soil(self.agents, self.adap_properties, self.climate)
         self.land.crop_yields(self.agents, self.climate)
         self.agents.calculate_income(self.land, self.climate, self.adap_properties)
@@ -98,39 +96,3 @@ class Model():
 
         # set burn-in period
         self.adap_properties['burnin_period'] = self.all_inputs['adaptation']['burnin_period']
-
-    def calc_insurance_cost_new(self):
-        '''
-        calculate the annual cost for insurance, assuming fair payouts
-        and the given coverage (related to crop yields / income)
-        NOTE : this doesn't incorporate soil quality reductions! so it's not fair if you don't have good soil quality
-        calculate expected crop yield
-        '''
-        props = self.all_inputs['adaptation']['insurance']
-        payout = props['payout_magnitude'] * self.all_inputs['agents']['cash_req_mean']
-        cost = payout * props['climate_percentile'] # birr/ha
-
-        rains = np.random.normal(self.climate.rain_mu, self.climate.rain_sd, 1000)
-        magnitude = np.percentile(rains, props['climate_percentile']*100)
-
-        return cost, payout, magnitude
-    
-    def calc_insurance_cost(self):
-        '''
-        calculate the annual cost for insurance, assuming fair payouts
-        and the given coverage (related to crop yields / income)
-        NOTE : this doesn't incorporate soil quality reductions! so it's not fair if you don't have good soil quality
-        calculate expected crop yield
-        '''
-        props = self.all_inputs['adaptation']['insurance']
-        rains = np.random.normal(self.climate.rain_mu, self.climate.rain_sd, 1000)
-        rain_facs = np.full(rains.shape, np.nan)
-        for r, rain in enumerate(rains):
-            rain_facs[r] = self.land.calculate_rainfall_factor(rain, virtual=True)
-        exp_yield = np.mean(rain_facs) * self.land.max_yield * 0.5 # 0.5 assumed mean nutrient factor
-        exp_crop_income = exp_yield * self.agents.crop_sell_price # birr/ha
-        payout = exp_crop_income * props['payout_magnitude'] # birr/ha
-        cost = payout * props['climate_percentile'] # birr/ha
-        magnitude = np.percentile(rains, props['climate_percentile']*100)
-
-        return cost, payout, magnitude
