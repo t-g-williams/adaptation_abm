@@ -66,8 +66,8 @@ def main():
     }
 
     ### SHOCK RESILIENCE
-    [results, results_baseline, results_dev] = assess_synergies(exp_name, inp_base, adap_scenarios, load, ncores, nreps, T_dev)
-    plot_synergy(exp_name, adap_scenarios, inp_base, results, results_baseline, results_dev)
+    # [results, results_baseline, results_dev] = assess_synergies(exp_name, inp_base, adap_scenarios, load, ncores, nreps, T_dev)
+    # plot_synergy(exp_name, adap_scenarios, inp_base, results, results_baseline, results_dev)
 
     #### POVERTY REDUCTION
     inp_base['model']['T'] = T_dev + inp_base['adaptation']['burnin_period']

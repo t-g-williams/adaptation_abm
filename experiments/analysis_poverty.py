@@ -19,10 +19,10 @@ from tqdm import tqdm
 import multiprocessing
 
 def main():
-    nreps = 3000
+    nreps = 300
     exp_name_POM = 'es_r2' # for reading POM outputs
     exp_name_base = 'es_r2' # for writing outputs
-    ncores = 1
+    ncores = 40
 
     # load default params
     inp_base = inp.compile()

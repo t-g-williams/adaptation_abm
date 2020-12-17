@@ -39,6 +39,7 @@ def main(mods, nreps, inp_base, scenarios, exp_name, T, shock_years=[], dir_ext=
         time_plot('var_income', 'std.dev(income)', mods, nreps, inp_base, scenarios, exp_name, T, savedir)
         time_plot('exp_income', 'E[income]', mods, nreps, inp_base, scenarios, exp_name, T, savedir)
         time_plot('poverty', 'P(wealth > 0)', mods, nreps, inp_base, scenarios, exp_name, T, savedir)
+        time_plot('no_poverty', 'P(wealth = 0)', mods, nreps, inp_base, scenarios, exp_name, T, savedir)
 
 def poverty_trap_combined(mods, nreps, inp_base, scenarios, exp_name, T, savedir):
     '''
@@ -306,7 +307,7 @@ def time_plot(outcome, ylab, mods, nreps, inp_base, scenarios, exp_name, T, save
         for scenario, mods_sc in mods.items():
             m = scenario
             ## get the relevant outcome data
-            if outcome == 'poverty': # plot probability of non-poverty (wealth>0) over time
+            if outcome in ['poverty','no_poverty']: # plot probability of non-poverty (wealth>0) over time
                 d = mods_sc['wealth']
                 xs = np.arange(T+burnin+1)
             elif outcome in ['exp_income','var_income','util']:
@@ -327,6 +328,8 @@ def time_plot(outcome, ylab, mods, nreps, inp_base, scenarios, exp_name, T, save
             # extract the relevant info for plotting
             if outcome == 'poverty':
                 plt_data = np.mean(all_d>0, axis=0) # notes: baseline at 19=35.4%, 29=14.3, -1=0.... cc at 19=42.6, 29=35.5, -1=21.1
+            elif outcome == 'no_poverty':
+                plt_data = np.mean(all_d==0, axis=0) # notes: baseline at 19=35.4%, 29=14.3, -1=0.... cc at 19=42.6, 29=35.5, -1=21.1
             elif outcome in ['exp_income','fert_choice']:
                 plt_data = all_d.mean(0)
             elif outcome == 'var_income':
@@ -349,7 +352,7 @@ def time_plot(outcome, ylab, mods, nreps, inp_base, scenarios, exp_name, T, save
     axs[0].set_ylabel(ylab)
     
     # plot-specific formatting
-    if outcome == 'poverty':
+    if outcome in ['poverty','no_poverty']:
         [ax.set_ylim([0,1]) for ax in axs] # re-set the y lims
     elif outcome in ['exp_income','util']:
         [ax.axhline(0, color='k', lw=1) for ax in axs]
