@@ -167,7 +167,7 @@ def time_plot_combined(mods, nreps, inp_base, scenarios, exp_name, T, savedir):
     ylabs = ['P(wealth > 0)','E[income]','std.dev(income)']
 
     lands = inp_base['agents']['land_area_init']
-    titles = ['Land poor','Middle','Land rich']
+    titles = ['Land-poor','Middle','Land-rich']
     burnin = inp_base['adaptation']['burnin_period']
     fig, ax_all = plt.subplots(len(outcomes)+1,len(lands), figsize=(5*len(lands), 3*len(outcomes)+0.5), sharey='row', gridspec_kw={'height_ratios':[1]*len(outcomes)+[0.05],
         'hspace':0.15,'wspace':0.075})
@@ -295,13 +295,14 @@ def time_plot(outcome, ylab, mods, nreps, inp_base, scenarios, exp_name, T, save
     plot the specified outcome over time for each agent type
     '''
     lands = inp_base['agents']['land_area_init']
-    titles = ['Land poor','Middle','Land rich']
+    titles = ['Land-poor','Middle','Land-rich']
     burnin = inp_base['adaptation']['burnin_period']
     fig, ax_all = plt.subplots(2,len(lands), figsize=(5*len(lands), 4), sharey=True, gridspec_kw={'height_ratios':[1,0.05]})
     axs = ax_all[0]
     [axi.remove() for axi in ax_all[1,:]]
     cols = {'baseline':'k','cover_crop':'r','insurance':'b','both':'g'}
     lss = {'baseline':'-','cover_crop':'--','insurance':'-.','both':':'}
+    scenario_pretty = {'baseline':'baseline','insurance':'insurance','cover_crop':'cover crop','both':'both'}
 
     for n, land_area in enumerate(lands):
         for scenario, mods_sc in mods.items():
@@ -340,7 +341,7 @@ def time_plot(outcome, ylab, mods, nreps, inp_base, scenarios, exp_name, T, save
                 utils[all_d<=0] = -(1 - np.exp(all_d / risk_tol))[all_d<=0]
                 plt_data = utils.mean(0)
 
-            axs[n].plot(xs, plt_data, label=scenario, lw=2, ls=lss[m], color=cols[m])#, marker='o')
+            axs[n].plot(xs, plt_data, label=scenario_pretty[scenario], lw=2, ls=lss[m], color=cols[m])#, marker='o')
 
     limz = axs[n].get_ylim()
     for a, ax in enumerate(axs):
@@ -357,8 +358,8 @@ def time_plot(outcome, ylab, mods, nreps, inp_base, scenarios, exp_name, T, save
     elif outcome in ['exp_income','util']:
         [ax.axhline(0, color='k', lw=1) for ax in axs]
 
-
-    lg = fig.legend(list(mods.keys()) + ['burn-in'], loc=10, bbox_to_anchor=(0.5, 0.05), ncol=len(mods)+1, frameon=False, fontsize=14)
+    labelz = [scenario_pretty[scenario] for scenario in list(mods.keys())] + ['burn-in']
+    lg = fig.legend(labelz, loc=10, bbox_to_anchor=(0.5, 0.05), ncol=len(mods)+1, frameon=False, fontsize=14)
     fig.tight_layout()
     ext = '_{}'.format(risk_tol) if outcome == 'util' else ''
     fig.savefig(savedir + 'time_plot_{}{}.png'.format(outcome,ext), bbox_extra_artists=(lg,), dpi=200)

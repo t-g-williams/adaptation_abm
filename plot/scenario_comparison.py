@@ -52,8 +52,9 @@ def combined_plots(mods, savedir):
             xs = np.arange(burnin, burnin+T)
             col = 'k' if m == 'baseline' else 'r' if m == 'cover_crop' else 'b'
             ls = '-' if m=='baseline' else '--' if m=='cover_crop' else '-.'
-            ax.plot(xs, mod.agents.income[:,lands==uniq_land[1]][xs].mean(1), label=m, lw=1.5, color=col, ls=ls)
-            ax2.plot(xs, mod.land.organic[:,lands==uniq_land[1]][xs+1].mean(1), label=m, lw=1.5, color=col, ls=ls)
+            strategy_labels = {'baseline':'baseline','insurance':'insurance','cover_crop':'cover crop'}
+            ax.plot(xs, mod.agents.income[:,lands==uniq_land[1]][xs].mean(1), label=strategy_labels[m], lw=1.5, color=col, ls=ls)
+            ax2.plot(xs, mod.land.organic[:,lands==uniq_land[1]][xs+1].mean(1), label=strategy_labels[m], lw=1.5, color=col, ls=ls)
             ax3.plot(xs, mod.climate.rain[xs], label=m, color=col, lw=1.5, ls=ls)
         if mod.shock:
             for yr in mod.climate.shock_years:

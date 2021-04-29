@@ -66,8 +66,8 @@ def main():
     }
 
     ### SHOCK RESILIENCE
-    # [results, results_baseline, results_dev] = assess_synergies(exp_name, inp_base, adap_scenarios, load, ncores, nreps, T_dev)
-    # plot_synergy(exp_name, adap_scenarios, inp_base, results, results_baseline, results_dev)
+    [results, results_baseline, results_dev] = assess_synergies(exp_name, inp_base, adap_scenarios, load, ncores, nreps, T_dev)
+    plot_synergy(exp_name, adap_scenarios, inp_base, results, results_baseline, results_dev)
 
     #### POVERTY REDUCTION
     inp_base['model']['T'] = T_dev + inp_base['adaptation']['burnin_period']
@@ -114,7 +114,7 @@ def plot_synergy(exp_name, adap_scenarios, inp_base, shock, base, dev):
     none = none_all.groupby(level=[0,1]).mean() # take the mean over the replications
 
     #### plot the effects separately
-    titls = ['cover_crop','insurance','both']
+    titls = ['cover crop','insurance','both']
     plot_vals = [cc-none,ins-none,both-none]
     mm = np.abs(np.array(plot_vals)).max()
     fig = plt.figure(figsize=(6*3, 5))
@@ -169,7 +169,7 @@ def plot_synergy(exp_name, adap_scenarios, inp_base, shock, base, dev):
                 LinearSegmentedColormap.from_list('cm_ins', [(0, 0, 0), (1, 1, 1), (0, 0.5, 0)])] # k -> W -> G  
     # cmaps = ['bwr','bwr'] # default ones....
     # cmaps = [sns.diverging_palette(145, 300, s=60, as_cmap=True),sns.diverging_palette(145, 300, s=60, as_cmap=True)]
-    titls = [r"P(both$\succ$cover_crop)", r"P(both$\succ$insurance)"]
+    titls = [r"P(both$\succ$cover crop)", r"P(both$\succ$insurance)"]
     for a, ax in enumerate(axs):
         # hm = (plt_vals[a]).to_xarray().plot(ax=ax, cmap='bwr',add_colorbar=False, vmin=-mm,vmax=mm)# plot the -ve b/c -ve values are good
         hm = (plt_vals_prob[a]).to_xarray().plot(ax=ax, cmap=cmaps[a],add_colorbar=False, vmin=0,vmax=1)# plot the -ve b/c -ve values are good
