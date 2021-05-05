@@ -50,24 +50,24 @@ def main():
     sens_vars_clean = {
         'wealth_init_mean' : 'Initial wealth',
         'cash_req_mean' : 'Consumption requirement',
-        'livestock_cost' : 'Livestock cost',
-        'organic_N_min_init' : r'$SOM_{init}$',
+        'livestock_cost' : 'Livestock price',
+        'organic_N_min_init' : 'Initial soil\nfertility',#r'$SOM_{init}$',
         'max_organic_N' : r'$SOM_{max}$',
         'fast_mineralization_rate' : 'SOM mineralization rate',
         'slow_mineralization_rate' : 'Added OM mineralization rate',
         'loss_max' : 'xx',
         'loss_min' : 'xx',
-        'max_yield' : 'Maximum yield',
+        'max_yield' : 'Maximum staple\ncrop yield',
         'rain_crit' : 'xx',
         'rain_cropfail_low_SOM' : 'xx',
         'random_effect_sd' : 'xx',
         'crop_CN_conversion' : 'xx',
         'residue_CN_conversion' : 'xx',
-        'wealth_N_conversion' : 'Livestock N\nconversion factor',
-        'livestock_frac_crops' : 'Livestock %\nresidue requirement',
+        'wealth_N_conversion' : 'N in livestock\nmanure',#'Livestock nitrogen\nproduction',
+        'livestock_frac_crops' : '% livestock feed\nfrom crop residue',
         'livestock_residue_factor' : 'xx',
-        'rain_mu' : 'Climate mean',
-        'rain_sd' : 'Climate std. dev.'
+        'rain_mu' : 'Regional climate\n(mean)', # regional climate condition (1 represents lack of climate-induced crop yield stress)
+        'rain_sd' : 'Regional climate\n(std. dev.)'
     }
     # specify which land vars to plot? if False, plot the most important
     land_vars = ['livestock_frac_crops','wealth_N_conversion','organic_N_min_init','max_yield']
@@ -324,7 +324,7 @@ def plot_rf_results(d_climate, d_dev, mean_vals, res_types, exp_name, mod_number
     fsz = 18
     ax.text(xmx*0.97, 15.25, 'LAND', ha='right',va='top', fontsize=fsz)
     ax.text(xmx*0.97, 17.25, 'CLIMATE', ha='right',va='top', fontsize=fsz)
-    ax.text(xmx*0.97, 20.25, 'HOUSEHOLDS', ha='right',va='top', fontsize=fsz)
+    ax.text(xmx*0.97, 20.25, 'HOUSEHOLD', ha='right',va='top', fontsize=fsz)
     ylim = ax.get_ylim()
 
     ax.fill_between([0,xmx],[15.5,15.5],[0,0], color='k',alpha=0.05)
@@ -408,7 +408,7 @@ def plot_rf_results(d_climate, d_dev, mean_vals, res_types, exp_name, mod_number
         if a % 5 == 0:
             ax.set_ylabel(r'P(CC$\succ$ins)')
 
-    axs[0,0].text(0, 1.1, '\nHOUSEHOLDS', transform=axs[0,0].transAxes, fontsize=22)
+    axs[0,0].text(0, 1.1, '\nHOUSEHOLD', transform=axs[0,0].transAxes, fontsize=22)
     axs[0,3].text(0, 1.1, 'CLIMATE', transform=axs[0,3].transAxes, fontsize=22)
     axs[1,0].text(0, 1.1, 'LAND', transform=axs[1,0].transAxes, fontsize=22)
 
